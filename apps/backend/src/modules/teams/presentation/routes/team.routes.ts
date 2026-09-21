@@ -1,0 +1,20 @@
+import { Router } from "express";
+import { authenticate } from "../../../auth/presentation/middlewares/authenticate.js";
+import { authorize } from "../../../auth/presentation/middlewares/authorize.js";
+import { eventTeamController, teamController } from "../../infrastructure/factories/team.factory.js";
+
+export const teamRoutes = Router();
+teamRoutes.use(authenticate);
+teamRoutes.get("/events/:eventId", authorize("teams:assign-event"), eventTeamController.listTeamsByEvent);
+teamRoutes.get("/:teamId/events", authorize("teams:assign-event"), eventTeamController.listEventsByTeam);
+teamRoutes.post("/:teamId/events/:eventId", authorize("teams:assign-event"), eventTeamController.assignTeamToEvent);
+teamRoutes.delete("/:teamId/events/:eventId", authorize("teams:assign-event"), eventTeamController.unassignTeamFromEvent);
+teamRoutes.get("/", authorize("teams:list"), teamController.list);
+teamRoutes.get("/:id", authorize("teams:read"), teamController.get);
+teamRoutes.post("/", authorize("teams:create"), teamController.create);
+teamRoutes.put("/:id", authorize("teams:update"), teamController.update);
+teamRoutes.delete("/:id", authorize("teams:delete"), teamController.remove);
+teamRoutes.post("/:id/members", authorize("teams:manage-members"), teamController.addMember);
+teamRoutes.delete("/:id/members/:collaboratorId", authorize("teams:manage-members"), teamController.removeMember);
+teamRoutes.patch("/:id/activate", authorize("teams:update"), teamController.setActive(true));
+teamRoutes.patch("/:id/deactivate", authorize("teams:update"), teamController.setActive(false));

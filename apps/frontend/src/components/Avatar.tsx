@@ -1,0 +1,1 @@
+export function Avatar({ name, small = false }: { name: string; small?: boolean }) { const initials = name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase(); return <span className={`avatar${small ? ' small' : ''}`}>{initials}</span> }

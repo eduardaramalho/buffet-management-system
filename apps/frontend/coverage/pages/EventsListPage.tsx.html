@@ -1,0 +1,202 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for pages/EventsListPage.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../index.html">All files</a> / <a href="index.html">pages</a> EventsListPage.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">58.2% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>39/67</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">59.09% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>13/22</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">44.82% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>13/29</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">95.83% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>23/24</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line medium'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">35x</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useEffect, useState } from 'react'
+import { listEvents, removeEvent } from '../api/eventsApi'
+import { Badge } from '../components/Badge'
+import { EventForm } from '../components/EventForm'
+import { Notice } from '../components/Notice'
+import { Pagination } from '../components/Pagination'
+import { StatCard } from '../components/StatCard'
+import { Table } from '../components/Table'
+import type { Event, EventStatus } from '../types/event'
+&nbsp;
+const PAGE_SIZE = 10
+const statusLabels: Record&lt;EventStatus, string&gt; = { PLANEJAMENTO: 'Planejamento', CONFIRMADO: 'Confirmado', EM_ANDAMENTO: 'Em andamento', CONCLUIDO: 'Concluído', CANCELADO: 'Cancelado' }
+const statusTone: Record&lt;EventStatus, 'admin' | 'editor' | 'viewer' | 'active' | 'inactive'&gt; = { PLANEJAMENTO: 'viewer', CONFIRMADO: 'active', EM_ANDAMENTO: 'editor', CONCLUIDO: 'active', CANCELADO: 'inactive' }
+const formatDate = (value: string) =&gt; new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
+&nbsp;
+export function EventsListPage() {
+  const [events, setEvents] = useState&lt;Event[]&gt;([])
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState&lt;EventStatus | ''&gt;('')
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
+  const [page, setPage] = useState(1)
+  const [error, setError] = useState('')
+  const [formOpen, setFormOpen] = useState(false)
+  const [editingEvent, setEditingEvent] = useState&lt;Event&gt;()
+&nbsp;
+  const load = async () =&gt; {
+    try { setEvents(await listEvents({ search: search || undefined, status: status || undefined, from: from || undefined, to: to || undefined })); setError('') }
+    catch (cause) { <span class="cstat-no" title="statement not covered" >setError(cause instanceof Error ? cause.message : 'Erro ao carregar eventos') }</span>
+  }
+  useEffect(() =&gt; { const timer = window.setTimeout(() =&gt; { void load() }, 0); return () =&gt; window.clearTimeout(timer) }, [search, status, from, to])
+  const thisMonth = new Date().toISOString().slice(0, 7)
+  const totalPages = Math.max(1, Math.ceil(events.length / PAGE_SIZE))
+  const visibleEvents = events.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const <span class="fstat-no" title="function not covered" >addEvent = (e</span>vent: Event) =&gt; { <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >setEvents((c</span>urrent) =&gt; <span class="cstat-no" title="statement not covered" >[event, ...current])</span>; <span class="cstat-no" title="statement not covered" >s</span>etPage(1) }</span>
+  const <span class="fstat-no" title="function not covered" >replaceEvent = (e</span>vent: Event) =&gt; <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >setEvents((c</span>urrent) =&gt; <span class="cstat-no" title="statement not covered" >current.<span class="fstat-no" title="function not covered" >map((i</span>tem) =&gt; <span class="cstat-no" title="statement not covered" >item.id === event.id ? event : item)</span>)</span></span>
+  const remove = <span class="fstat-no" title="function not covered" >async (e</span>vent: Event) =&gt; { <span class="cstat-no" title="statement not covered" >if (!window.confirm(`Cancelar/excluir ${event.name}?`)) <span class="cstat-no" title="statement not covered" >return; <span class="cstat-no" title="statement not covered" >t</span></span>ry { <span class="cstat-no" title="statement not covered" >await removeEvent(event.id); <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >s</span>etEvents((c</span>urrent) =&gt; <span class="cstat-no" title="statement not covered" >current.<span class="fstat-no" title="function not covered" >filter((i</span>tem) =&gt; <span class="cstat-no" title="statement not covered" >item.id !== event.id)</span>)</span> }</span> catch (cause) { <span class="cstat-no" title="statement not covered" >setError(cause instanceof Error ? cause.message : 'Falha ao excluir evento') }</span> }</span>
+&nbsp;
+  return &lt;main className="app-shell"&gt;&lt;header&gt;&lt;div&gt;&lt;span className="eyebrow"&gt;PAINEL OPERACIONAL&lt;/span&gt;&lt;h1&gt;Eventos&lt;/h1&gt;&lt;/div&gt;&lt;button className="secondary" onClick={() =&gt; { setEditingEvent(undefined); setFormOpen(true) }}&gt;Novo Evento&lt;/button&gt;&lt;/header&gt;&lt;section className="summary"&gt;&lt;StatCard icon="◈" value={events.length} label="Total de eventos" tone="blue" /&gt;&lt;StatCard icon="▣" value={events.filter((event) =&gt; event.eventDate.slice(0, 7) === thisMonth).length} label="Eventos este mês" tone="green" /&gt;&lt;StatCard icon="✓" value={events.filter((event) =&gt; event.status === 'CONFIRMADO').length} label="Confirmados" tone="gold" /&gt;&lt;StatCard icon="◷" value={events.filter((event) =&gt; event.status === 'EM_ANDAMENTO').length} label="Em andamento" tone="purple" /&gt;&lt;/section&gt;&lt;section className="content-head"&gt;&lt;input className="search" placeholder="Buscar por nome ou local..." value={search} <span class="fstat-no" title="function not covered" >onChange={(e</span>vent) =&gt; { <span class="cstat-no" title="statement not covered" >setSearch(event.target.value); <span class="cstat-no" title="statement not covered" >s</span>etPage(1) }</span>} /&gt;&lt;select aria-label="Status" value={status} onChange={(event) =&gt; { setStatus(event.target.value as EventStatus | ''); setPage(1) }}&gt;&lt;option value=""&gt;Todos os status&lt;/option&gt;{Object.entries(statusLabels).map(([value, label]) =&gt; &lt;option key={value} value={value}&gt;{label}&lt;/option&gt;)}&lt;/select&gt;&lt;input aria-label="Data inicial" type="date" value={from} <span class="fstat-no" title="function not covered" >onChange={(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setFrom(event.target.value)} /&gt;</span>&lt;input aria-label="Data final" type="date" value={to} <span class="fstat-no" title="function not covered" >onChange={(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setTo(event.target.value)} /&gt;</span>&lt;/section&gt;{error &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;Notice message={error} error /&gt;}&lt;</span>Table headers={['Evento', 'Data', 'Local', 'Tipo de serviço', 'Status', 'Ações']}&gt;{visibleEvents.map((event) =&gt; &lt;tr key={event.id}&gt;&lt;td&gt;&lt;strong&gt;{event.name}&lt;/strong&gt;&lt;/td&gt;&lt;td&gt;{formatDate(event.eventDate)}&lt;/td&gt;&lt;td&gt;{event.location}&lt;/td&gt;&lt;td&gt;{event.serviceType}&lt;/td&gt;&lt;td&gt;&lt;Badge tone={statusTone[event.status]}&gt;{statusLabels[event.status]}&lt;/Badge&gt;&lt;/td&gt;&lt;td&gt;&lt;div className="row-actions"&gt;&lt;button title="Visualizar evento" aria-label={`Visualizar ${event.name}`}&gt;◉&lt;/button&gt;&lt;button title="Editar evento" aria-label={`Editar ${event.name}`} <span class="fstat-no" title="function not covered" >onClick={() =&gt; {</span> <span class="cstat-no" title="statement not covered" >setEditingEvent(event); <span class="cstat-no" title="statement not covered" >s</span>etFormOpen(true) }</span>}&gt;✎&lt;/button&gt;&lt;button title="Cancelar ou excluir evento" aria-label={`Excluir ${event.name}`} <span class="fstat-no" title="function not covered" >onClick={() =&gt; <span class="cstat-no" title="statement not covered" >v</span>oid remove(event)}&gt;×</span>&lt;/button&gt;&lt;/div&gt;&lt;/td&gt;&lt;/tr&gt;)}&lt;/Table&gt;{events.length === 0 &amp;&amp; &lt;div className="empty"&gt;Nenhum evento encontrado.&lt;/div&gt;}&lt;Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} /&gt;{formOpen &amp;&amp; &lt;EventForm event={editingEvent} <span class="fstat-no" title="function not covered" >onClose={() =&gt; {</span> <span class="cstat-no" title="statement not covered" >setFormOpen(false); <span class="cstat-no" title="statement not covered" >s</span>etEditingEvent(undefined) }</span>} <span class="fstat-no" title="function not covered" >onCreated={(e</span>vent) =&gt; { <span class="cstat-no" title="statement not covered" >addEvent(event); <span class="cstat-no" title="statement not covered" >s</span>etFormOpen(false) }</span>} <span class="fstat-no" title="function not covered" >onUpdated={(e</span>vent) =&gt; { <span class="cstat-no" title="statement not covered" >replaceEvent(event); <span class="cstat-no" title="statement not covered" >s</span>etFormOpen(false) }</span>} /&gt;}&lt;/main&gt;
+}</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-09-21T22:40:47.798Z
+            </div>
+        <script src="../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../sorter.js"></script>
+        <script src="../block-navigation.js"></script>
+    </body>
+</html>
+    

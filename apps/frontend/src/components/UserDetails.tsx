@@ -1,0 +1,5 @@
+import type { User } from '../types'
+
+export function UserDetails({ user, onClose }: { user: User; onClose: () => void }) {
+  return <aside className="user-form-panel" role="dialog" aria-modal="true" aria-labelledby="user-details-title"><div className="form-wrap"><button type="button" className="link-button" onClick={onClose}>Fechar</button><h2 id="user-details-title">Visualizar usuário</h2><p><strong>Nome:</strong> {user.name}</p><p><strong>E-mail:</strong> {user.email}</p><p><strong>Status:</strong> {user.isActive ? 'Ativo' : 'Inativo'}</p><p><strong>Papel:</strong> {user.roles.map(({ role }) => role.name).join(', ') || 'Sem papel'}</p><h3>Histórico básico</h3><p className="muted">{user.lastAccessAt ? `Último acesso: ${new Date(user.lastAccessAt).toLocaleString('pt-BR')}` : 'Último acesso não disponível.'}</p></div></aside>
+}

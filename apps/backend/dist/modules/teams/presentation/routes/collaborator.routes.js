@@ -1,0 +1,11 @@
+import { Router } from "express";
+import { authenticate } from "../../../auth/presentation/middlewares/authenticate.js";
+import { authorize } from "../../../auth/presentation/middlewares/authorize.js";
+import { collaboratorController } from "../../infrastructure/factories/team.factory.js";
+export const collaboratorRoutes = Router();
+collaboratorRoutes.use(authenticate);
+collaboratorRoutes.get("/", authorize("collaborators:manage"), collaboratorController.list);
+collaboratorRoutes.get("/:id", authorize("collaborators:manage"), collaboratorController.get);
+collaboratorRoutes.post("/", authorize("collaborators:manage"), collaboratorController.create);
+collaboratorRoutes.put("/:id", authorize("collaborators:manage"), collaboratorController.update);
+collaboratorRoutes.patch("/:id/status", authorize("collaborators:manage"), collaboratorController.setStatus);

@@ -1,0 +1,1 @@
+export function StatCard({ icon, value, label, tone }: { icon: string; value: number; label: string; tone: 'blue' | 'green' | 'gold' | 'purple' }) { return <article className={`stat-card stat-${tone}`}><span className="stat-icon">{icon}</span><div><strong>{value}</strong><span>{label}</span></div></article> }

@@ -1,0 +1,14 @@
+import { Router } from "express";
+import { eventController } from "../../infrastructure/factories/event.factory.js";
+import { authenticate } from "../../../auth/presentation/middlewares/authenticate.js";
+import { authorize } from "../../../auth/presentation/middlewares/authorize.js";
+export const eventRoutes = Router();
+eventRoutes.use(authenticate);
+eventRoutes.get("/", authorize("events:list"), eventController.list);
+eventRoutes.get("/:id", authorize("events:read"), eventController.get);
+eventRoutes.post("/", authorize("events:create"), eventController.create);
+eventRoutes.put("/:id", authorize("events:update"), eventController.update);
+eventRoutes.delete("/:id", authorize("events:delete"), eventController.remove);
+eventRoutes.patch("/:id/restore", authorize("events:restore"), eventController.restore);
+eventRoutes.post("/:id/services", authorize("events:update"), eventController.attachService);
+eventRoutes.delete("/:id/services/:serviceId", authorize("events:update"), eventController.detachService);

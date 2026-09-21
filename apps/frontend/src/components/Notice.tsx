@@ -1,0 +1,1 @@
+export function Notice({ message, error = false }: { message: string; error?: boolean }) { return <div role={error ? 'alert' : 'status'} className={`alert${error ? ' error' : ''}`}>{message}</div> }

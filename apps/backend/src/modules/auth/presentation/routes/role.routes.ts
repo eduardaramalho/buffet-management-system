@@ -1,0 +1,15 @@
+import { Router } from 'express';
+import { roleController } from '../../infrastructure/factories/role.factory.js';
+import { authenticate } from '../middlewares/authenticate.js';
+import { authorize } from '../middlewares/authorize.js';
+
+export const roleRoutes = Router();
+roleRoutes.use(authenticate);
+roleRoutes.get('/', authorize('roles:list'), roleController.list);
+roleRoutes.get('/permissions', authorize('roles:manage-permissions'), roleController.listPermissions);
+roleRoutes.get('/:id', authorize('roles:read'), roleController.get);
+roleRoutes.post('/', authorize('roles:create'), roleController.create);
+roleRoutes.put('/:id', authorize('roles:update'), roleController.update);
+roleRoutes.delete('/:id', authorize('roles:delete'), roleController.remove);
+roleRoutes.post('/:id/permissions', authorize('roles:manage-permissions'), roleController.assignPermission);
+roleRoutes.delete('/:id/permissions', authorize('roles:manage-permissions'), roleController.revokePermission);

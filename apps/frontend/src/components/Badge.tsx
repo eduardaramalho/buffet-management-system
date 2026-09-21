@@ -1,0 +1,1 @@
+export function Badge({ children, tone = 'neutral' }: { children: string; tone?: 'admin' | 'editor' | 'viewer' | 'active' | 'inactive' | 'neutral' }) { return <span className={`badge badge-${tone}`}>{children}</span> }

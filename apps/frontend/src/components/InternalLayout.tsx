@@ -1,0 +1,12 @@
+import type { ReactNode } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { useAuth } from '../contexts/useAuth'
+import { Avatar } from './Avatar'
+import { Logo } from './Logo'
+
+export function InternalLayout({ children, onLogout }: { children: ReactNode; onLogout: () => Promise<void> }) {
+  const { user } = useAuth()
+  const location = useLocation()
+  const hasPermission = (permission: string) => user?.roles?.some((role) => role.permissions.includes(permission)) ?? false
+  return <div className="internal-layout"><aside className="sidebar"><Logo compact /><nav className="side-nav"><Link to="/users" className="side-link">⌂ <span>Dashboard</span></Link><span className="side-section">ADMINISTRAÇÃO</span>{hasPermission('users:list') && <Link aria-label="Usuários" to="/users" className={`side-link${location.pathname.startsWith('/users') ? ' active' : ''}`}>♙ <span aria-hidden="true">Usuários</span></Link>}{hasPermission('events:list') && <Link aria-label="Eventos" to="/events" className={`side-link${location.pathname.startsWith('/events') ? ' active' : ''}`}>◈ <span aria-hidden="true">Eventos</span></Link>}{hasPermission('teams:list') && <Link aria-label="Equipes" to="/teams" className={`side-link${location.pathname.startsWith('/teams') ? ' active' : ''}`}>♜ <span aria-hidden="true">Equipes</span></Link>}{hasPermission('roles:list') && <Link aria-label="Papéis" to="/roles" className={`side-link${location.pathname.startsWith('/roles') ? ' active' : ''}`}>⚙ <span aria-hidden="true">Papéis</span></Link>}</nav><div className="sidebar-footer"><Avatar name={user?.name ?? 'Usuário'} small /><div><strong>{user?.name ?? 'Usuário'}</strong><small>Gestor</small></div><button title="Recolher menu" aria-label="Recolher menu">‹</button></div></aside><div className="internal-content"><header className="topbar"><div className="breadcrumb"><span>Painel</span><b>›</b><strong>{location.pathname.startsWith('/roles') ? 'Papéis' : location.pathname.startsWith('/events') ? 'Eventos' : location.pathname.startsWith('/teams') ? 'Equipes' : 'Usuários'}</strong></div><div className="topbar-user"><button className="notification" aria-label="Notificações">♧<i>3</i></button><Avatar name={user?.name ?? 'Usuário'} small /><div><strong>{user?.name ?? 'Usuário'}</strong><small>Gestor</small></div><button className="chevron" onClick={() => void onLogout()} title="Sair">⌄</button></div></header>{children}</div></div>
+}

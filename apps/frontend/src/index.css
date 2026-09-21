@@ -1,0 +1,41 @@
+html {
+    min-width: 320px;
+}
+
+:root {
+    --navy-950: #091a3a;
+    --navy-900: #102650;
+    --navy-800: #173d82;
+    --blue-600: #0d56bd;
+    --blue-100: #e8f0ff;
+    --gold-500: #e5a72d;
+    --gold-100: #fff5df;
+    --cream-50: #fffaf0;
+    --paper-100: #f5efe3;
+    --white: #ffffff;
+    --ink-900: #14213d;
+    --slate-600: #5d6b84;
+    --line-200: #dce2eb;
+    --success-100: #e8f7ec;
+    --success-700: #278243;
+    --danger-100: #fff0ed;
+    --danger-700: #c24c43;
+    --purple-100: #f0eafe;
+    --purple-700: #7049b8;
+    --sidebar-muted: #b9c7dd;
+    --gold-line: #f0d8a9;
+    --gold-border: #eed7ae;
+    --gold-soft: #f8e9ca;
+    --content-bg: #f7f9fc;
+    --sidebar-section: #8fa2c5;
+    --sidebar-text: #ced9ec;
+    --sidebar-border: #23385e;
+    --sidebar-subtle: #a9b8d2;
+    --sidebar-button: #d4deee;
+    --notification: #e0504d;
+    --viewer-text: #2d72a1;
+    --viewer-bg: #e6f5fb;
+    --neutral-bg: #eef1f5;
+    --header-bg: #fafbfd;
+    --row-border: #edf0f4;
+}
