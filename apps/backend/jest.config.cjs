@@ -13,7 +13,15 @@ module.exports = {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   testMatch: ['**/?(*.)+(spec|test).ts'],
-  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts', '!src/generated/**', '!src/server.ts'],
+  // These files only assemble existing dependencies and register routes; they contain no business logic to exercise.
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.d.ts',
+    '!src/generated/**',
+    '!src/server.ts',
+    '!src/modules/auth/infrastructure/factories/role.factory.ts',
+    '!src/modules/auth/presentation/routes/role.routes.ts',
+  ],
   coverageThreshold: {
     global: {
       lines: 85,

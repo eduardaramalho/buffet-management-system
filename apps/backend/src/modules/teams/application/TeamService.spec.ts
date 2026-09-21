@@ -19,6 +19,24 @@ const makeTeam = (overrides: Partial<TeamRecord> = {}): TeamRecord => ({
 });
 
 describe("TeamService", () => {
+  it("lists and gets an existing team", async () => {
+    const team = makeTeam();
+    const teams = {
+      list: jest.fn(async () => [team]),
+      findById: jest.fn(async () => team),
+    } as unknown as TeamRepository;
+    const service = new TeamService(teams, { record: jest.fn() } as unknown as AuditService);
+
+    await expect(service.list({ status: "ATIVA" })).resolves.toEqual([team]);
+    await expect(service.get("team-1")).resolves.toEqual(team);
+  });
+
+  it("rejects getting a missing team", async () => {
+    const teams = { findById: jest.fn(async () => null) } as unknown as TeamRepository;
+    const service = new TeamService(teams, { record: jest.fn() } as unknown as AuditService);
+
+    await expect(service.get("missing")).rejects.toThrow("Equipe não encontrada");
+  });
   it("creates a valid reusable team and records audit", async () => {
     const input: CreateTeamInput = {
       name: "Equipe Cozinha A",
@@ -55,6 +73,60 @@ describe("TeamService", () => {
       createdById: "actor-1",
     })).rejects.toThrow("nome");
     expect(teams.create).not.toHaveBeenCalled();
+  });
+
+  it("updates and soft-deletes a team with audits", async () => {
+    const team = makeTeam();
+    const updated = makeTeam({ name: "Equipe Cozinha B" });
+    const teams = {
+      findById: jest.fn(async () => team),
+      update: jest.fn(async () => updated),
+      softDelete: jest.fn(async () => updated),
+    } as unknown as TeamRepository;
+    const audit = { record: jest.fn() } as unknown as AuditService;
+    const service = new TeamService(teams, audit);
+
+    await service.update("team-1", { name: "Equipe Cozinha B" }, "actor-1");
+    await service.remove("team-1", "actor-1");
+
+    expect(teams.update).toHaveBeenCalledWith("team-1", { name: "Equipe Cozinha B" });
+    expect(teams.softDelete).toHaveBeenCalledWith("team-1");
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "TEAM_UPDATED" }));
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "TEAM_DELETED" }));
+  });
+
+  it("activates and deactivates a team", async () => {
+    const team = makeTeam();
+    const teams = {
+      findById: jest.fn(async () => team),
+      setStatus: jest.fn(async (_id: string, status: "ATIVA" | "INATIVA") => makeTeam({ status })),
+    } as unknown as TeamRepository;
+    const service = new TeamService(teams, { record: jest.fn() } as unknown as AuditService);
+
+    await service.setActive("team-1", true, "actor-1");
+    await service.setActive("team-1", false, "actor-1");
+
+    expect(teams.setStatus).toHaveBeenNthCalledWith(1, "team-1", "ATIVA");
+    expect(teams.setStatus).toHaveBeenNthCalledWith(2, "team-1", "INATIVA");
+  });
+
+  it("rejects adding a member when collaborators are not configured", async () => {
+    const teams = { findById: jest.fn(async () => makeTeam()) } as unknown as TeamRepository;
+    const service = new TeamService(teams, { record: jest.fn() } as unknown as AuditService);
+
+    await expect(service.addMember("team-1", "collaborator-1", false, "actor-1")).rejects.toThrow("não configurados");
+  });
+
+  it("rejects adding a duplicate member or inactive collaborator", async () => {
+    const teams = {
+      findById: jest.fn(async () => makeTeam({ members: [{ collaboratorId: "collaborator-1", isLeader: false, collaborator: {} as never }] })),
+      addMember: jest.fn(),
+    } as unknown as TeamRepository;
+    const collaborators = { findById: jest.fn(async () => ({ status: "INATIVO", deletedAt: null })) } as never;
+    const service = new TeamService(teams, { record: jest.fn() } as unknown as AuditService, collaborators);
+
+    await expect(service.addMember("team-1", "collaborator-1", false, "actor-1")).rejects.toThrow("inativo");
+    expect(teams.addMember).not.toHaveBeenCalled();
   });
 
   it("allows a collaborator to belong to multiple teams", async () => {

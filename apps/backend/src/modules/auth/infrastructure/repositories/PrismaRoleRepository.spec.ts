@@ -38,6 +38,34 @@ describe('PrismaRoleRepository', () => {
     expect(update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'role-1' }, data: { name: 'Gestor 2', description: undefined } }));
   });
 
+  it('maps nested permissions and returns null for a missing role', async () => {
+    const nestedRole = {
+      ...role,
+      permissions: [{ permission: { id: 'permission-1', key: 'users:list', description: 'List users' } }],
+    };
+    const findFirst = jest.fn()
+      .mockResolvedValueOnce(nestedRole)
+      .mockResolvedValueOnce(null);
+    const repository = new PrismaRoleRepository({ role: { findFirst } } as any);
+
+    await expect(repository.findById('role-1')).resolves.toEqual(expect.objectContaining({
+      permissions: [{ id: 'permission-1', key: 'users:list', description: 'List users' }],
+    }));
+    await expect(repository.findById('missing')).resolves.toBeNull();
+  });
+
+  it('maps flat permission records when the nested permission relation is absent', async () => {
+    const findFirst = jest.fn(async () => ({
+      ...role,
+      permissions: [{ id: 'permission-1', key: 'users:list', description: undefined }],
+    }));
+    const repository = new PrismaRoleRepository({ role: { findFirst } } as any);
+
+    await expect(repository.findById('role-1')).resolves.toEqual(expect.objectContaining({
+      permissions: [{ id: 'permission-1', key: 'users:list', description: null }],
+    }));
+  });
+
   it('soft deletes a role and counts only active users', async () => {
     const update = jest.fn(async () => ({ ...role, deletedAt: new Date() }));
     const count = jest.fn(async () => 2);

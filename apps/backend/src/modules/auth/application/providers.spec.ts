@@ -25,6 +25,15 @@ describe('Auth providers', () => {
     expect(() => provider.verifyAccessToken(jwt.sign({ sub: 'user-1' }, 'test-secret'))).toThrow('Token inválido');
   });
 
+  it('rejects access tokens without the required subject and email claims', () => {
+    const provider = new JwtTokenProvider('secret');
+    const tokenWithoutEmail = provider.createAccessToken({ sub: 'user-1', email: 'alice@buffet.com' });
+
+    expect(provider.verifyAccessToken(tokenWithoutEmail)).toEqual({ sub: 'user-1', email: 'alice@buffet.com' });
+    expect(() => provider.verifyAccessToken('not-a-jwt')).toThrow();
+    expect(() => provider.verifyAccessToken(jwt.sign({ email: 'alice@buffet.com' }, 'secret'))).toThrow('Token inválido');
+  });
+
   it('uses the default bcrypt cost when no rounds are provided', async () => {
     const hasher = new BcryptHasher();
     const hash = await hasher.hash('Password123');

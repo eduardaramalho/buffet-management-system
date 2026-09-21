@@ -65,4 +65,15 @@ describe('Auth middlewares', () => {
     expect(response.json).toHaveBeenCalledWith({ message: 'Permissão insuficiente' });
     expect(next).not.toHaveBeenCalled();
   });
+
+  it('returns 401 when authorization runs without an authenticated user', async () => {
+    const request: any = { user: undefined };
+    const response: any = { status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() };
+    const next = jest.fn();
+
+    await authorize('users:list')(request, response, next);
+
+    expect(response.status).toHaveBeenCalledWith(401);
+    expect(next).not.toHaveBeenCalled();
+  });
 });

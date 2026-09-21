@@ -16,6 +16,24 @@ const makeCollaborator = (overrides: Partial<CollaboratorRecord> = {}): Collabor
 });
 
 describe("CollaboratorService", () => {
+  it("lists and gets a collaborator", async () => {
+    const collaborator = makeCollaborator();
+    const collaborators = {
+      list: jest.fn(async () => [collaborator]),
+      findById: jest.fn(async () => collaborator),
+    } as unknown as CollaboratorRepository;
+    const service = new CollaboratorService(collaborators, { record: jest.fn() } as unknown as AuditService);
+
+    await expect(service.list({ search: "Ana" })).resolves.toEqual([collaborator]);
+    await expect(service.get("collaborator-1")).resolves.toEqual(collaborator);
+  });
+
+  it("rejects getting a missing collaborator", async () => {
+    const collaborators = { findById: jest.fn(async () => null) } as unknown as CollaboratorRepository;
+    const service = new CollaboratorService(collaborators, { record: jest.fn() } as unknown as AuditService);
+
+    await expect(service.get("missing")).rejects.toThrow("Colaborador não encontrado");
+  });
   it("creates a valid collaborator and records audit", async () => {
     const collaborators = {
       create: jest.fn(async (input: { name: string; phone: string | null; position: string }) => makeCollaborator(input)),
@@ -36,6 +54,30 @@ describe("CollaboratorService", () => {
 
     await expect(service.create({ name: " ", phone: null, position: "Garçom" }, "actor-1")).rejects.toThrow("nome");
     expect(collaborators.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects an empty position", async () => {
+    const collaborators = { create: jest.fn() } as unknown as CollaboratorRepository;
+    const service = new CollaboratorService(collaborators, { record: jest.fn() } as unknown as AuditService);
+
+    await expect(service.create({ name: "Ana", phone: null, position: " " }, "actor-1")).rejects.toThrow("função");
+    expect(collaborators.create).not.toHaveBeenCalled();
+  });
+
+  it("updates a collaborator and records audit", async () => {
+    const collaborator = makeCollaborator();
+    const updated = makeCollaborator({ name: "Ana Souza" });
+    const collaborators = {
+      findById: jest.fn(async () => collaborator),
+      update: jest.fn(async () => updated),
+    } as unknown as CollaboratorRepository;
+    const audit = { record: jest.fn() } as unknown as AuditService;
+    const service = new CollaboratorService(collaborators, audit);
+
+    await service.update("collaborator-1", { name: " Ana Souza " }, "actor-1");
+
+    expect(collaborators.update).toHaveBeenCalledWith("collaborator-1", { name: "Ana Souza", position: undefined });
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "COLLABORATOR_UPDATED", entityId: "collaborator-1" }));
   });
 
   it("changes status without physical deletion", async () => {

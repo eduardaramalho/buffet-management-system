@@ -37,6 +37,10 @@ export class EventManagementService {
       throw new EventManagementError("A data do evento não pode estar no passado");
     }
 
+    if (!Number.isInteger(input.guestsCount) || input.guestsCount < 1) {
+      throw new EventManagementError("O número de convidados deve ser um inteiro maior ou igual a 1");
+    }
+
     if (input.guestsCount > MAX_GUESTS_COUNT) {
       throw new EventManagementError(`O número de convidados não pode exceder ${MAX_GUESTS_COUNT}`);
     }
@@ -47,7 +51,7 @@ export class EventManagementService {
       action: "EVENT_CREATED",
       entity: "Event",
       entityId: event.id,
-      changes: { name: event.name, status: event.status },
+      changes: { before: null, after: event },
     });
     return event;
   }
@@ -98,13 +102,25 @@ export class EventManagementService {
     }
 
     const deleted = await this.events.softDelete(id);
-    await this.audit.record({ userId: actorId, action: "EVENT_DELETED", entity: "Event", entityId: id });
+    await this.audit.record({
+      userId: actorId,
+      action: "EVENT_DELETED",
+      entity: "Event",
+      entityId: id,
+      changes: { before: event, after: deleted },
+    });
     return deleted;
   }
 
   async restore(id: string, actorId: string) {
     const restored = await this.events.restore(id);
-    await this.audit.record({ userId: actorId, action: "EVENT_RESTORED", entity: "Event", entityId: id });
+    await this.audit.record({
+      userId: actorId,
+      action: "EVENT_RESTORED",
+      entity: "Event",
+      entityId: id,
+      changes: { before: { deletedAt: "set" }, after: { deletedAt: null } },
+    });
     return restored;
   }
 

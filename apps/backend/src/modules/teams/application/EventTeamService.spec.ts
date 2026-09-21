@@ -20,6 +20,44 @@ const makeTeam = (overrides: Partial<TeamAssignmentRecord> = {}): TeamAssignment
 });
 
 describe("EventTeamService", () => {
+  it("rejects assignment when the event is missing or deleted", async () => {
+    const eventTeams = { findEventById: jest.fn(async () => null) } as unknown as EventTeamRepository;
+    const service = new EventTeamService(eventTeams, { record: jest.fn() } as unknown as AuditService);
+
+    await expect(service.assignTeamToEvent("missing", "team-1", "actor-1")).rejects.toThrow("Evento não encontrado");
+  });
+
+  it("rejects assignment to an unknown team", async () => {
+    const eventTeams = {
+      findEventById: jest.fn(async () => makeEvent()),
+      findTeamById: jest.fn(async () => null),
+    } as unknown as EventTeamRepository;
+    const service = new EventTeamService(eventTeams, { record: jest.fn() } as unknown as AuditService);
+
+    await expect(service.assignTeamToEvent("event-1", "missing", "actor-1")).rejects.toThrow("Equipe não encontrada");
+  });
+
+  it("unassigns a team and records audit", async () => {
+    const eventTeams = { unassign: jest.fn(async () => undefined) } as unknown as EventTeamRepository;
+    const audit = { record: jest.fn() } as unknown as AuditService;
+    const service = new EventTeamService(eventTeams, audit);
+
+    await service.unassignTeamFromEvent("event-1", "team-1", "actor-1");
+
+    expect(eventTeams.unassign).toHaveBeenCalledWith("event-1", "team-1");
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "TEAM_UNASSIGNED_FROM_EVENT", entityId: "event-1" }));
+  });
+
+  it("lists team assignments by event and event assignments by team", async () => {
+    const eventTeams = {
+      listTeamsByEvent: jest.fn(async () => []),
+      listAssignmentsByTeam: jest.fn(async () => []),
+    } as unknown as EventTeamRepository;
+    const service = new EventTeamService(eventTeams, { record: jest.fn() } as unknown as AuditService);
+
+    await expect(service.listTeamsByEvent("event-1")).resolves.toEqual([]);
+    await expect(service.listEventsByTeam("team-1")).resolves.toEqual([]);
+  });
   it("assigns an active team to an event in planning and records audit", async () => {
     const eventTeams = {
       findEventById: jest.fn(async () => makeEvent()),
