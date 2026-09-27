@@ -94,6 +94,7 @@ export class TeamService {
 
   async addMember(teamId: string, collaboratorId: string, isLeader: boolean, actorId: string) {
     const team = await this.get(teamId);
+    if (team.status !== "ATIVA") throw new TeamManagementError("Equipe inativa não pode receber novos membros");
     if (!this.collaborators) throw new TeamManagementError("Colaboradores não configurados");
 
     const collaborator = await this.collaborators.findById(collaboratorId);

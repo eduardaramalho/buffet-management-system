@@ -80,6 +80,52 @@ describe("CollaboratorService", () => {
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "COLLABORATOR_UPDATED", entityId: "collaborator-1" }));
   });
 
+  it("updates only the position of a collaborator", async () => {
+    const collaborator = makeCollaborator();
+    const updated = makeCollaborator({ position: "Garçom" });
+    const collaborators = {
+      findById: jest.fn(async () => collaborator),
+      update: jest.fn(async () => updated),
+    } as unknown as CollaboratorRepository;
+    const service = new CollaboratorService(collaborators, { record: jest.fn() } as unknown as AuditService);
+
+    await service.update("collaborator-1", { position: " Garçom " }, "actor-1");
+
+    expect(collaborators.update).toHaveBeenCalledWith("collaborator-1", { name: undefined, position: "Garçom" });
+  });
+
+  it("rejects updating to an empty name", async () => {
+    const collaborators = {
+      findById: jest.fn(async () => makeCollaborator()),
+      update: jest.fn(),
+    } as unknown as CollaboratorRepository;
+    const service = new CollaboratorService(collaborators, { record: jest.fn() } as unknown as AuditService);
+
+    await expect(service.update("collaborator-1", { name: "   " }, "actor-1")).rejects.toThrow("nome");
+    expect(collaborators.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects updating to an empty position", async () => {
+    const collaborators = {
+      findById: jest.fn(async () => makeCollaborator()),
+      update: jest.fn(),
+    } as unknown as CollaboratorRepository;
+    const service = new CollaboratorService(collaborators, { record: jest.fn() } as unknown as AuditService);
+
+    await expect(service.update("collaborator-1", { position: "   " }, "actor-1")).rejects.toThrow("função");
+    expect(collaborators.update).not.toHaveBeenCalled();
+  });
+
+  it("lists collaborators with the default filter", async () => {
+    const list = jest.fn(async () => []);
+    const collaborators = { list } as unknown as CollaboratorRepository;
+    const service = new CollaboratorService(collaborators, { record: jest.fn() } as unknown as AuditService);
+
+    await service.list();
+
+    expect(list).toHaveBeenCalledWith({});
+  });
+
   it("changes status without physical deletion", async () => {
     const collaborators = {
       findById: jest.fn(async () => makeCollaborator()),
