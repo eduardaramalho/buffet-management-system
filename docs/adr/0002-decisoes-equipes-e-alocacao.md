@@ -26,10 +26,17 @@ O `EventTeamService` bloqueia a atribuição quando existe outro evento da mesma
 
 Essa regra fica na camada de aplicação, porque depende da combinação entre datas, status e vínculos existentes, e não pode ser expressa apenas pela chave composta de `EventTeam`.
 
+#### Por que bloquear aqui e não no módulo de Eventos
+
+O módulo de Eventos (ADR 0001) permite que dois eventos ocorram no mesmo `location` e na mesma data sem nenhuma validação de conflito — o gestor pode cadastrar dois eventos simultâneos no mesmo salão se, por exemplo, o espaço comporta múltiplos ambientes ou o cadastro de local ainda é impreciso. Local é um campo de texto livre, não um recurso finito controlado pelo sistema, então bloquear por local traria falsos positivos frequentes.
+
+`Team`, por outro lado, representa um recurso humano/físico concreto: um grupo de colaboradores não pode estar fisicamente alocado em dois eventos com horários sobrepostos. Essa é uma restrição real do mundo físico, não uma preferência de negócio, e o custo de não validar é uma equipe escalada duas vezes sem que ninguém perceba até o dia do evento. Por isso a validação de sobreposição de agenda é obrigatória para `EventTeam` e não existe (nem deve ser copiada) para `location`/`eventDate` em `Event`.
+
 ## Consequências
 
 - O schema usa `Collaborator`, `TeamMember` e `EventTeam` em vez de reutilizar `User` para trabalhadores operacionais.
 - Colaboradores podem ser compartilhados entre equipes sem cadastro duplicado.
 - A tabela `EventTeam` preserva o histórico de alocações.
 - A validação de conflito exige consulta aos eventos já vinculados antes da criação de um novo vínculo.
+- O módulo de Eventos não ganha (e não deve ganhar) uma validação equivalente para `location`/`eventDate`, pois local não é um recurso finito rastreado pelo sistema; times sim.
 - Alterações nas regras de agenda exigem revisão deste ADR, do `EventTeamService` e dos testes de conflito.
