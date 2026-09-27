@@ -1,18 +1,9 @@
 export const TEAM_SPECIALTIES = ['COZINHA', 'SALAO', 'BAR', 'DECORACAO', 'LIMPEZA', 'CERIMONIAL', 'OUTRO'] as const
 export type TeamSpecialty = typeof TEAM_SPECIALTIES[number]
 export type TeamStatus = 'ATIVA' | 'INATIVA'
-export type CollaboratorStatus = 'ATIVO' | 'INATIVO'
 
-export type Collaborator = {
-  id: string
-  name: string
-  phone: string | null
-  position: string
-  status: CollaboratorStatus
-  createdAt: string
-  updatedAt: string
-  deletedAt: string | null
-}
+export type { Collaborator, CollaboratorStatus, CreateCollaboratorInput, UpdateCollaboratorInput, CollaboratorFilters } from './collaborator'
+import type { Collaborator } from './collaborator'
 
 export type TeamMember = {
   collaboratorId: string
@@ -44,6 +35,3 @@ export type Team = {
 export type CreateTeamInput = Pick<Team, 'name' | 'specialty' | 'observations'>
 export type UpdateTeamInput = Partial<CreateTeamInput>
 export type TeamFilters = { search?: string; specialty?: TeamSpecialty; status?: TeamStatus }
-export type CreateCollaboratorInput = Pick<Collaborator, 'name' | 'phone' | 'position'>
-export type UpdateCollaboratorInput = Partial<CreateCollaboratorInput>
-export type CollaboratorFilters = { search?: string }

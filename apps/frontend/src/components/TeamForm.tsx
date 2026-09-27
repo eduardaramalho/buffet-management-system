@@ -1,9 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import axios from 'axios'
-import { addTeamMember, createTeam, listCollaborators, removeTeamMember, updateTeam } from '../api/teamsApi'
+import { addTeamMember, createTeam, removeTeamMember, updateTeam } from '../api/teamsApi'
+import { listCollaborators } from '../api/collaboratorsApi'
 import { Button } from './Button'
+import { CollaboratorForm } from './CollaboratorForm'
 import { Notice } from './Notice'
-import type { Collaborator, Team, TeamSpecialty } from '../types/team'
+import type { Collaborator } from '../types/collaborator'
+import type { Team, TeamSpecialty } from '../types/team'
 import { TEAM_SPECIALTIES } from '../types/team'
 
 type TeamFormProps = { team?: Team; onClose: () => void; onCreated: (team: Team) => void; onUpdated: (team: Team) => void }
@@ -21,8 +24,10 @@ export function TeamForm({ team, onClose, onCreated, onUpdated }: TeamFormProps)
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [newCollaboratorOpen, setNewCollaboratorOpen] = useState(false)
 
-  useEffect(() => { void listCollaborators({ search: search || undefined }).then(setCollaborators).catch((cause) => setError(apiErrorMessage(cause))) }, [search])
+  const reloadCollaborators = () => listCollaborators({ search: search || undefined }).then(setCollaborators).catch((cause) => setError(apiErrorMessage(cause)))
+  useEffect(() => { void reloadCollaborators() }, [search])
   const toggleMember = (collaborator: Collaborator) => setSelected((current) => {
     if (current[collaborator.id]) { const next = { ...current }; delete next[collaborator.id]; return next }
     return { ...current, [collaborator.id]: { collaborator, isLeader: false } }
@@ -59,5 +64,5 @@ export function TeamForm({ team, onClose, onCreated, onUpdated }: TeamFormProps)
     } catch (cause) { setError(apiErrorMessage(cause)) } finally { setLoading(false) }
   }
 
-  return <aside className="user-form-panel" role="dialog" aria-modal="true" aria-labelledby="team-form-title"><div className="form-wrap"><button type="button" className="link-button" onClick={onClose}>Voltar</button><h2 id="team-form-title">{team ? 'Editar equipe' : 'Nova equipe'}</h2><form onSubmit={submit}><label>Nome da equipe<input aria-label="Nome da equipe" value={name} onChange={(event) => setName(event.target.value)} /></label><label>Especialidade<select aria-label="Especialidade" value={specialty} onChange={(event) => setSpecialty(event.target.value as TeamSpecialty)}><option value="">Selecione</option>{TEAM_SPECIALTIES.map((value) => <option key={value} value={value}>{specialtyLabels[value]}</option>)}</select></label><label>Observações<textarea aria-label="Observações" value={observations} onChange={(event) => setObservations(event.target.value)} /></label><section><h3>Membros da equipe</h3><input aria-label="Buscar colaboradores" placeholder="Buscar colaboradores..." value={search} onChange={(event) => setSearch(event.target.value)} /><div className="service-checks">{collaborators.filter((collaborator) => collaborator.status === 'ATIVO').map((collaborator) => <label key={collaborator.id}><span><input type="checkbox" aria-label={collaborator.name} checked={Boolean(selected[collaborator.id])} onChange={() => toggleMember(collaborator)} /> {collaborator.name}</span>{selected[collaborator.id] && <button type="button" onClick={() => toggleLeader(collaborator.id)} aria-label={`${selected[collaborator.id].isLeader ? 'Remover líder' : 'Definir líder'} ${collaborator.name}`}>{selected[collaborator.id].isLeader ? 'Líder' : 'Definir líder'}</button>}</label>)}</div></section>{error && <Notice message={error} error />}<div className="form-actions"><Button type="button" className="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" className="primary" disabled={loading}>{loading ? 'Salvando...' : 'Salvar'}</Button></div></form></div></aside>
+  return <aside className="user-form-panel" role="dialog" aria-modal="true" aria-labelledby="team-form-title"><div className="form-wrap"><button type="button" className="link-button" onClick={onClose}>Voltar</button><h2 id="team-form-title">{team ? 'Editar equipe' : 'Nova equipe'}</h2><form onSubmit={submit}><label>Nome da equipe<input aria-label="Nome da equipe" value={name} onChange={(event) => setName(event.target.value)} /></label><label>Especialidade<select aria-label="Especialidade" value={specialty} onChange={(event) => setSpecialty(event.target.value as TeamSpecialty)}><option value="">Selecione</option>{TEAM_SPECIALTIES.map((value) => <option key={value} value={value}>{specialtyLabels[value]}</option>)}</select></label><label>Observações<textarea aria-label="Observações" value={observations} onChange={(event) => setObservations(event.target.value)} /></label><section><h3>Membros da equipe</h3><input aria-label="Buscar colaboradores" placeholder="Buscar colaboradores..." value={search} onChange={(event) => setSearch(event.target.value)} /><button type="button" className="link-button" onClick={() => setNewCollaboratorOpen(true)}>+ Novo colaborador</button><div className="service-checks">{collaborators.filter((collaborator) => collaborator.status === 'ATIVO').map((collaborator) => <label key={collaborator.id}><span><input type="checkbox" aria-label={collaborator.name} checked={Boolean(selected[collaborator.id])} onChange={() => toggleMember(collaborator)} /> {collaborator.name}</span>{selected[collaborator.id] && <button type="button" onClick={() => toggleLeader(collaborator.id)} aria-label={`${selected[collaborator.id].isLeader ? 'Remover líder' : 'Definir líder'} ${collaborator.name}`}>{selected[collaborator.id].isLeader ? 'Líder' : 'Definir líder'}</button>}</label>)}</div></section>{newCollaboratorOpen && <CollaboratorForm onClose={() => setNewCollaboratorOpen(false)} onCreated={(created) => { setCollaborators((current) => [created, ...current]); toggleMember(created); setNewCollaboratorOpen(false) }} onUpdated={() => setNewCollaboratorOpen(false)} />}{error && <Notice message={error} error />}<div className="form-actions"><Button type="button" className="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" className="primary" disabled={loading}>{loading ? 'Salvando...' : 'Salvar'}</Button></div></form></div></aside>
 }

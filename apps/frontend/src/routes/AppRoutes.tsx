@@ -10,6 +10,7 @@ import { UserFormPage } from '../pages/UserFormPage'
 import { UsersListPage } from '../pages/UsersListPage'
 import { EventsListPage } from '../pages/EventsListPage'
 import { TeamsListPage } from '../pages/TeamsListPage'
+import { CollaboratorsListPage } from '../pages/CollaboratorsListPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { InternalLayout } from '../components/InternalLayout'
 
@@ -27,6 +28,7 @@ export function AppRoutes() {
 			<Route path="/users/:id/edit" element={<ProtectedRoute permission="users:update">{withNavigation(<UserFormPage />)}</ProtectedRoute>} />
 			<Route path="/events" element={<ProtectedRoute permission="events:list">{withNavigation(<EventsListPage />)}</ProtectedRoute>} />
 			<Route path="/teams" element={<ProtectedRoute permission="teams:list">{withNavigation(<TeamsListPage />)}</ProtectedRoute>} />
+			<Route path="/collaborators" element={<ProtectedRoute permission="collaborators:manage">{withNavigation(<CollaboratorsListPage />)}</ProtectedRoute>} />
 			<Route path="/roles" element={<ProtectedRoute permission="roles:list">{withNavigation(<RolesListPage />)}</ProtectedRoute>} />
 			<Route path="/roles/new" element={<ProtectedRoute permission="roles:create">{withNavigation(<RoleFormPage />)}</ProtectedRoute>} />
 			<Route path="/roles/:id" element={<ProtectedRoute permission="roles:update">{withNavigation(<RoleFormPage />)}</ProtectedRoute>} />
