@@ -112,6 +112,16 @@ export type RefreshToken = Prisma.RefreshTokenModel
  */
 export type PasswordResetToken = Prisma.PasswordResetTokenModel
 /**
+ * Model Rule
+ * 
+ */
+export type Rule = Prisma.RuleModel
+/**
+ * Model RuleResourceRequirement
+ * 
+ */
+export type RuleResourceRequirement = Prisma.RuleResourceRequirementModel
+/**
  * Model AuditLog
  * 
  */

@@ -65,6 +65,8 @@ export const ModelName = {
   RolePermission: 'RolePermission',
   RefreshToken: 'RefreshToken',
   PasswordResetToken: 'PasswordResetToken',
+  Rule: 'Rule',
+  RuleResourceRequirement: 'RuleResourceRequirement',
   AuditLog: 'AuditLog'
 } as const
 
@@ -249,6 +251,34 @@ export const PasswordResetTokenScalarFieldEnum = {
 export type PasswordResetTokenScalarFieldEnum = (typeof PasswordResetTokenScalarFieldEnum)[keyof typeof PasswordResetTokenScalarFieldEnum]
 
 
+export const RuleScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  isActive: 'isActive',
+  conditionServiceTypeIn: 'conditionServiceTypeIn',
+  conditionMinGuests: 'conditionMinGuests',
+  conditionMaxGuests: 'conditionMaxGuests',
+  conditionRequiredServiceIds: 'conditionRequiredServiceIds',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type RuleScalarFieldEnum = (typeof RuleScalarFieldEnum)[keyof typeof RuleScalarFieldEnum]
+
+
+export const RuleResourceRequirementScalarFieldEnum = {
+  id: 'id',
+  ruleId: 'ruleId',
+  specialty: 'specialty',
+  minQuantity: 'minQuantity'
+} as const
+
+export type RuleResourceRequirementScalarFieldEnum = (typeof RuleResourceRequirementScalarFieldEnum)[keyof typeof RuleResourceRequirementScalarFieldEnum]
+
+
 export const AuditLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -430,6 +460,24 @@ export const QueryMode = {
 } as const
 
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const RuleOrderByRelevanceFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  createdById: 'createdById'
+} as const
+
+export type RuleOrderByRelevanceFieldEnum = (typeof RuleOrderByRelevanceFieldEnum)[keyof typeof RuleOrderByRelevanceFieldEnum]
+
+
+export const RuleResourceRequirementOrderByRelevanceFieldEnum = {
+  id: 'id',
+  ruleId: 'ruleId'
+} as const
+
+export type RuleResourceRequirementOrderByRelevanceFieldEnum = (typeof RuleResourceRequirementOrderByRelevanceFieldEnum)[keyof typeof RuleResourceRequirementOrderByRelevanceFieldEnum]
 
 
 export const AuditLogOrderByRelevanceFieldEnum = {

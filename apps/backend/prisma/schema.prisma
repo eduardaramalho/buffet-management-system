@@ -29,6 +29,7 @@ model User {
   createdEvents Event[]       @relation("EventCreator")
   createdTeams  Team[]         @relation("TeamCreator")
   assignedEventTeams EventTeam[] @relation("TeamAssigner")
+  createdRules  Rule[]         @relation("RuleCreator")
 
   @@index([deletedAt])
   @@map("users")
@@ -264,6 +265,43 @@ model PasswordResetToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("password_reset_tokens")
+}
+
+// The condition is embedded directly in Rule (not a separate RuleCondition table) because a rule
+// has exactly one condition set — there is no N:N cardinality to justify normalizing it away.
+model Rule {
+  id                           String                    @id @default(uuid()) @db.Char(36)
+  name                         String                    @db.VarChar(150)
+  description                  String?                   @db.Text
+  isActive                     Boolean                   @default(true) @map("is_active")
+  conditionServiceTypeIn       Json?                     @map("condition_service_type_in")
+  conditionMinGuests           Int?                      @map("condition_min_guests")
+  conditionMaxGuests           Int?                      @map("condition_max_guests")
+  conditionRequiredServiceIds  Json?                     @map("condition_required_service_ids")
+  createdById                  String                    @map("created_by_id") @db.Char(36)
+  createdAt                    DateTime                  @default(now()) @map("created_at")
+  updatedAt                    DateTime                  @updatedAt @map("updated_at")
+  deletedAt                    DateTime?                 @map("deleted_at")
+  createdBy                    User                      @relation("RuleCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  resourceRequirements         RuleResourceRequirement[]
+
+  @@index([createdById])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("rules")
+}
+
+// Logical N:N between Rule and TeamSpecialty — a rule may require more than one specialty.
+model RuleResourceRequirement {
+  id          String        @id @default(uuid()) @db.Char(36)
+  ruleId      String        @map("rule_id") @db.Char(36)
+  specialty   TeamSpecialty
+  minQuantity Int           @default(1) @map("min_quantity")
+  rule        Rule          @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([specialty])
+  @@map("rule_resource_requirements")
 }
 
 model AuditLog {

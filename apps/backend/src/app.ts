@@ -13,6 +13,8 @@ import { eventRoutes } from "./modules/events/presentation/routes/event.routes.j
 import { serviceRoutes } from "./modules/events/presentation/routes/service.routes.js";
 import { teamRoutes } from "./modules/teams/presentation/routes/team.routes.js";
 import { collaboratorRoutes } from "./modules/teams/presentation/routes/collaborator.routes.js";
+import { ruleRoutes } from "./modules/rules/presentation/routes/rule.routes.js";
+import { ruleEvaluationRoutes } from "./modules/rules/presentation/routes/ruleEvaluation.routes.js";
 import { errorHandler } from "./shared/middlewares/errorHandler.js";
 import { env } from "./shared/config/env.js";
 import { logger } from "./shared/config/logger.js";
@@ -131,6 +133,8 @@ app.use("/api/v1/events", eventRoutes);
 app.use("/api/v1/services", serviceRoutes);
 app.use("/api/v1/teams", teamRoutes);
 app.use("/api/v1/collaborators", collaboratorRoutes);
+app.use("/api/v1/rules", ruleRoutes);
+app.use("/api/v1/events", ruleEvaluationRoutes);
 
 app.get("/api/v1/health", (_req, res) => {
   res.json({

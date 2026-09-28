@@ -411,6 +411,8 @@ export const ModelName = {
   RolePermission: 'RolePermission',
   RefreshToken: 'RefreshToken',
   PasswordResetToken: 'PasswordResetToken',
+  Rule: 'Rule',
+  RuleResourceRequirement: 'RuleResourceRequirement',
   AuditLog: 'AuditLog'
 } as const
 
@@ -427,7 +429,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "event" | "service" | "eventService" | "collaborator" | "team" | "teamMember" | "eventTeam" | "role" | "permission" | "userRole" | "rolePermission" | "refreshToken" | "passwordResetToken" | "auditLog"
+    modelProps: "user" | "event" | "service" | "eventService" | "collaborator" | "team" | "teamMember" | "eventTeam" | "role" | "permission" | "userRole" | "rolePermission" | "refreshToken" | "passwordResetToken" | "rule" | "ruleResourceRequirement" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1355,6 +1357,138 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Rule: {
+      payload: Prisma.$RulePayload<ExtArgs>
+      fields: Prisma.RuleFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RuleFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RulePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RuleFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RulePayload>
+        }
+        findFirst: {
+          args: Prisma.RuleFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RulePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RuleFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RulePayload>
+        }
+        findMany: {
+          args: Prisma.RuleFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RulePayload>[]
+        }
+        create: {
+          args: Prisma.RuleCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RulePayload>
+        }
+        createMany: {
+          args: Prisma.RuleCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.RuleDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RulePayload>
+        }
+        update: {
+          args: Prisma.RuleUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RulePayload>
+        }
+        deleteMany: {
+          args: Prisma.RuleDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RuleUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.RuleUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RulePayload>
+        }
+        aggregate: {
+          args: Prisma.RuleAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRule>
+        }
+        groupBy: {
+          args: Prisma.RuleGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RuleGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RuleCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RuleCountAggregateOutputType> | number
+        }
+      }
+    }
+    RuleResourceRequirement: {
+      payload: Prisma.$RuleResourceRequirementPayload<ExtArgs>
+      fields: Prisma.RuleResourceRequirementFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RuleResourceRequirementFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RuleResourceRequirementPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RuleResourceRequirementFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RuleResourceRequirementPayload>
+        }
+        findFirst: {
+          args: Prisma.RuleResourceRequirementFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RuleResourceRequirementPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RuleResourceRequirementFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RuleResourceRequirementPayload>
+        }
+        findMany: {
+          args: Prisma.RuleResourceRequirementFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RuleResourceRequirementPayload>[]
+        }
+        create: {
+          args: Prisma.RuleResourceRequirementCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RuleResourceRequirementPayload>
+        }
+        createMany: {
+          args: Prisma.RuleResourceRequirementCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.RuleResourceRequirementDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RuleResourceRequirementPayload>
+        }
+        update: {
+          args: Prisma.RuleResourceRequirementUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RuleResourceRequirementPayload>
+        }
+        deleteMany: {
+          args: Prisma.RuleResourceRequirementDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RuleResourceRequirementUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.RuleResourceRequirementUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RuleResourceRequirementPayload>
+        }
+        aggregate: {
+          args: Prisma.RuleResourceRequirementAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRuleResourceRequirement>
+        }
+        groupBy: {
+          args: Prisma.RuleResourceRequirementGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RuleResourceRequirementGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RuleResourceRequirementCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RuleResourceRequirementCountAggregateOutputType> | number
+        }
+      }
+    }
     AuditLog: {
       payload: Prisma.$AuditLogPayload<ExtArgs>
       fields: Prisma.AuditLogFieldRefs
@@ -1625,6 +1759,34 @@ export const PasswordResetTokenScalarFieldEnum = {
 export type PasswordResetTokenScalarFieldEnum = (typeof PasswordResetTokenScalarFieldEnum)[keyof typeof PasswordResetTokenScalarFieldEnum]
 
 
+export const RuleScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  isActive: 'isActive',
+  conditionServiceTypeIn: 'conditionServiceTypeIn',
+  conditionMinGuests: 'conditionMinGuests',
+  conditionMaxGuests: 'conditionMaxGuests',
+  conditionRequiredServiceIds: 'conditionRequiredServiceIds',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type RuleScalarFieldEnum = (typeof RuleScalarFieldEnum)[keyof typeof RuleScalarFieldEnum]
+
+
+export const RuleResourceRequirementScalarFieldEnum = {
+  id: 'id',
+  ruleId: 'ruleId',
+  specialty: 'specialty',
+  minQuantity: 'minQuantity'
+} as const
+
+export type RuleResourceRequirementScalarFieldEnum = (typeof RuleResourceRequirementScalarFieldEnum)[keyof typeof RuleResourceRequirementScalarFieldEnum]
+
+
 export const AuditLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1806,6 +1968,24 @@ export const QueryMode = {
 } as const
 
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const RuleOrderByRelevanceFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  createdById: 'createdById'
+} as const
+
+export type RuleOrderByRelevanceFieldEnum = (typeof RuleOrderByRelevanceFieldEnum)[keyof typeof RuleOrderByRelevanceFieldEnum]
+
+
+export const RuleResourceRequirementOrderByRelevanceFieldEnum = {
+  id: 'id',
+  ruleId: 'ruleId'
+} as const
+
+export type RuleResourceRequirementOrderByRelevanceFieldEnum = (typeof RuleResourceRequirementOrderByRelevanceFieldEnum)[keyof typeof RuleResourceRequirementOrderByRelevanceFieldEnum]
 
 
 export const AuditLogOrderByRelevanceFieldEnum = {
@@ -2073,6 +2253,8 @@ export type GlobalOmitConfig = {
   rolePermission?: Prisma.RolePermissionOmit
   refreshToken?: Prisma.RefreshTokenOmit
   passwordResetToken?: Prisma.PasswordResetTokenOmit
+  rule?: Prisma.RuleOmit
+  ruleResourceRequirement?: Prisma.RuleResourceRequirementOmit
   auditLog?: Prisma.AuditLogOmit
 }
 
