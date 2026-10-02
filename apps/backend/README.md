@@ -148,3 +148,46 @@ Exemplo de criação:
   "position": "Cozinheira"
 }
 ```
+
+## Tarefas e motor de regras
+
+Todos os endpoints abaixo exigem `Authorization: Bearer <access-token>`. `Task` é gerada automaticamente pelo motor de regras (nunca criada manualmente nesta etapa) e usa soft delete.
+
+### Tarefas
+
+| Método | Path | Permissão |
+|---|---|---|
+| `GET` | `/api/v1/tasks` | `tasks:list` |
+| `GET` | `/api/v1/tasks/:id` | `tasks:read` |
+
+`GET /api/v1/tasks` aceita os filtros opcionais `eventId` e `status` (`PENDENTE`, `EM_ANDAMENTO`, `CONCLUIDA`, `CANCELADA`).
+
+Esta etapa expõe somente leitura. A atualização de status de uma `Task` (por exemplo, marcar como `CONCLUIDA`) é escopo do próximo módulo do cronograma — ver [ADR 0003](../../docs/adr/0003-task-de-alerta-e-idempotencia-do-motor-de-regras.md).
+
+### Aplicação de regras (motor de regras — Parte 2)
+
+| Método | Path | Permissão |
+|---|---|---|
+| `POST` | `/api/v1/events/:eventId/apply-rules` | `rules:apply` |
+
+Aciona manualmente o motor de regras para o evento informado: avalia as regras ativas que casam com o evento e, para cada regra ainda não aplicada a ele, gera as `Task` correspondentes e tenta atribuir automaticamente as equipes exigidas. O mesmo processamento é disparado automaticamente quando um evento transiciona para o status `CONFIRMADO`.
+
+Corpo opcional, usado apenas para reprocessamento forçado de uma regra específica:
+
+```json
+{
+  "forceRuleId": "rule-uuid"
+}
+```
+
+Sem `forceRuleId`, regras já aplicadas ao evento (controladas por `RuleApplication`) são ignoradas — a aplicação de regras é idempotente por padrão (ver ADR 0003).
+
+Resposta:
+
+```json
+{
+  "tasksCreated": 2,
+  "teamsAutoAssigned": 1,
+  "alertsGenerated": 1
+}
+```
