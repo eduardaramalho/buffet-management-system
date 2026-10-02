@@ -2,6 +2,7 @@ import { describe, expect, it, jest } from "@jest/globals";
 
 import { EventManagementService } from "./EventManagementService.js";
 import type { EventRepository, EventRecord, CreateEventInput, EventRuleExecutionTrigger, ServiceRepository, EventAuditService } from "../domain/event.types.js";
+import type { Logger } from "../../../shared/domain/logger.types.js";
 
 const makeEvent = (overrides: Partial<EventRecord> = {}): EventRecord => ({
   id: "event-1",
@@ -183,6 +184,31 @@ describe("EventManagementService", () => {
     await service.update("event-1", { observations: "Menu atualizado" }, "actor-1");
 
     expect(ruleExecution.applyRules).not.toHaveBeenCalled();
+  });
+
+  it("does not rethrow to the caller when automatic rule execution fails after confirming an event", async () => {
+    const event = makeEvent({ status: "PLANEJAMENTO" });
+    const updated = makeEvent({ status: "CONFIRMADO" });
+    const events = {
+      findById: jest.fn(async () => event),
+      update: jest.fn(async () => updated),
+    } as unknown as EventRepository;
+    const audit = { record: jest.fn(async () => undefined) } as unknown as EventAuditService;
+    const ruleExecutionError = new Error("falha simulada no motor de regras");
+    const ruleExecution = {
+      applyRules: jest.fn(async () => { throw ruleExecutionError; }),
+    } as unknown as EventRuleExecutionTrigger;
+    const logger = { error: jest.fn() } as unknown as Logger;
+    const service = new EventManagementService(events, audit, undefined, ruleExecution, logger);
+
+    const result = await service.update("event-1", { status: "CONFIRMADO" }, "actor-1");
+
+    expect(result).toEqual(updated);
+    expect(events.update).toHaveBeenCalledWith("event-1", { status: "CONFIRMADO" });
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ eventId: "event-1", err: ruleExecutionError }),
+      expect.any(String),
+    );
   });
 
   it("rejects updating guestsCount above the maximum limit", async () => {

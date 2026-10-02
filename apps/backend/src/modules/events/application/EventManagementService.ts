@@ -9,6 +9,7 @@ import type {
   ServiceRepository,
   UpdateEventInput,
 } from "../domain/event.types.js";
+import type { Logger } from "../../../shared/domain/logger.types.js";
 
 const MAX_GUESTS_COUNT = 5000;
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -32,6 +33,7 @@ export class EventManagementService {
     private readonly audit: EventAuditService,
     private readonly services?: ServiceRepository,
     private readonly ruleExecution?: EventRuleExecutionTrigger,
+    private readonly logger?: Logger,
   ) {}
 
   async create(input: CreateEventInput): Promise<EventRecord> {
@@ -93,9 +95,17 @@ export class EventManagementService {
       changes: { before: event, after: updated },
       reason: input.reason,
     });
-    // Automatic trigger (decision): confirming an event kicks off Rule Engine Part 2.
+    // Automatic trigger (decision): confirming an event kicks off Rule Engine Part 2. Failures here
+    // are logged, not rethrown: the event update above already committed and was audited, so a 500
+    // here would be misleading (the confirmation itself succeeded). The absence of a RuleApplication
+    // row for this event is itself the signal that reprocessing is needed, via the manual
+    // POST /api/v1/events/:id/apply-rules endpoint (Part 2) once someone notices and reprocesses.
     if (input.status === "CONFIRMADO" && event.status !== "CONFIRMADO") {
-      await this.ruleExecution?.applyRules(id, actorId);
+      try {
+        await this.ruleExecution?.applyRules(id, actorId);
+      } catch (error) {
+        this.logger?.error({ eventId: id, err: error }, "Falha ao executar o motor de regras automaticamente após confirmar o evento");
+      }
     }
     return updated;
   }
