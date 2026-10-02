@@ -1,3 +1,5 @@
+import type { TransactionClient } from "../../../shared/domain/transaction.types.js";
+
 export const taskStatuses = ["PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "CANCELADA"] as const;
 export type TaskStatus = (typeof taskStatuses)[number];
 
@@ -34,7 +36,9 @@ export type UpdateTaskStatusInput = {
 };
 
 export interface TaskRepository {
-  create(input: CreateTaskInput): Promise<TaskRecord>;
+  // tx (optional): when provided, the insert participates in the caller's Prisma transaction
+  // instead of auto-committing on its own (see RuleEngineExecutionService.applyRules).
+  create(input: CreateTaskInput, tx?: TransactionClient): Promise<TaskRecord>;
   findById(id: string): Promise<TaskRecord | null>;
   list(filter: TaskListFilter): Promise<TaskRecord[]>;
   update(id: string, input: UpdateTaskStatusInput): Promise<TaskRecord>;
@@ -51,7 +55,8 @@ export type RuleApplicationRecord = {
 // callers only ever reason about "has this rule already been applied to this event".
 export interface RuleApplicationRepository {
   findByEventAndRule(eventId: string, ruleId: string): Promise<RuleApplicationRecord | null>;
-  create(eventId: string, ruleId: string): Promise<RuleApplicationRecord>;
+  // tx (optional): see TaskRepository.create above — keeps this write inside the same transaction.
+  create(eventId: string, ruleId: string, tx?: TransactionClient): Promise<RuleApplicationRecord>;
   remove(eventId: string, ruleId: string): Promise<void>;
 }
 

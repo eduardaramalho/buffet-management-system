@@ -1,11 +1,13 @@
 import type { PrismaClient } from "../../../../generated/client.js";
+import type { TransactionClient } from "../../../../shared/domain/transaction.types.js";
 import type { CreateTaskInput, TaskListFilter, TaskRecord, TaskRepository, UpdateTaskStatusInput } from "../../domain/task.types.js";
 
 export class PrismaTaskRepository implements TaskRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  create(input: CreateTaskInput) {
-    return this.prisma.task.create({ data: input }) as Promise<TaskRecord>;
+  create(input: CreateTaskInput, tx?: TransactionClient) {
+    const client = (tx as PrismaClient | undefined) ?? this.prisma;
+    return client.task.create({ data: input }) as Promise<TaskRecord>;
   }
 
   findById(id: string) {

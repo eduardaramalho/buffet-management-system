@@ -1,6 +1,7 @@
 import { AuditService } from "../../../auth/application/AuditService.js";
 import { PrismaAuditRepository } from "../../../auth/infrastructure/repositories/PrismaAuditRepository.js";
 import { prisma } from "../../../../shared/config/database.js";
+import { PrismaTransactionRunner } from "../../../../shared/infrastructure/PrismaTransactionRunner.js";
 import { PrismaEventRepository } from "../../../events/infrastructure/repositories/PrismaEventRepository.js";
 import { PrismaTeamRepository } from "../../../teams/infrastructure/repositories/PrismaTeamRepository.js";
 import { PrismaEventTeamRepository } from "../../../teams/infrastructure/repositories/PrismaEventTeamRepository.js";
@@ -24,6 +25,7 @@ const auditService = new AuditService(new PrismaAuditRepository(prisma));
 const eventReader = new PrismaEventRepository(prisma);
 const teamRepository = new PrismaTeamRepository(prisma);
 const eventTeamService = new EventTeamService(new PrismaEventTeamRepository(prisma), auditService);
+const transactionRunner = new PrismaTransactionRunner(prisma);
 
 export const taskService = new TaskService(taskRepository, auditService);
 export const ruleEngineExecutionService = new RuleEngineExecutionService(
@@ -35,6 +37,7 @@ export const ruleEngineExecutionService = new RuleEngineExecutionService(
   ruleApplicationRepository,
   ruleTaskTemplateRepository,
   auditService,
+  transactionRunner,
 );
 export const taskController = new TaskController(taskService);
 export const ruleApplicationController = new RuleApplicationController(ruleEngineExecutionService);

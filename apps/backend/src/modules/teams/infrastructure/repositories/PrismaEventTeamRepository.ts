@@ -1,4 +1,5 @@
 import type { PrismaClient } from "../../../../generated/client.js";
+import type { TransactionClient } from "../../../../shared/domain/transaction.types.js";
 import type {
   EventSchedulingRecord,
   EventTeamAssignment,
@@ -31,8 +32,9 @@ export class PrismaEventTeamRepository implements EventTeamRepository {
     }) as Promise<EventSchedulingRecord[]>;
   }
 
-  assign(eventId: string, teamId: string, assignedById: string) {
-    return this.prisma.eventTeam.create({
+  assign(eventId: string, teamId: string, assignedById: string, tx?: TransactionClient) {
+    const client = (tx as PrismaClient | undefined) ?? this.prisma;
+    return client.eventTeam.create({
       data: { eventId, teamId, assignedById },
     }) as Promise<EventTeamAssignment>;
   }

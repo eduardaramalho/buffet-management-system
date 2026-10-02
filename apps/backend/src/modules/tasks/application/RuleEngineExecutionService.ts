@@ -3,6 +3,7 @@ import type { EventTeamService } from "../../teams/application/EventTeamService.
 import type { TeamRepository } from "../../teams/domain/team.types.js";
 import type { EventRepository } from "../../events/domain/event.types.js";
 import type { RuleEngineService } from "../../rules/application/RuleEngineService.js";
+import type { TransactionRunner } from "../../../shared/domain/transaction.types.js";
 import type {
   ApplyRulesOptions,
   AuditService,
@@ -33,6 +34,7 @@ export class RuleEngineExecutionService {
     private readonly ruleApplications: RuleApplicationRepository,
     private readonly ruleTaskTemplates: RuleTaskTemplateRepository,
     private readonly audit: AuditService,
+    private readonly transactions: TransactionRunner,
   ) {}
 
   async applyRules(eventId: string, actorId: string, options: ApplyRulesOptions = {}): Promise<ExecutionResult> {
@@ -54,84 +56,91 @@ export class RuleEngineExecutionService {
       const alreadyApplied = await this.ruleApplications.findByEventAndRule(eventId, match.rule.id);
       if (alreadyApplied) continue;
 
-      const assignedTeamIds = new Set((await this.eventTeamService.listTeamsByEvent(eventId)).map((assignment) => assignment.teamId));
+      // Atomicity: every write of a single rule application (team assignments, generated tasks and
+      // the final idempotency marker) commits or rolls back together. Without this, a crash between
+      // writes (e.g. after creating a Task but before the RuleApplication row) would leave the rule
+      // looking "not yet applied" on the next run, duplicating tasks/assignments.
+      await this.transactions.run(async (tx) => {
+        const assignedTeamIds = new Set((await this.eventTeamService.listTeamsByEvent(eventId)).map((assignment) => assignment.teamId));
 
-      for (const requirement of match.resourceRequirements) {
-        const specialtyTeams = await this.teams.list({ specialty: requirement.specialty });
-        const alreadyAssignedCount = specialtyTeams.filter((team) => assignedTeamIds.has(team.id)).length;
-        let remaining = requirement.minQuantity - alreadyAssignedCount;
+        for (const requirement of match.resourceRequirements) {
+          const specialtyTeams = await this.teams.list({ specialty: requirement.specialty });
+          const alreadyAssignedCount = specialtyTeams.filter((team) => assignedTeamIds.has(team.id)).length;
+          let remaining = requirement.minQuantity - alreadyAssignedCount;
 
-        if (remaining > 0) {
-          const candidates = specialtyTeams.filter((team) => team.status === "ATIVA" && !assignedTeamIds.has(team.id));
-          for (const candidate of candidates) {
-            if (remaining <= 0) break;
-            try {
-              await this.eventTeamService.assignTeamToEvent(eventId, candidate.id, actorId);
-            } catch (error) {
-              // Conflict or team became unavailable mid-loop: try the next candidate instead of failing.
-              if (error instanceof EventTeamManagementError) continue;
-              throw error;
+          if (remaining > 0) {
+            const candidates = specialtyTeams.filter((team) => team.status === "ATIVA" && !assignedTeamIds.has(team.id));
+            for (const candidate of candidates) {
+              if (remaining <= 0) break;
+              try {
+                await this.eventTeamService.assignTeamToEvent(eventId, candidate.id, actorId, tx);
+              } catch (error) {
+                // Conflict or team became unavailable mid-loop: try the next candidate instead of failing.
+                if (error instanceof EventTeamManagementError) continue;
+                throw error;
+              }
+              assignedTeamIds.add(candidate.id);
+              remaining -= 1;
+              result.teamsAutoAssigned += 1;
+              await this.audit.record({
+                userId: actorId,
+                action: "TEAM_AUTO_ASSIGNED",
+                entity: "Event",
+                entityId: eventId,
+                changes: { teamId: candidate.id, ruleId: match.rule.id, specialty: requirement.specialty },
+              });
             }
-            assignedTeamIds.add(candidate.id);
-            remaining -= 1;
-            result.teamsAutoAssigned += 1;
+          }
+
+          if (remaining > 0) {
+            const alertTask = await this.tasks.create({
+              eventId,
+              title: `Faltam ${remaining} equipe(s) de ${requirement.specialty} para o evento`,
+              description: null,
+              dueDate: null,
+              assignedTeamId: null,
+              sourceRuleId: match.rule.id,
+            }, tx);
+            result.tasksCreated += 1;
+            result.alertsGenerated += 1;
             await this.audit.record({
               userId: actorId,
-              action: "TEAM_AUTO_ASSIGNED",
-              entity: "Event",
-              entityId: eventId,
-              changes: { teamId: candidate.id, ruleId: match.rule.id, specialty: requirement.specialty },
+              action: "TASK_GENERATED",
+              entity: "Task",
+              entityId: alertTask.id,
+              changes: { eventId, ruleId: match.rule.id, kind: "TEAM_SHORTAGE_ALERT", specialty: requirement.specialty },
             });
           }
         }
 
-        if (remaining > 0) {
-          const alertTask = await this.tasks.create({
+        const templates = await this.ruleTaskTemplates.listByRuleId(match.rule.id);
+        for (const template of templates) {
+          const dueDate = template.daysBeforeEvent != null
+            ? new Date(event.eventDate.getTime() - template.daysBeforeEvent * MS_PER_DAY)
+            : null;
+          const task = await this.tasks.create({
             eventId,
-            title: `Faltam ${remaining} equipe(s) de ${requirement.specialty} para o evento`,
-            description: null,
-            dueDate: null,
+            title: template.title,
+            description: template.description,
+            dueDate,
             assignedTeamId: null,
             sourceRuleId: match.rule.id,
-          });
+          }, tx);
           result.tasksCreated += 1;
-          result.alertsGenerated += 1;
           await this.audit.record({
             userId: actorId,
             action: "TASK_GENERATED",
             entity: "Task",
-            entityId: alertTask.id,
-            changes: { eventId, ruleId: match.rule.id, kind: "TEAM_SHORTAGE_ALERT", specialty: requirement.specialty },
+            entityId: task.id,
+            changes: { eventId, ruleId: match.rule.id, templateId: template.id },
           });
         }
-      }
 
-      const templates = await this.ruleTaskTemplates.listByRuleId(match.rule.id);
-      for (const template of templates) {
-        const dueDate = template.daysBeforeEvent != null
-          ? new Date(event.eventDate.getTime() - template.daysBeforeEvent * MS_PER_DAY)
-          : null;
-        const task = await this.tasks.create({
-          eventId,
-          title: template.title,
-          description: template.description,
-          dueDate,
-          assignedTeamId: null,
-          sourceRuleId: match.rule.id,
-        });
-        result.tasksCreated += 1;
-        await this.audit.record({
-          userId: actorId,
-          action: "TASK_GENERATED",
-          entity: "Task",
-          entityId: task.id,
-          changes: { eventId, ruleId: match.rule.id, templateId: template.id },
-        });
-      }
-
-      await this.ruleApplications.create(eventId, match.rule.id);
+        await this.ruleApplications.create(eventId, match.rule.id, tx);
+      });
     }
 
     return result;
   }
 }
+

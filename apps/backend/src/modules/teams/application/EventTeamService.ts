@@ -3,6 +3,7 @@ import type {
   EventSchedulingRecord,
   EventTeamRepository,
 } from "../domain/team.types.js";
+import type { TransactionClient } from "../../../shared/domain/transaction.types.js";
 
 const TERMINAL_EVENT_STATUSES = ["CONCLUIDO", "CANCELADO"] as const;
 
@@ -21,7 +22,7 @@ export class EventTeamService {
     private readonly audit: AuditService,
   ) {}
 
-  async assignTeamToEvent(eventId: string, teamId: string, actorId: string) {
+  async assignTeamToEvent(eventId: string, teamId: string, actorId: string, tx?: TransactionClient) {
     const event = await this.eventTeams.findEventById(eventId);
     if (!event || event.deletedAt) throw new EventTeamManagementError("Evento não encontrado");
     if (TERMINAL_EVENT_STATUSES.includes(event.status as (typeof TERMINAL_EVENT_STATUSES)[number])) {
@@ -40,7 +41,11 @@ export class EventTeamService {
       throw new EventTeamManagementError(`conflito de agenda: a equipe já está atribuída ao evento ${conflictingEvent.id}`);
     }
 
-    const assignment = await this.eventTeams.assign(eventId, teamId, actorId);
+    // Only forward tx when given: keeps the call shape identical to before for callers outside
+    // of a transaction (e.g. the EventTeamController), instead of always passing a 4th argument.
+    const assignment = tx
+      ? await this.eventTeams.assign(eventId, teamId, actorId, tx)
+      : await this.eventTeams.assign(eventId, teamId, actorId);
     await this.audit.record({
       userId: actorId,
       action: "TEAM_ASSIGNED_TO_EVENT",
