@@ -67,6 +67,9 @@ export const ModelName = {
   PasswordResetToken: 'PasswordResetToken',
   Rule: 'Rule',
   RuleResourceRequirement: 'RuleResourceRequirement',
+  RuleTaskTemplate: 'RuleTaskTemplate',
+  Task: 'Task',
+  RuleApplication: 'RuleApplication',
   AuditLog: 'AuditLog'
 } as const
 
@@ -279,6 +282,44 @@ export const RuleResourceRequirementScalarFieldEnum = {
 export type RuleResourceRequirementScalarFieldEnum = (typeof RuleResourceRequirementScalarFieldEnum)[keyof typeof RuleResourceRequirementScalarFieldEnum]
 
 
+export const RuleTaskTemplateScalarFieldEnum = {
+  id: 'id',
+  ruleId: 'ruleId',
+  title: 'title',
+  description: 'description',
+  daysBeforeEvent: 'daysBeforeEvent'
+} as const
+
+export type RuleTaskTemplateScalarFieldEnum = (typeof RuleTaskTemplateScalarFieldEnum)[keyof typeof RuleTaskTemplateScalarFieldEnum]
+
+
+export const TaskScalarFieldEnum = {
+  id: 'id',
+  eventId: 'eventId',
+  title: 'title',
+  description: 'description',
+  dueDate: 'dueDate',
+  status: 'status',
+  assignedTeamId: 'assignedTeamId',
+  sourceRuleId: 'sourceRuleId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type TaskScalarFieldEnum = (typeof TaskScalarFieldEnum)[keyof typeof TaskScalarFieldEnum]
+
+
+export const RuleApplicationScalarFieldEnum = {
+  id: 'id',
+  eventId: 'eventId',
+  ruleId: 'ruleId',
+  appliedAt: 'appliedAt'
+} as const
+
+export type RuleApplicationScalarFieldEnum = (typeof RuleApplicationScalarFieldEnum)[keyof typeof RuleApplicationScalarFieldEnum]
+
+
 export const AuditLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -478,6 +519,37 @@ export const RuleResourceRequirementOrderByRelevanceFieldEnum = {
 } as const
 
 export type RuleResourceRequirementOrderByRelevanceFieldEnum = (typeof RuleResourceRequirementOrderByRelevanceFieldEnum)[keyof typeof RuleResourceRequirementOrderByRelevanceFieldEnum]
+
+
+export const RuleTaskTemplateOrderByRelevanceFieldEnum = {
+  id: 'id',
+  ruleId: 'ruleId',
+  title: 'title',
+  description: 'description'
+} as const
+
+export type RuleTaskTemplateOrderByRelevanceFieldEnum = (typeof RuleTaskTemplateOrderByRelevanceFieldEnum)[keyof typeof RuleTaskTemplateOrderByRelevanceFieldEnum]
+
+
+export const TaskOrderByRelevanceFieldEnum = {
+  id: 'id',
+  eventId: 'eventId',
+  title: 'title',
+  description: 'description',
+  assignedTeamId: 'assignedTeamId',
+  sourceRuleId: 'sourceRuleId'
+} as const
+
+export type TaskOrderByRelevanceFieldEnum = (typeof TaskOrderByRelevanceFieldEnum)[keyof typeof TaskOrderByRelevanceFieldEnum]
+
+
+export const RuleApplicationOrderByRelevanceFieldEnum = {
+  id: 'id',
+  eventId: 'eventId',
+  ruleId: 'ruleId'
+} as const
+
+export type RuleApplicationOrderByRelevanceFieldEnum = (typeof RuleApplicationOrderByRelevanceFieldEnum)[keyof typeof RuleApplicationOrderByRelevanceFieldEnum]
 
 
 export const AuditLogOrderByRelevanceFieldEnum = {

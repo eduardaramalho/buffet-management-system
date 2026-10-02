@@ -60,3 +60,13 @@ export const CollaboratorStatus = {
 } as const
 
 export type CollaboratorStatus = (typeof CollaboratorStatus)[keyof typeof CollaboratorStatus]
+
+
+export const TaskStatus = {
+  PENDENTE: 'PENDENTE',
+  EM_ANDAMENTO: 'EM_ANDAMENTO',
+  CONCLUIDA: 'CONCLUIDA',
+  CANCELADA: 'CANCELADA'
+} as const
+
+export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus]

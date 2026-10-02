@@ -18,7 +18,7 @@ const adapter = new PrismaMariaDb({
 const prisma = new PrismaClient({ adapter });
 
 const matrix: Record<string, string[]> = {
-  admin: ["users:list", "users:read", "users:create", "users:update", "users:delete", "roles:list", "roles:read", "roles:create", "roles:update", "roles:delete", "roles:manage-permissions", "audit:read", "events:list", "events:read", "events:create", "events:update", "events:delete", "events:restore", "services:list", "services:read", "services:create", "services:update", "services:delete", "teams:list", "teams:read", "teams:create", "teams:update", "teams:delete", "teams:manage-members", "teams:assign-event", "collaborators:manage", "rules:list", "rules:read", "rules:create", "rules:update", "rules:delete", "rules:evaluate"],
+  admin: ["users:list", "users:read", "users:create", "users:update", "users:delete", "roles:list", "roles:read", "roles:create", "roles:update", "roles:delete", "roles:manage-permissions", "audit:read", "events:list", "events:read", "events:create", "events:update", "events:delete", "events:restore", "services:list", "services:read", "services:create", "services:update", "services:delete", "teams:list", "teams:read", "teams:create", "teams:update", "teams:delete", "teams:manage-members", "teams:assign-event", "collaborators:manage", "rules:list", "rules:read", "rules:create", "rules:update", "rules:delete", "rules:evaluate", "rules:apply", "tasks:list", "tasks:read"],
   gestor: ["users:list", "users:read", "users:update", "audit:read"],
   colaborador: ["users:read", "users:update"]
 };

@@ -122,6 +122,21 @@ export type Rule = Prisma.RuleModel
  */
 export type RuleResourceRequirement = Prisma.RuleResourceRequirementModel
 /**
+ * Model RuleTaskTemplate
+ * 
+ */
+export type RuleTaskTemplate = Prisma.RuleTaskTemplateModel
+/**
+ * Model Task
+ * 
+ */
+export type Task = Prisma.TaskModel
+/**
+ * Model RuleApplication
+ * 
+ */
+export type RuleApplication = Prisma.RuleApplicationModel
+/**
  * Model AuditLog
  * 
  */

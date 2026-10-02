@@ -270,6 +270,9 @@ export type RuleWhereInput = {
   deletedAt?: Prisma.DateTimeNullableFilter<"Rule"> | Date | string | null
   createdBy?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   resourceRequirements?: Prisma.RuleResourceRequirementListRelationFilter
+  taskTemplates?: Prisma.RuleTaskTemplateListRelationFilter
+  applications?: Prisma.RuleApplicationListRelationFilter
+  generatedTasks?: Prisma.TaskListRelationFilter
 }
 
 export type RuleOrderByWithRelationInput = {
@@ -287,6 +290,9 @@ export type RuleOrderByWithRelationInput = {
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdBy?: Prisma.UserOrderByWithRelationInput
   resourceRequirements?: Prisma.RuleResourceRequirementOrderByRelationAggregateInput
+  taskTemplates?: Prisma.RuleTaskTemplateOrderByRelationAggregateInput
+  applications?: Prisma.RuleApplicationOrderByRelationAggregateInput
+  generatedTasks?: Prisma.TaskOrderByRelationAggregateInput
   _relevance?: Prisma.RuleOrderByRelevanceInput
 }
 
@@ -308,6 +314,9 @@ export type RuleWhereUniqueInput = Prisma.AtLeast<{
   deletedAt?: Prisma.DateTimeNullableFilter<"Rule"> | Date | string | null
   createdBy?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   resourceRequirements?: Prisma.RuleResourceRequirementListRelationFilter
+  taskTemplates?: Prisma.RuleTaskTemplateListRelationFilter
+  applications?: Prisma.RuleApplicationListRelationFilter
+  generatedTasks?: Prisma.TaskListRelationFilter
 }, "id">
 
 export type RuleOrderByWithAggregationInput = {
@@ -362,6 +371,9 @@ export type RuleCreateInput = {
   deletedAt?: Date | string | null
   createdBy: Prisma.UserCreateNestedOneWithoutCreatedRulesInput
   resourceRequirements?: Prisma.RuleResourceRequirementCreateNestedManyWithoutRuleInput
+  taskTemplates?: Prisma.RuleTaskTemplateCreateNestedManyWithoutRuleInput
+  applications?: Prisma.RuleApplicationCreateNestedManyWithoutRuleInput
+  generatedTasks?: Prisma.TaskCreateNestedManyWithoutSourceRuleInput
 }
 
 export type RuleUncheckedCreateInput = {
@@ -378,6 +390,9 @@ export type RuleUncheckedCreateInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   resourceRequirements?: Prisma.RuleResourceRequirementUncheckedCreateNestedManyWithoutRuleInput
+  taskTemplates?: Prisma.RuleTaskTemplateUncheckedCreateNestedManyWithoutRuleInput
+  applications?: Prisma.RuleApplicationUncheckedCreateNestedManyWithoutRuleInput
+  generatedTasks?: Prisma.TaskUncheckedCreateNestedManyWithoutSourceRuleInput
 }
 
 export type RuleUpdateInput = {
@@ -394,6 +409,9 @@ export type RuleUpdateInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedRulesNestedInput
   resourceRequirements?: Prisma.RuleResourceRequirementUpdateManyWithoutRuleNestedInput
+  taskTemplates?: Prisma.RuleTaskTemplateUpdateManyWithoutRuleNestedInput
+  applications?: Prisma.RuleApplicationUpdateManyWithoutRuleNestedInput
+  generatedTasks?: Prisma.TaskUpdateManyWithoutSourceRuleNestedInput
 }
 
 export type RuleUncheckedUpdateInput = {
@@ -410,6 +428,9 @@ export type RuleUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   resourceRequirements?: Prisma.RuleResourceRequirementUncheckedUpdateManyWithoutRuleNestedInput
+  taskTemplates?: Prisma.RuleTaskTemplateUncheckedUpdateManyWithoutRuleNestedInput
+  applications?: Prisma.RuleApplicationUncheckedUpdateManyWithoutRuleNestedInput
+  generatedTasks?: Prisma.TaskUncheckedUpdateManyWithoutSourceRuleNestedInput
 }
 
 export type RuleCreateManyInput = {
@@ -528,6 +549,11 @@ export type RuleScalarRelationFilter = {
   isNot?: Prisma.RuleWhereInput
 }
 
+export type RuleNullableScalarRelationFilter = {
+  is?: Prisma.RuleWhereInput | null
+  isNot?: Prisma.RuleWhereInput | null
+}
+
 export type RuleCreateNestedManyWithoutCreatedByInput = {
   create?: Prisma.XOR<Prisma.RuleCreateWithoutCreatedByInput, Prisma.RuleUncheckedCreateWithoutCreatedByInput> | Prisma.RuleCreateWithoutCreatedByInput[] | Prisma.RuleUncheckedCreateWithoutCreatedByInput[]
   connectOrCreate?: Prisma.RuleCreateOrConnectWithoutCreatedByInput | Prisma.RuleCreateOrConnectWithoutCreatedByInput[]
@@ -592,6 +618,50 @@ export type RuleUpdateOneRequiredWithoutResourceRequirementsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.RuleUpdateToOneWithWhereWithoutResourceRequirementsInput, Prisma.RuleUpdateWithoutResourceRequirementsInput>, Prisma.RuleUncheckedUpdateWithoutResourceRequirementsInput>
 }
 
+export type RuleCreateNestedOneWithoutTaskTemplatesInput = {
+  create?: Prisma.XOR<Prisma.RuleCreateWithoutTaskTemplatesInput, Prisma.RuleUncheckedCreateWithoutTaskTemplatesInput>
+  connectOrCreate?: Prisma.RuleCreateOrConnectWithoutTaskTemplatesInput
+  connect?: Prisma.RuleWhereUniqueInput
+}
+
+export type RuleUpdateOneRequiredWithoutTaskTemplatesNestedInput = {
+  create?: Prisma.XOR<Prisma.RuleCreateWithoutTaskTemplatesInput, Prisma.RuleUncheckedCreateWithoutTaskTemplatesInput>
+  connectOrCreate?: Prisma.RuleCreateOrConnectWithoutTaskTemplatesInput
+  upsert?: Prisma.RuleUpsertWithoutTaskTemplatesInput
+  connect?: Prisma.RuleWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.RuleUpdateToOneWithWhereWithoutTaskTemplatesInput, Prisma.RuleUpdateWithoutTaskTemplatesInput>, Prisma.RuleUncheckedUpdateWithoutTaskTemplatesInput>
+}
+
+export type RuleCreateNestedOneWithoutGeneratedTasksInput = {
+  create?: Prisma.XOR<Prisma.RuleCreateWithoutGeneratedTasksInput, Prisma.RuleUncheckedCreateWithoutGeneratedTasksInput>
+  connectOrCreate?: Prisma.RuleCreateOrConnectWithoutGeneratedTasksInput
+  connect?: Prisma.RuleWhereUniqueInput
+}
+
+export type RuleUpdateOneWithoutGeneratedTasksNestedInput = {
+  create?: Prisma.XOR<Prisma.RuleCreateWithoutGeneratedTasksInput, Prisma.RuleUncheckedCreateWithoutGeneratedTasksInput>
+  connectOrCreate?: Prisma.RuleCreateOrConnectWithoutGeneratedTasksInput
+  upsert?: Prisma.RuleUpsertWithoutGeneratedTasksInput
+  disconnect?: Prisma.RuleWhereInput | boolean
+  delete?: Prisma.RuleWhereInput | boolean
+  connect?: Prisma.RuleWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.RuleUpdateToOneWithWhereWithoutGeneratedTasksInput, Prisma.RuleUpdateWithoutGeneratedTasksInput>, Prisma.RuleUncheckedUpdateWithoutGeneratedTasksInput>
+}
+
+export type RuleCreateNestedOneWithoutApplicationsInput = {
+  create?: Prisma.XOR<Prisma.RuleCreateWithoutApplicationsInput, Prisma.RuleUncheckedCreateWithoutApplicationsInput>
+  connectOrCreate?: Prisma.RuleCreateOrConnectWithoutApplicationsInput
+  connect?: Prisma.RuleWhereUniqueInput
+}
+
+export type RuleUpdateOneRequiredWithoutApplicationsNestedInput = {
+  create?: Prisma.XOR<Prisma.RuleCreateWithoutApplicationsInput, Prisma.RuleUncheckedCreateWithoutApplicationsInput>
+  connectOrCreate?: Prisma.RuleCreateOrConnectWithoutApplicationsInput
+  upsert?: Prisma.RuleUpsertWithoutApplicationsInput
+  connect?: Prisma.RuleWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.RuleUpdateToOneWithWhereWithoutApplicationsInput, Prisma.RuleUpdateWithoutApplicationsInput>, Prisma.RuleUncheckedUpdateWithoutApplicationsInput>
+}
+
 export type RuleCreateWithoutCreatedByInput = {
   id?: string
   name: string
@@ -605,6 +675,9 @@ export type RuleCreateWithoutCreatedByInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   resourceRequirements?: Prisma.RuleResourceRequirementCreateNestedManyWithoutRuleInput
+  taskTemplates?: Prisma.RuleTaskTemplateCreateNestedManyWithoutRuleInput
+  applications?: Prisma.RuleApplicationCreateNestedManyWithoutRuleInput
+  generatedTasks?: Prisma.TaskCreateNestedManyWithoutSourceRuleInput
 }
 
 export type RuleUncheckedCreateWithoutCreatedByInput = {
@@ -620,6 +693,9 @@ export type RuleUncheckedCreateWithoutCreatedByInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   resourceRequirements?: Prisma.RuleResourceRequirementUncheckedCreateNestedManyWithoutRuleInput
+  taskTemplates?: Prisma.RuleTaskTemplateUncheckedCreateNestedManyWithoutRuleInput
+  applications?: Prisma.RuleApplicationUncheckedCreateNestedManyWithoutRuleInput
+  generatedTasks?: Prisma.TaskUncheckedCreateNestedManyWithoutSourceRuleInput
 }
 
 export type RuleCreateOrConnectWithoutCreatedByInput = {
@@ -679,6 +755,9 @@ export type RuleCreateWithoutResourceRequirementsInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   createdBy: Prisma.UserCreateNestedOneWithoutCreatedRulesInput
+  taskTemplates?: Prisma.RuleTaskTemplateCreateNestedManyWithoutRuleInput
+  applications?: Prisma.RuleApplicationCreateNestedManyWithoutRuleInput
+  generatedTasks?: Prisma.TaskCreateNestedManyWithoutSourceRuleInput
 }
 
 export type RuleUncheckedCreateWithoutResourceRequirementsInput = {
@@ -694,6 +773,9 @@ export type RuleUncheckedCreateWithoutResourceRequirementsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
+  taskTemplates?: Prisma.RuleTaskTemplateUncheckedCreateNestedManyWithoutRuleInput
+  applications?: Prisma.RuleApplicationUncheckedCreateNestedManyWithoutRuleInput
+  generatedTasks?: Prisma.TaskUncheckedCreateNestedManyWithoutSourceRuleInput
 }
 
 export type RuleCreateOrConnectWithoutResourceRequirementsInput = {
@@ -725,6 +807,9 @@ export type RuleUpdateWithoutResourceRequirementsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedRulesNestedInput
+  taskTemplates?: Prisma.RuleTaskTemplateUpdateManyWithoutRuleNestedInput
+  applications?: Prisma.RuleApplicationUpdateManyWithoutRuleNestedInput
+  generatedTasks?: Prisma.TaskUpdateManyWithoutSourceRuleNestedInput
 }
 
 export type RuleUncheckedUpdateWithoutResourceRequirementsInput = {
@@ -740,6 +825,273 @@ export type RuleUncheckedUpdateWithoutResourceRequirementsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  taskTemplates?: Prisma.RuleTaskTemplateUncheckedUpdateManyWithoutRuleNestedInput
+  applications?: Prisma.RuleApplicationUncheckedUpdateManyWithoutRuleNestedInput
+  generatedTasks?: Prisma.TaskUncheckedUpdateManyWithoutSourceRuleNestedInput
+}
+
+export type RuleCreateWithoutTaskTemplatesInput = {
+  id?: string
+  name: string
+  description?: string | null
+  isActive?: boolean
+  conditionServiceTypeIn?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  conditionMinGuests?: number | null
+  conditionMaxGuests?: number | null
+  conditionRequiredServiceIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  createdBy: Prisma.UserCreateNestedOneWithoutCreatedRulesInput
+  resourceRequirements?: Prisma.RuleResourceRequirementCreateNestedManyWithoutRuleInput
+  applications?: Prisma.RuleApplicationCreateNestedManyWithoutRuleInput
+  generatedTasks?: Prisma.TaskCreateNestedManyWithoutSourceRuleInput
+}
+
+export type RuleUncheckedCreateWithoutTaskTemplatesInput = {
+  id?: string
+  name: string
+  description?: string | null
+  isActive?: boolean
+  conditionServiceTypeIn?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  conditionMinGuests?: number | null
+  conditionMaxGuests?: number | null
+  conditionRequiredServiceIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  resourceRequirements?: Prisma.RuleResourceRequirementUncheckedCreateNestedManyWithoutRuleInput
+  applications?: Prisma.RuleApplicationUncheckedCreateNestedManyWithoutRuleInput
+  generatedTasks?: Prisma.TaskUncheckedCreateNestedManyWithoutSourceRuleInput
+}
+
+export type RuleCreateOrConnectWithoutTaskTemplatesInput = {
+  where: Prisma.RuleWhereUniqueInput
+  create: Prisma.XOR<Prisma.RuleCreateWithoutTaskTemplatesInput, Prisma.RuleUncheckedCreateWithoutTaskTemplatesInput>
+}
+
+export type RuleUpsertWithoutTaskTemplatesInput = {
+  update: Prisma.XOR<Prisma.RuleUpdateWithoutTaskTemplatesInput, Prisma.RuleUncheckedUpdateWithoutTaskTemplatesInput>
+  create: Prisma.XOR<Prisma.RuleCreateWithoutTaskTemplatesInput, Prisma.RuleUncheckedCreateWithoutTaskTemplatesInput>
+  where?: Prisma.RuleWhereInput
+}
+
+export type RuleUpdateToOneWithWhereWithoutTaskTemplatesInput = {
+  where?: Prisma.RuleWhereInput
+  data: Prisma.XOR<Prisma.RuleUpdateWithoutTaskTemplatesInput, Prisma.RuleUncheckedUpdateWithoutTaskTemplatesInput>
+}
+
+export type RuleUpdateWithoutTaskTemplatesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  conditionServiceTypeIn?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  conditionMinGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conditionMaxGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conditionRequiredServiceIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedRulesNestedInput
+  resourceRequirements?: Prisma.RuleResourceRequirementUpdateManyWithoutRuleNestedInput
+  applications?: Prisma.RuleApplicationUpdateManyWithoutRuleNestedInput
+  generatedTasks?: Prisma.TaskUpdateManyWithoutSourceRuleNestedInput
+}
+
+export type RuleUncheckedUpdateWithoutTaskTemplatesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  conditionServiceTypeIn?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  conditionMinGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conditionMaxGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conditionRequiredServiceIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resourceRequirements?: Prisma.RuleResourceRequirementUncheckedUpdateManyWithoutRuleNestedInput
+  applications?: Prisma.RuleApplicationUncheckedUpdateManyWithoutRuleNestedInput
+  generatedTasks?: Prisma.TaskUncheckedUpdateManyWithoutSourceRuleNestedInput
+}
+
+export type RuleCreateWithoutGeneratedTasksInput = {
+  id?: string
+  name: string
+  description?: string | null
+  isActive?: boolean
+  conditionServiceTypeIn?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  conditionMinGuests?: number | null
+  conditionMaxGuests?: number | null
+  conditionRequiredServiceIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  createdBy: Prisma.UserCreateNestedOneWithoutCreatedRulesInput
+  resourceRequirements?: Prisma.RuleResourceRequirementCreateNestedManyWithoutRuleInput
+  taskTemplates?: Prisma.RuleTaskTemplateCreateNestedManyWithoutRuleInput
+  applications?: Prisma.RuleApplicationCreateNestedManyWithoutRuleInput
+}
+
+export type RuleUncheckedCreateWithoutGeneratedTasksInput = {
+  id?: string
+  name: string
+  description?: string | null
+  isActive?: boolean
+  conditionServiceTypeIn?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  conditionMinGuests?: number | null
+  conditionMaxGuests?: number | null
+  conditionRequiredServiceIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  resourceRequirements?: Prisma.RuleResourceRequirementUncheckedCreateNestedManyWithoutRuleInput
+  taskTemplates?: Prisma.RuleTaskTemplateUncheckedCreateNestedManyWithoutRuleInput
+  applications?: Prisma.RuleApplicationUncheckedCreateNestedManyWithoutRuleInput
+}
+
+export type RuleCreateOrConnectWithoutGeneratedTasksInput = {
+  where: Prisma.RuleWhereUniqueInput
+  create: Prisma.XOR<Prisma.RuleCreateWithoutGeneratedTasksInput, Prisma.RuleUncheckedCreateWithoutGeneratedTasksInput>
+}
+
+export type RuleUpsertWithoutGeneratedTasksInput = {
+  update: Prisma.XOR<Prisma.RuleUpdateWithoutGeneratedTasksInput, Prisma.RuleUncheckedUpdateWithoutGeneratedTasksInput>
+  create: Prisma.XOR<Prisma.RuleCreateWithoutGeneratedTasksInput, Prisma.RuleUncheckedCreateWithoutGeneratedTasksInput>
+  where?: Prisma.RuleWhereInput
+}
+
+export type RuleUpdateToOneWithWhereWithoutGeneratedTasksInput = {
+  where?: Prisma.RuleWhereInput
+  data: Prisma.XOR<Prisma.RuleUpdateWithoutGeneratedTasksInput, Prisma.RuleUncheckedUpdateWithoutGeneratedTasksInput>
+}
+
+export type RuleUpdateWithoutGeneratedTasksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  conditionServiceTypeIn?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  conditionMinGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conditionMaxGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conditionRequiredServiceIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedRulesNestedInput
+  resourceRequirements?: Prisma.RuleResourceRequirementUpdateManyWithoutRuleNestedInput
+  taskTemplates?: Prisma.RuleTaskTemplateUpdateManyWithoutRuleNestedInput
+  applications?: Prisma.RuleApplicationUpdateManyWithoutRuleNestedInput
+}
+
+export type RuleUncheckedUpdateWithoutGeneratedTasksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  conditionServiceTypeIn?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  conditionMinGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conditionMaxGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conditionRequiredServiceIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resourceRequirements?: Prisma.RuleResourceRequirementUncheckedUpdateManyWithoutRuleNestedInput
+  taskTemplates?: Prisma.RuleTaskTemplateUncheckedUpdateManyWithoutRuleNestedInput
+  applications?: Prisma.RuleApplicationUncheckedUpdateManyWithoutRuleNestedInput
+}
+
+export type RuleCreateWithoutApplicationsInput = {
+  id?: string
+  name: string
+  description?: string | null
+  isActive?: boolean
+  conditionServiceTypeIn?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  conditionMinGuests?: number | null
+  conditionMaxGuests?: number | null
+  conditionRequiredServiceIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  createdBy: Prisma.UserCreateNestedOneWithoutCreatedRulesInput
+  resourceRequirements?: Prisma.RuleResourceRequirementCreateNestedManyWithoutRuleInput
+  taskTemplates?: Prisma.RuleTaskTemplateCreateNestedManyWithoutRuleInput
+  generatedTasks?: Prisma.TaskCreateNestedManyWithoutSourceRuleInput
+}
+
+export type RuleUncheckedCreateWithoutApplicationsInput = {
+  id?: string
+  name: string
+  description?: string | null
+  isActive?: boolean
+  conditionServiceTypeIn?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  conditionMinGuests?: number | null
+  conditionMaxGuests?: number | null
+  conditionRequiredServiceIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  resourceRequirements?: Prisma.RuleResourceRequirementUncheckedCreateNestedManyWithoutRuleInput
+  taskTemplates?: Prisma.RuleTaskTemplateUncheckedCreateNestedManyWithoutRuleInput
+  generatedTasks?: Prisma.TaskUncheckedCreateNestedManyWithoutSourceRuleInput
+}
+
+export type RuleCreateOrConnectWithoutApplicationsInput = {
+  where: Prisma.RuleWhereUniqueInput
+  create: Prisma.XOR<Prisma.RuleCreateWithoutApplicationsInput, Prisma.RuleUncheckedCreateWithoutApplicationsInput>
+}
+
+export type RuleUpsertWithoutApplicationsInput = {
+  update: Prisma.XOR<Prisma.RuleUpdateWithoutApplicationsInput, Prisma.RuleUncheckedUpdateWithoutApplicationsInput>
+  create: Prisma.XOR<Prisma.RuleCreateWithoutApplicationsInput, Prisma.RuleUncheckedCreateWithoutApplicationsInput>
+  where?: Prisma.RuleWhereInput
+}
+
+export type RuleUpdateToOneWithWhereWithoutApplicationsInput = {
+  where?: Prisma.RuleWhereInput
+  data: Prisma.XOR<Prisma.RuleUpdateWithoutApplicationsInput, Prisma.RuleUncheckedUpdateWithoutApplicationsInput>
+}
+
+export type RuleUpdateWithoutApplicationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  conditionServiceTypeIn?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  conditionMinGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conditionMaxGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conditionRequiredServiceIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedRulesNestedInput
+  resourceRequirements?: Prisma.RuleResourceRequirementUpdateManyWithoutRuleNestedInput
+  taskTemplates?: Prisma.RuleTaskTemplateUpdateManyWithoutRuleNestedInput
+  generatedTasks?: Prisma.TaskUpdateManyWithoutSourceRuleNestedInput
+}
+
+export type RuleUncheckedUpdateWithoutApplicationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  conditionServiceTypeIn?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  conditionMinGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conditionMaxGuests?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conditionRequiredServiceIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resourceRequirements?: Prisma.RuleResourceRequirementUncheckedUpdateManyWithoutRuleNestedInput
+  taskTemplates?: Prisma.RuleTaskTemplateUncheckedUpdateManyWithoutRuleNestedInput
+  generatedTasks?: Prisma.TaskUncheckedUpdateManyWithoutSourceRuleNestedInput
 }
 
 export type RuleCreateManyCreatedByInput = {
@@ -769,6 +1121,9 @@ export type RuleUpdateWithoutCreatedByInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   resourceRequirements?: Prisma.RuleResourceRequirementUpdateManyWithoutRuleNestedInput
+  taskTemplates?: Prisma.RuleTaskTemplateUpdateManyWithoutRuleNestedInput
+  applications?: Prisma.RuleApplicationUpdateManyWithoutRuleNestedInput
+  generatedTasks?: Prisma.TaskUpdateManyWithoutSourceRuleNestedInput
 }
 
 export type RuleUncheckedUpdateWithoutCreatedByInput = {
@@ -784,6 +1139,9 @@ export type RuleUncheckedUpdateWithoutCreatedByInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   resourceRequirements?: Prisma.RuleResourceRequirementUncheckedUpdateManyWithoutRuleNestedInput
+  taskTemplates?: Prisma.RuleTaskTemplateUncheckedUpdateManyWithoutRuleNestedInput
+  applications?: Prisma.RuleApplicationUncheckedUpdateManyWithoutRuleNestedInput
+  generatedTasks?: Prisma.TaskUncheckedUpdateManyWithoutSourceRuleNestedInput
 }
 
 export type RuleUncheckedUpdateManyWithoutCreatedByInput = {
@@ -807,10 +1165,16 @@ export type RuleUncheckedUpdateManyWithoutCreatedByInput = {
 
 export type RuleCountOutputType = {
   resourceRequirements: number
+  taskTemplates: number
+  applications: number
+  generatedTasks: number
 }
 
 export type RuleCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   resourceRequirements?: boolean | RuleCountOutputTypeCountResourceRequirementsArgs
+  taskTemplates?: boolean | RuleCountOutputTypeCountTaskTemplatesArgs
+  applications?: boolean | RuleCountOutputTypeCountApplicationsArgs
+  generatedTasks?: boolean | RuleCountOutputTypeCountGeneratedTasksArgs
 }
 
 /**
@@ -830,6 +1194,27 @@ export type RuleCountOutputTypeCountResourceRequirementsArgs<ExtArgs extends run
   where?: Prisma.RuleResourceRequirementWhereInput
 }
 
+/**
+ * RuleCountOutputType without action
+ */
+export type RuleCountOutputTypeCountTaskTemplatesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RuleTaskTemplateWhereInput
+}
+
+/**
+ * RuleCountOutputType without action
+ */
+export type RuleCountOutputTypeCountApplicationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RuleApplicationWhereInput
+}
+
+/**
+ * RuleCountOutputType without action
+ */
+export type RuleCountOutputTypeCountGeneratedTasksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TaskWhereInput
+}
+
 
 export type RuleSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -846,6 +1231,9 @@ export type RuleSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   deletedAt?: boolean
   createdBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   resourceRequirements?: boolean | Prisma.Rule$resourceRequirementsArgs<ExtArgs>
+  taskTemplates?: boolean | Prisma.Rule$taskTemplatesArgs<ExtArgs>
+  applications?: boolean | Prisma.Rule$applicationsArgs<ExtArgs>
+  generatedTasks?: boolean | Prisma.Rule$generatedTasksArgs<ExtArgs>
   _count?: boolean | Prisma.RuleCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["rule"]>
 
@@ -870,6 +1258,9 @@ export type RuleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = run
 export type RuleInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   createdBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   resourceRequirements?: boolean | Prisma.Rule$resourceRequirementsArgs<ExtArgs>
+  taskTemplates?: boolean | Prisma.Rule$taskTemplatesArgs<ExtArgs>
+  applications?: boolean | Prisma.Rule$applicationsArgs<ExtArgs>
+  generatedTasks?: boolean | Prisma.Rule$generatedTasksArgs<ExtArgs>
   _count?: boolean | Prisma.RuleCountOutputTypeDefaultArgs<ExtArgs>
 }
 
@@ -878,6 +1269,9 @@ export type $RulePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   objects: {
     createdBy: Prisma.$UserPayload<ExtArgs>
     resourceRequirements: Prisma.$RuleResourceRequirementPayload<ExtArgs>[]
+    taskTemplates: Prisma.$RuleTaskTemplatePayload<ExtArgs>[]
+    applications: Prisma.$RuleApplicationPayload<ExtArgs>[]
+    generatedTasks: Prisma.$TaskPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1234,6 +1628,9 @@ export interface Prisma__RuleClient<T, Null = never, ExtArgs extends runtime.Typ
   readonly [Symbol.toStringTag]: "PrismaPromise"
   createdBy<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   resourceRequirements<T extends Prisma.Rule$resourceRequirementsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Rule$resourceRequirementsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RuleResourceRequirementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  taskTemplates<T extends Prisma.Rule$taskTemplatesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Rule$taskTemplatesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RuleTaskTemplatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  applications<T extends Prisma.Rule$applicationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Rule$applicationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RuleApplicationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  generatedTasks<T extends Prisma.Rule$generatedTasksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Rule$generatedTasksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1644,6 +2041,78 @@ export type Rule$resourceRequirementsArgs<ExtArgs extends runtime.Types.Extensio
   take?: number
   skip?: number
   distinct?: Prisma.RuleResourceRequirementScalarFieldEnum | Prisma.RuleResourceRequirementScalarFieldEnum[]
+}
+
+/**
+ * Rule.taskTemplates
+ */
+export type Rule$taskTemplatesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RuleTaskTemplate
+   */
+  select?: Prisma.RuleTaskTemplateSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RuleTaskTemplate
+   */
+  omit?: Prisma.RuleTaskTemplateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RuleTaskTemplateInclude<ExtArgs> | null
+  where?: Prisma.RuleTaskTemplateWhereInput
+  orderBy?: Prisma.RuleTaskTemplateOrderByWithRelationInput | Prisma.RuleTaskTemplateOrderByWithRelationInput[]
+  cursor?: Prisma.RuleTaskTemplateWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RuleTaskTemplateScalarFieldEnum | Prisma.RuleTaskTemplateScalarFieldEnum[]
+}
+
+/**
+ * Rule.applications
+ */
+export type Rule$applicationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RuleApplication
+   */
+  select?: Prisma.RuleApplicationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RuleApplication
+   */
+  omit?: Prisma.RuleApplicationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RuleApplicationInclude<ExtArgs> | null
+  where?: Prisma.RuleApplicationWhereInput
+  orderBy?: Prisma.RuleApplicationOrderByWithRelationInput | Prisma.RuleApplicationOrderByWithRelationInput[]
+  cursor?: Prisma.RuleApplicationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RuleApplicationScalarFieldEnum | Prisma.RuleApplicationScalarFieldEnum[]
+}
+
+/**
+ * Rule.generatedTasks
+ */
+export type Rule$generatedTasksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Task
+   */
+  select?: Prisma.TaskSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Task
+   */
+  omit?: Prisma.TaskOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TaskInclude<ExtArgs> | null
+  where?: Prisma.TaskWhereInput
+  orderBy?: Prisma.TaskOrderByWithRelationInput | Prisma.TaskOrderByWithRelationInput[]
+  cursor?: Prisma.TaskWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TaskScalarFieldEnum | Prisma.TaskScalarFieldEnum[]
 }
 
 /**
