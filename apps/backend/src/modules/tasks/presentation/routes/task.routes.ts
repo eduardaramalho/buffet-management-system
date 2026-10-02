@@ -7,3 +7,4 @@ export const taskRoutes = Router();
 taskRoutes.use(authenticate);
 taskRoutes.get("/", authorize("tasks:list"), taskController.list);
 taskRoutes.get("/:id", authorize("tasks:read"), taskController.get);
+taskRoutes.patch("/:id/status", authorize("tasks:update-status"), taskController.updateStatus);

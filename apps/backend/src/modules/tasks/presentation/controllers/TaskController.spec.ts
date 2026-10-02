@@ -59,4 +59,36 @@ describe("TaskController", () => {
     expect(response.status).toBe(200);
     expect(response.body.id).toBe("task-1");
   });
+
+  it("updates a task's status for the authenticated actor", async () => {
+    const updatedTask = makeTask({ status: "EM_ANDAMENTO" });
+    const updateStatus = jest.fn(async () => updatedTask);
+    const controller = new TaskController({ updateStatus } as never);
+    const app = express();
+    app.use(express.json());
+    app.use((req, _res, next) => {
+      req.user = { sub: "actor-1", email: "admin@buffet.local" };
+      next();
+    });
+    app.patch("/tasks/:id/status", controller.updateStatus);
+
+    const response = await request(app).patch("/tasks/task-1/status").send({ status: "EM_ANDAMENTO" });
+
+    expect(updateStatus).toHaveBeenCalledWith("task-1", "EM_ANDAMENTO", "actor-1");
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe("EM_ANDAMENTO");
+  });
+
+  it("rejects updating a task's status without an authenticated actor", async () => {
+    const updateStatus = jest.fn();
+    const controller = new TaskController({ updateStatus } as never);
+    const app = express();
+    app.use(express.json());
+    app.patch("/tasks/:id/status", controller.updateStatus);
+
+    const response = await request(app).patch("/tasks/task-1/status").send({ status: "EM_ANDAMENTO" });
+
+    expect(response.status).toBe(401);
+    expect(updateStatus).not.toHaveBeenCalled();
+  });
 });

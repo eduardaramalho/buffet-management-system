@@ -29,10 +29,15 @@ export type TaskListFilter = {
   status?: TaskStatus;
 };
 
+export type UpdateTaskStatusInput = {
+  status: TaskStatus;
+};
+
 export interface TaskRepository {
   create(input: CreateTaskInput): Promise<TaskRecord>;
   findById(id: string): Promise<TaskRecord | null>;
   list(filter: TaskListFilter): Promise<TaskRecord[]>;
+  update(id: string, input: UpdateTaskStatusInput): Promise<TaskRecord>;
 }
 
 export type RuleApplicationRecord = {

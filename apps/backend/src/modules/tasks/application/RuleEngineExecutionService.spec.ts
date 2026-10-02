@@ -92,6 +92,12 @@ const makeTaskRepositoryFake = (): TaskRepository & { created: TaskRecord[] } =>
     }),
     findById: jest.fn(async (id: string) => created.find((task) => task.id === id) ?? null),
     list: jest.fn(async () => created),
+    update: jest.fn(async (id: string, input: { status: TaskRecord["status"] }) => {
+      const task = created.find((t) => t.id === id);
+      if (!task) throw new Error("task not found");
+      Object.assign(task, input);
+      return task;
+    }),
   };
 };
 

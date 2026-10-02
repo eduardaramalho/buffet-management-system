@@ -56,4 +56,13 @@ describe("PrismaTaskRepository", () => {
 
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { deletedAt: null } }));
   });
+
+  it("updates a task's status", async () => {
+    const update = jest.fn(async (_input: unknown) => ({}));
+    const repository = new PrismaTaskRepository({ task: { update } } as never);
+
+    await repository.update("task-1", { status: "EM_ANDAMENTO" });
+
+    expect(update).toHaveBeenCalledWith({ where: { id: "task-1" }, data: { status: "EM_ANDAMENTO" } });
+  });
 });
