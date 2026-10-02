@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 
 import { EventManagementService } from "./EventManagementService.js";
-import type { EventRepository, EventRecord, CreateEventInput, ServiceRepository, EventAuditService } from "../domain/event.types.js";
+import type { EventRepository, EventRecord, CreateEventInput, EventRuleExecutionTrigger, ServiceRepository, EventAuditService } from "../domain/event.types.js";
 
 const makeEvent = (overrides: Partial<EventRecord> = {}): EventRecord => ({
   id: "event-1",
@@ -151,6 +151,38 @@ describe("EventManagementService", () => {
       entityId: "event-1",
       changes: { before: event, after: deleted },
     }));
+  });
+
+  it("triggers automatic rule execution when the event transitions to CONFIRMADO", async () => {
+    const event = makeEvent({ status: "PLANEJAMENTO" });
+    const updated = makeEvent({ status: "CONFIRMADO" });
+    const events = {
+      findById: jest.fn(async () => event),
+      update: jest.fn(async () => updated),
+    } as unknown as EventRepository;
+    const audit = { record: jest.fn(async () => undefined) } as unknown as EventAuditService;
+    const ruleExecution = { applyRules: jest.fn(async () => undefined) } as unknown as EventRuleExecutionTrigger;
+    const service = new EventManagementService(events, audit, undefined, ruleExecution);
+
+    await service.update("event-1", { status: "CONFIRMADO" }, "actor-1");
+
+    expect(ruleExecution.applyRules).toHaveBeenCalledWith("event-1", "actor-1");
+  });
+
+  it("does not trigger automatic rule execution for updates that do not transition to CONFIRMADO", async () => {
+    const event = makeEvent({ status: "PLANEJAMENTO", observations: null });
+    const updated = makeEvent({ observations: "Menu atualizado" });
+    const events = {
+      findById: jest.fn(async () => event),
+      update: jest.fn(async () => updated),
+    } as unknown as EventRepository;
+    const audit = { record: jest.fn(async () => undefined) } as unknown as EventAuditService;
+    const ruleExecution = { applyRules: jest.fn(async () => undefined) } as unknown as EventRuleExecutionTrigger;
+    const service = new EventManagementService(events, audit, undefined, ruleExecution);
+
+    await service.update("event-1", { observations: "Menu atualizado" }, "actor-1");
+
+    expect(ruleExecution.applyRules).not.toHaveBeenCalled();
   });
 
   it("rejects updating guestsCount above the maximum limit", async () => {

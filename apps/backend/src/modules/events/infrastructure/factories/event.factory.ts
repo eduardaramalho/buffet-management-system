@@ -7,12 +7,13 @@ import { EventController } from "../../presentation/controllers/EventController.
 import { ServiceController } from "../../presentation/controllers/ServiceController.js";
 import { PrismaEventRepository } from "../repositories/PrismaEventRepository.js";
 import { PrismaServiceRepository } from "../repositories/PrismaServiceRepository.js";
+import { ruleEngineExecutionService } from "../../../tasks/infrastructure/factories/task.factory.js";
 
 const eventRepository = new PrismaEventRepository(prisma);
 const serviceRepository = new PrismaServiceRepository(prisma);
 const auditService = new AuditService(new PrismaAuditRepository(prisma));
 
-export const eventService = new EventManagementService(eventRepository, auditService, serviceRepository);
+export const eventService = new EventManagementService(eventRepository, auditService, serviceRepository, ruleEngineExecutionService);
 export const serviceCatalogService = new ServiceCatalogService(serviceRepository, auditService);
 export const eventController = new EventController(eventService);
 export const serviceController = new ServiceController(serviceCatalogService);

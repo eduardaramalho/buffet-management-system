@@ -93,3 +93,9 @@ export interface EventAuditService {
     reason?: string;
   }): Promise<void>;
 }
+
+// Port for the Rule Engine Part 2 module (tasks), kept here instead of importing its concrete
+// service to avoid a runtime dependency from Events into the Tasks module.
+export interface EventRuleExecutionTrigger {
+  applyRules(eventId: string, actorId: string): Promise<unknown>;
+}

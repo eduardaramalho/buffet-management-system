@@ -5,6 +5,7 @@ import type {
   EventRepository,
   EventRecord,
   AttachServiceInput,
+  EventRuleExecutionTrigger,
   ServiceRepository,
   UpdateEventInput,
 } from "../domain/event.types.js";
@@ -29,7 +30,8 @@ export class EventManagementService {
   constructor(
     private readonly events: EventRepository,
     private readonly audit: EventAuditService,
-    private readonly services?: ServiceRepository
+    private readonly services?: ServiceRepository,
+    private readonly ruleExecution?: EventRuleExecutionTrigger,
   ) {}
 
   async create(input: CreateEventInput): Promise<EventRecord> {
@@ -91,6 +93,10 @@ export class EventManagementService {
       changes: { before: event, after: updated },
       reason: input.reason,
     });
+    // Automatic trigger (decision): confirming an event kicks off Rule Engine Part 2.
+    if (input.status === "CONFIRMADO" && event.status !== "CONFIRMADO") {
+      await this.ruleExecution?.applyRules(id, actorId);
+    }
     return updated;
   }
 

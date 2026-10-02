@@ -8,6 +8,8 @@ import { CollaboratorManagementError } from "../../modules/teams/application/Col
 import { EventTeamManagementError } from "../../modules/teams/application/EventTeamService.js";
 import { TeamManagementError } from "../../modules/teams/application/TeamService.js";
 import { RuleManagementError } from "../../modules/rules/application/RuleEngineService.js";
+import { RuleEngineExecutionError } from "../../modules/tasks/application/RuleEngineExecutionService.js";
+import { TaskManagementError } from "../../modules/tasks/application/TaskService.js";
 import { logger } from "../config/logger.js";
 
 export const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
@@ -21,6 +23,9 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
     return response.status(400).json({ message: error.message });
   }
   if (error instanceof RuleManagementError) return response.status(400).json({ message: error.message });
+  if (error instanceof RuleEngineExecutionError || error instanceof TaskManagementError) {
+    return response.status(400).json({ message: error.message });
+  }
   if (error instanceof z.ZodError) return response.status(422).json({ message: "Dados inválidos", issues: error.issues });
   logger.error({ err: error, requestId: request.id }, "Unhandled request error");
   return response.status(500).json({ message: "Erro interno do servidor" });
