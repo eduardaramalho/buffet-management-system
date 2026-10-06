@@ -1,3 +1,4 @@
+import { DashboardPage } from '../pages/DashboardPage'
 import type { ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth'
@@ -21,10 +22,11 @@ export function AppRoutes() {
 	const withNavigation = (page: ReactNode) => <InternalLayout onLogout={logout}>{page}</InternalLayout>
 
 	return <Routes>
-		<Route path="/login" element={user ? <Navigate to="/users" replace /> : <LoginPage />} />
+		<Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
 		<Route path="/forgot-password" element={<ForgotPasswordPage />} />
 		<Route path="/reset-password" element={<ResetPasswordPage />} />
 		<Route element={<ProtectedRoute />}>
+			<Route path="/" element={<ProtectedRoute permission="dashboard:view">{withNavigation(<DashboardPage />)}</ProtectedRoute>} />
 			<Route path="/users" element={<ProtectedRoute permission="users:list">{withNavigation(<UsersListPage />)}</ProtectedRoute>} />
 			<Route path="/users/new" element={<ProtectedRoute permission="users:create">{withNavigation(<UserFormPage />)}</ProtectedRoute>} />
 			<Route path="/users/:id/edit" element={<ProtectedRoute permission="users:update">{withNavigation(<UserFormPage />)}</ProtectedRoute>} />

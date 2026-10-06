@@ -11,6 +11,7 @@ export type Task = {
   title: string
   description: string | null
   dueDate: string | null
+  completedAt?: string | null
   status: TaskStatus
   assignedTeamId: string | null
   sourceRuleId: string | null

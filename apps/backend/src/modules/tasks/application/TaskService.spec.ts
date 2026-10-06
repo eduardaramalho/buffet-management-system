@@ -9,6 +9,7 @@ const makeTask = (overrides: Partial<TaskRecord> = {}): TaskRecord => ({
   title: "Confirmar decoração",
   description: null,
   dueDate: null,
+  completedAt: null,
   status: "PENDENTE",
   assignedTeamId: null,
   sourceRuleId: "rule-1",
@@ -81,7 +82,7 @@ describe("TaskService", () => {
 
     const result = await service.updateStatus("task-1", "EM_ANDAMENTO", "actor-1");
 
-    expect(tasks.update).toHaveBeenCalledWith("task-1", { status: "EM_ANDAMENTO" });
+    expect(tasks.update).toHaveBeenCalledWith("task-1", { status: "EM_ANDAMENTO", completedAt: null });
     expect(audit.record).toHaveBeenCalledWith({
       userId: "actor-1",
       action: "TASK_STATUS_CHANGED",
@@ -90,6 +91,19 @@ describe("TaskService", () => {
       changes: { before: "PENDENTE", after: "EM_ANDAMENTO" },
     });
     expect(result).toEqual(updatedTask);
+  });
+
+  it("sets completedAt when a task is concluded", async () => {
+    const task = makeTask({ status: "EM_ANDAMENTO" });
+    const tasks = {
+      findById: jest.fn(async () => task),
+      update: jest.fn(async (_id: string, input: { status: string; completedAt: Date | null }) => ({ ...task, ...input })),
+    } as unknown as TaskRepository;
+    const service = new TaskService(tasks, { record: jest.fn(async () => undefined) } as unknown as AuditService);
+
+    await service.updateStatus("task-1", "CONCLUIDA", "actor-1");
+
+    expect(tasks.update).toHaveBeenCalledWith("task-1", { status: "CONCLUIDA", completedAt: expect.any(Date) });
   });
 
   it("rejects updating the status of a missing task", async () => {

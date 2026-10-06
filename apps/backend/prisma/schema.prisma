@@ -340,6 +340,7 @@ model Task {
   title          String     @db.VarChar(150)
   description    String?    @db.Text
   dueDate        DateTime?  @map("due_date")
+  completedAt    DateTime?  @map("completed_at")
   status         TaskStatus @default(PENDENTE)
   assignedTeamId String?    @map("assigned_team_id") @db.Char(36)
   sourceRuleId   String?    @map("source_rule_id") @db.Char(36)

@@ -9,6 +9,7 @@ export type TaskRecord = {
   title: string;
   description: string | null;
   dueDate: Date | null;
+  completedAt?: Date | null;
   status: TaskStatus;
   assignedTeamId: string | null;
   sourceRuleId: string | null;
@@ -33,6 +34,7 @@ export type TaskListFilter = {
 
 export type UpdateTaskStatusInput = {
   status: TaskStatus;
+  completedAt?: Date | null;
 };
 
 export interface TaskRepository {

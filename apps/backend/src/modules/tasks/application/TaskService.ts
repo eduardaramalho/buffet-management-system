@@ -36,7 +36,7 @@ export class TaskService {
       throw new TaskManagementError("Tarefas concluídas ou canceladas não podem retornar a um estado não terminal");
     }
 
-    const updated = await this.tasks.update(id, { status });
+    const updated = await this.tasks.update(id, { status, completedAt: status === "CONCLUIDA" ? new Date() : null });
     await this.audit.record({
       userId: actorId,
       action: "TASK_STATUS_CHANGED",
