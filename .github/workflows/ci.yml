@@ -86,6 +86,30 @@ jobs:
           path: apps/frontend/coverage
           if-no-files-found: error
 
+  sonar:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download backend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-coverage
+          path: apps/backend/coverage
+
+      - name: Download frontend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-coverage
+          path: apps/frontend/coverage
+
+      - name: SonarCloud analysis
+        uses: SonarSource/sonarcloud-github-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
   deploy:
     # Ativar quando a hospedagem for definida (Trilha 3).
     if: false
