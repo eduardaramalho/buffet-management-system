@@ -21,6 +21,7 @@ import { dashboardRoutes } from "./modules/dashboard/presentation/routes/dashboa
 import { errorHandler } from "./shared/middlewares/errorHandler.js";
 import { env } from "./shared/config/env.js";
 import { logger } from "./shared/config/logger.js";
+import { httpMetricsMiddleware, metricsRegistry } from "./shared/infrastructure/metrics.js";
 
 const GLOBAL_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const GLOBAL_RATE_LIMIT_MAX_REQUESTS = 600;
@@ -122,6 +123,17 @@ app.use((request: Request, response: Response, next: NextFunction) => {
   }
 
   return next();
+});
+
+app.use(httpMetricsMiddleware);
+
+app.get("/api/v1/metrics", async (_request, response, next) => {
+  try {
+    response.setHeader("Content-Type", metricsRegistry.contentType);
+    response.send(await metricsRegistry.metrics());
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.use(globalApiLimiter);

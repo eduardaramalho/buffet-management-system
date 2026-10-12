@@ -28,6 +28,20 @@ describe('API security middleware', () => {
     expect(response.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);
   });
 
+  it('exposes Prometheus metrics without authentication', async () => {
+    await request(app).get('/api/v1/health');
+
+    const response = await request(app).get('/api/v1/metrics');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toContain('text/plain');
+    expect(response.text).toContain('process_cpu_user_seconds_total');
+    expect(response.text).toContain('http_requests_total');
+    expect(response.text).toContain('http_request_duration_seconds');
+    expect(response.text).toContain('route="/api/v1/health"');
+    expect(response.text).toContain('status_code="200"');
+  });
+
   it('blocks a disallowed CORS origin', async () => {
     const response = await request(app)
       .get('/api/v1/health')
