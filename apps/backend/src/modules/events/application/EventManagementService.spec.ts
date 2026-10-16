@@ -4,10 +4,12 @@ import { EventManagementService } from "./EventManagementService.js";
 import type { EventRepository, EventRecord, CreateEventInput, EventRuleExecutionTrigger, ServiceRepository, EventAuditService } from "../domain/event.types.js";
 import type { Logger } from "../../../shared/domain/logger.types.js";
 
+const FUTURE_DATE = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
 const makeEvent = (overrides: Partial<EventRecord> = {}): EventRecord => ({
   id: "event-1",
   name: "Casamento de Alice",
-  eventDate: new Date("2026-10-10T15:00:00.000Z"),
+  eventDate: FUTURE_DATE,
   endDate: null,
   location: "Salao Principal",
   serviceType: "CASAMENTO",
@@ -26,7 +28,7 @@ describe("EventManagementService", () => {
   it("records EVENT_CREATED with actor, entity id and old/new changes", async () => {
     const input: CreateEventInput = {
       name: "Casamento de Alice",
-      eventDate: new Date("2026-10-10T15:00:00.000Z"),
+      eventDate: FUTURE_DATE,
       endDate: null,
       location: "Salao Principal",
       serviceType: "CASAMENTO",
@@ -62,7 +64,7 @@ describe("EventManagementService", () => {
 
     await expect(service.create({
       name: "Evento grande demais",
-      eventDate: new Date("2026-10-10T15:00:00.000Z"),
+      eventDate: FUTURE_DATE,
       endDate: null,
       location: "Salao Principal",
       serviceType: "CASAMENTO",
@@ -228,7 +230,7 @@ describe("EventManagementService", () => {
 
     await expect(service.create({
       name: "Evento inválido",
-      eventDate: new Date("2026-10-10T15:00:00.000Z"),
+      eventDate: FUTURE_DATE,
       endDate: null,
       location: "Salao Principal",
       serviceType: "CASAMENTO",
@@ -257,7 +259,7 @@ describe("EventManagementService", () => {
   });
 
   it("allows updating an existing event to a past eventDate", async () => {
-    const existing = makeEvent({ eventDate: new Date("2026-10-10T15:00:00.000Z") });
+    const existing = makeEvent({ eventDate: FUTURE_DATE });
     const updated = makeEvent({ eventDate: new Date("2020-01-01T15:00:00.000Z") });
     const events = {
       findById: jest.fn(async () => existing),
