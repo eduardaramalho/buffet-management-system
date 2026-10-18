@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { listRules, setRuleActive, removeRule } from '../api/rulesApi'
 import { Badge } from '../components/Badge'
 import { Notice } from '../components/Notice'
+import { Icon } from '../components/Icon'
 import { Pagination } from '../components/Pagination'
 import { RuleForm } from '../components/RuleForm'
 import { StatCard } from '../components/StatCard'
@@ -69,9 +70,9 @@ export function RulesListPage() {
         <td>{summarizeResources(rule)}</td>
         <td><Badge tone={rule.isActive ? 'active' : 'inactive'}>{rule.isActive ? 'Ativa' : 'Inativa'}</Badge></td>
         <td><div className="row-actions">
-          <button title="Editar regra" aria-label={`Editar ${rule.name}`} onClick={() => openForm(rule)}>✎</button>
-          <button title={rule.isActive ? 'Desativar regra' : 'Ativar regra'} aria-label={`${rule.isActive ? 'Desativar' : 'Ativar'} ${rule.name}`} onClick={() => void changeStatus(rule)}>{rule.isActive ? '◌' : '●'}</button>
-          <button title="Excluir regra" aria-label={`Excluir ${rule.name}`} onClick={() => void remove(rule)}>×</button>
+          <button title="Editar regra" aria-label={`Editar ${rule.name}`} onClick={() => openForm(rule)}><Icon name="pencil" /></button>
+          <button title={rule.isActive ? 'Desativar regra' : 'Ativar regra'} aria-label={`${rule.isActive ? 'Desativar' : 'Ativar'} ${rule.name}`} onClick={() => void changeStatus(rule)}><Icon name="power" /></button>
+          <button title="Excluir regra" aria-label={`Excluir ${rule.name}`} onClick={() => void remove(rule)}><Icon name="trash" /></button>
         </div></td>
       </tr>)}
     </Table>

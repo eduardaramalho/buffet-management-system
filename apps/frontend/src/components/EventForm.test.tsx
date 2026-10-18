@@ -77,7 +77,8 @@ describe('EventForm', () => {
     vi.mocked(assignTeamToEvent).mockResolvedValue({ eventId: 'event-1', teamId: 'team-1', assignedAt: '', assignedById: 'actor' })
     render(<EventForm event={{ id: 'event-1', name: 'Evento', eventDate: '2026-10-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO', guestsCount: 50, observations: null, status: 'PLANEJAMENTO', createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, services: [] }} onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
 
-    fireEvent.change(await screen.findByLabelText('Equipe para adicionar'), { target: { value: 'team-1' } })
+    await screen.findByRole('option', { name: 'Equipe Salao A' })
+    fireEvent.change(screen.getByLabelText('Equipe para adicionar'), { target: { value: 'team-1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Vincular equipe' }))
 
     await waitFor(() => expect(assignTeamToEvent).toHaveBeenCalledWith('team-1', 'event-1'))
@@ -91,7 +92,8 @@ describe('EventForm', () => {
     vi.mocked(assignTeamToEvent).mockRejectedValue(new Error('conflito de agenda'))
     render(<EventForm event={{ id: 'event-1', name: 'Evento', eventDate: '2026-10-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO', guestsCount: 50, observations: null, status: 'PLANEJAMENTO', createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, services: [] }} onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
 
-    fireEvent.change(await screen.findByLabelText('Equipe para adicionar'), { target: { value: 'team-1' } })
+    await screen.findByRole('option', { name: 'Equipe Salao A' })
+    fireEvent.change(screen.getByLabelText('Equipe para adicionar'), { target: { value: 'team-1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Vincular equipe' }))
 
     expect(await screen.findByText('conflito de agenda')).toBeInTheDocument()

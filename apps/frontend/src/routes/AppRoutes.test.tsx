@@ -19,7 +19,7 @@ describe('AppRoutes navigation and permissions', () => {
   it('navigates from the menu to users and roles with React Router links', async () => {
     render(<MemoryRouter initialEntries={['/users']}><AppRoutes /></MemoryRouter>)
 
-    await userEvent.click(screen.getByRole('link', { name: 'Papéis' }))
+    await userEvent.click(screen.getByRole('link', { name: 'Papéis e permissões' }))
     expect(await screen.findByRole('heading', { name: 'Página de Papéis' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('link', { name: 'Usuários' }))
     expect(await screen.findByRole('heading', { name: 'Página de Usuários' })).toBeInTheDocument()
@@ -29,7 +29,7 @@ describe('AppRoutes navigation and permissions', () => {
     authState.user = { ...authState.user, roles: [{ name: 'operador', permissions: ['users:list'] }] }
     render(<MemoryRouter initialEntries={['/roles']}><AppRoutes /></MemoryRouter>)
 
-    expect(screen.queryByRole('link', { name: 'Papéis' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Papéis e permissões' })).not.toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Página de Usuários' })).toBeInTheDocument()
   })
 })

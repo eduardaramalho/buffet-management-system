@@ -90,6 +90,6 @@ describe('TasksBoardPage', () => {
 
     render(<TasksBoardPage />)
 
-    expect(await screen.findByText('⚠ Sem equipe — ação necessária')).toBeInTheDocument()
+    expect(await screen.findByText('Sem equipe — ação necessária')).toBeInTheDocument()
   })
 })

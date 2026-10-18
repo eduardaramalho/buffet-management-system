@@ -8,7 +8,7 @@ vi.mock('../contexts/useAuth', () => ({ useAuth: vi.fn() }))
 vi.mock('../api/tasksApi', () => ({ listTasks: vi.fn().mockResolvedValue([]) }))
 
 const permissions = ['dashboard:view', 'users:list', 'events:list', 'teams:list', 'collaborators:manage', 'rules:list', 'tasks:list', 'roles:list']
-const makeUser = (roleNames: string[]) => ({ name: 'Alice', email: 'alice@example.com', roles: roleNames.map((name) => ({ name, permissions })) })
+const makeUser = (roleNames: string[]) => ({ id: 'user-1', name: 'Alice', email: 'alice@example.com', roles: roleNames.map((name) => ({ name, permissions })) })
 
 beforeEach(() => {
   vi.mocked(useAuth).mockReturnValue({ user: makeUser(['Gestor']), loading: false, login: vi.fn(), logout: vi.fn() })

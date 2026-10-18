@@ -4,6 +4,7 @@ import { listEvents } from '../api/eventsApi'
 import { listTeams } from '../api/teamsApi'
 import { Badge } from '../components/Badge'
 import { Notice } from '../components/Notice'
+import { Icon } from '../components/Icon'
 import { StatCard } from '../components/StatCard'
 import { TASK_STATUSES, TERMINAL_TASK_STATUSES } from '../types/task'
 import type { Task, TaskStatus } from '../types/task'
@@ -25,7 +26,7 @@ function TaskCard({ task, event, team, onMove }: { task: Task; event?: Event; te
     <p className="task-card-event">{event ? `${event.name} • ${formatDate(event.eventDate)}` : 'Evento não encontrado'}</p>
     {task.assignedTeamId
       ? <p className="task-card-team">{team?.name ?? 'Equipe'}</p>
-      : <p className="task-no-team" role="status">⚠ Sem equipe — ação necessária</p>}
+      : <p className="task-no-team" role="status"><Icon name="alert" />Sem equipe — ação necessária</p>}
     {task.dueDate && <p className="task-card-due">Prazo: {formatDate(task.dueDate)}</p>}
     <label className="task-move">
       Mover para...
