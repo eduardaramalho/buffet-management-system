@@ -6,7 +6,7 @@ import { Button } from './Button'
 import { Notice } from './Notice'
 import { EVENT_TYPES, type EventType, type Service } from '../types/event'
 import { TEAM_SPECIALTIES, type TeamSpecialty } from '../types/team'
-import type { Rule, RuleResourceRequirementInput } from '../types/rule'
+import type { Rule, RuleResourceRequirementInput, RuleTaskTemplateInput } from '../types/rule'
 
 type RuleFormProps = { rule?: Rule; onClose: () => void; onCreated: (rule: Rule) => void; onUpdated: (rule: Rule) => void }
 const eventTypeLabels: Record<EventType, string> = { CASAMENTO: 'Casamento', ANIVERSARIO: 'Aniversário', FORMATURA: 'Formatura', CORPORATIVO: 'Corporativo', CONFRATERNIZACAO: 'Confraternização', BATIZADO: 'Batizado', OUTRO: 'Outro' }
@@ -22,6 +22,9 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
   const [requirements, setRequirements] = useState<RuleResourceRequirementInput[]>(
     rule?.resourceRequirements.map((item) => ({ specialty: item.specialty, minQuantity: item.minQuantity })) ?? [],
   )
+  const [taskTemplates, setTaskTemplates] = useState<RuleTaskTemplateInput[]>(
+    rule?.taskTemplates.map((template) => ({ title: template.title, description: template.description, daysBeforeEvent: template.daysBeforeEvent })) ?? [],
+  )
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -32,12 +35,16 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
   const addRequirement = () => setRequirements((current) => [...current, { specialty: TEAM_SPECIALTIES[0], minQuantity: 1 }])
   const updateRequirement = (index: number, patch: Partial<RuleResourceRequirementInput>) => setRequirements((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item))
   const removeRequirement = (index: number) => setRequirements((current) => current.filter((_, itemIndex) => itemIndex !== index))
+  const addTaskTemplate = () => setTaskTemplates((current) => [...current, { title: '', description: null, daysBeforeEvent: null }])
+  const updateTaskTemplate = (index: number, patch: Partial<RuleTaskTemplateInput>) => setTaskTemplates((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item))
+  const removeTaskTemplate = (index: number) => setTaskTemplates((current) => current.filter((_, itemIndex) => itemIndex !== index))
 
   const submit = async (formEvent: FormEvent) => {
     formEvent.preventDefault(); setError('')
     if (!name.trim()) return setError('Informe o nome da regra.')
     if (minGuests && maxGuests && Number(minGuests) > Number(maxGuests)) return setError('O mínimo de convidados não pode ser maior que o máximo.')
     if (requirements.some((requirement) => requirement.minQuantity < 1)) return setError('A quantidade mínima de cada especialidade deve ser ao menos 1.')
+    if (taskTemplates.some((template) => !template.title.trim())) return setError('Informe o título de todas as tarefas.')
     setLoading(true)
     try {
       const input = {
@@ -48,6 +55,7 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
         conditionMaxGuests: maxGuests ? Number(maxGuests) : null,
         conditionRequiredServiceIds: requiredServiceIds.length ? requiredServiceIds : null,
         resourceRequirements: requirements,
+        taskTemplates: taskTemplates.map((template) => ({ ...template, title: template.title.trim(), description: template.description?.trim() || null, daysBeforeEvent: template.daysBeforeEvent ?? null })),
       }
       const saved = rule ? await updateRule(rule.id, input) : await createRule(input)
       rule ? onUpdated(saved) : onCreated(saved)
@@ -69,6 +77,15 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
         <label>Máximo de convidados<input aria-label="Máximo de convidados" type="number" min="0" value={maxGuests} onChange={(event) => setMaxGuests(event.target.value)} /></label>
         <h4>Serviços obrigatórios</h4>
         {services.length === 0 ? <p className="empty">Nenhum serviço cadastrado. Cadastre serviços para usá-los como condição.</p> : <div className="service-checks">{services.map((service) => <label key={service.id}><input type="checkbox" aria-label={service.name} checked={requiredServiceIds.includes(service.id)} onChange={() => toggleRequiredService(service.id)} /> {service.name}</label>)}</div>}
+      </section>
+
+      <section><h3>Tarefas geradas</h3>
+        {taskTemplates.map((template, index) => <div key={index} className="rule-requirement-row">
+          <label>Título<input aria-label={`Título da tarefa ${index + 1}`} value={template.title} onChange={(event) => updateTaskTemplate(index, { title: event.target.value })} /></label>
+          <label>Dias antes do evento<input aria-label={`Dias antes do evento ${index + 1}`} type="number" min="0" max="365" value={template.daysBeforeEvent ?? ''} onChange={(event) => updateTaskTemplate(index, { daysBeforeEvent: event.target.value === '' ? null : Number(event.target.value) })} /></label>
+          <button type="button" className="link-button" aria-label={`Remover tarefa ${index + 1}`} onClick={() => removeTaskTemplate(index)}>Remover</button>
+        </div>)}
+        <button type="button" className="link-button" onClick={addTaskTemplate}>+ Adicionar tarefa</button>
       </section>
 
       <section><h3>Recursos exigidos</h3>

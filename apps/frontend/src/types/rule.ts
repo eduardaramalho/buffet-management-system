@@ -3,6 +3,8 @@ import type { TeamSpecialty } from './team'
 
 export type RuleResourceRequirement = { id: string; specialty: TeamSpecialty; minQuantity: number }
 export type RuleResourceRequirementInput = { specialty: TeamSpecialty; minQuantity: number }
+export type RuleTaskTemplate = { id: string; ruleId: string; title: string; description: string | null; daysBeforeEvent: number | null }
+export type RuleTaskTemplateInput = { title: string; description?: string | null; daysBeforeEvent?: number | null }
 
 export type Rule = {
   id: string
@@ -18,6 +20,7 @@ export type Rule = {
   updatedAt: string
   deletedAt: string | null
   resourceRequirements: RuleResourceRequirement[]
+  taskTemplates: RuleTaskTemplate[]
 }
 
 export type CreateRuleInput = {
@@ -28,6 +31,7 @@ export type CreateRuleInput = {
   conditionMaxGuests: number | null
   conditionRequiredServiceIds: string[] | null
   resourceRequirements: RuleResourceRequirementInput[]
+  taskTemplates?: RuleTaskTemplateInput[]
 }
 export type UpdateRuleInput = Partial<CreateRuleInput> & { isActive?: boolean }
 export type RuleFilters = { search?: string; isActive?: boolean }

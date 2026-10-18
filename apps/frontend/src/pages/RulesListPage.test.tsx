@@ -29,6 +29,11 @@ const rules: Rule[] = [
     updatedAt: '',
     deletedAt: null,
     resourceRequirements: [{ id: 'req-1', specialty: 'BAR', minQuantity: 1 }],
+    taskTemplates: [
+      { id: 'tpl-1', ruleId: 'rule-1', title: 'Confirmar fornecedor', description: null, daysBeforeEvent: 7 },
+      { id: 'tpl-2', ruleId: 'rule-1', title: 'Separar materiais', description: null, daysBeforeEvent: null },
+      { id: 'tpl-3', ruleId: 'rule-1', title: 'Montar salão', description: null, daysBeforeEvent: 1 },
+    ],
   },
   {
     id: 'rule-2',
@@ -44,6 +49,7 @@ const rules: Rule[] = [
     updatedAt: '',
     deletedAt: null,
     resourceRequirements: [],
+    taskTemplates: [],
   },
 ]
 
@@ -58,6 +64,8 @@ describe('RulesListPage', () => {
     expect(screen.getByText('Total de regras')).toBeInTheDocument()
     expect(screen.getByText('Regras ativas')).toBeInTheDocument()
     expect(screen.getByText('Inativas')).toBeInTheDocument()
+    expect(screen.getByText('3 tarefas')).toBeInTheDocument()
+    expect(screen.getByText('Nenhuma')).toBeInTheDocument()
   })
 
   it('shows the empty state without breaking when there are no rules', async () => {

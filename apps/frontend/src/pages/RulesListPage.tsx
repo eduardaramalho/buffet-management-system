@@ -24,6 +24,7 @@ const summarizeConditions = (rule: Rule) => {
   return parts.length ? parts.join(' • ') : 'Sem condições (casa com qualquer evento)'
 }
 const summarizeResources = (rule: Rule) => rule.resourceRequirements.map((item) => `${specialtyLabels[item.specialty]} ×${item.minQuantity}`).join(', ') || '—'
+const summarizeTasks = (rule: Rule) => rule.taskTemplates.length ? `${rule.taskTemplates.length} tarefas` : 'Nenhuma'
 
 export function RulesListPage() {
   const [rules, setRules] = useState<Rule[]>([])
@@ -63,11 +64,12 @@ export function RulesListPage() {
     </section>
     <section className="content-head"><input className="search" placeholder="Buscar por nome..." value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); void load(event.target.value) }} /></section>
     {error && <Notice message={error} error />}
-    <Table headers={['Regra', 'Condições', 'Recursos exigidos', 'Status', 'Ações']}>
+    <Table headers={['Regra', 'Condições', 'Recursos exigidos', 'Gera tarefas', 'Status', 'Ações']}>
       {visibleRules.map((rule) => <tr key={rule.id}>
         <td><strong>{rule.name}</strong></td>
         <td>{summarizeConditions(rule)}</td>
         <td>{summarizeResources(rule)}</td>
+        <td>{summarizeTasks(rule)}</td>
         <td><Badge tone={rule.isActive ? 'active' : 'inactive'}>{rule.isActive ? 'Ativa' : 'Inativa'}</Badge></td>
         <td><div className="row-actions">
           <button title="Editar regra" aria-label={`Editar ${rule.name}`} onClick={() => openForm(rule)}><Icon name="pencil" /></button>

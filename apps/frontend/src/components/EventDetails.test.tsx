@@ -42,6 +42,7 @@ const matches: MatchedRule[] = [
       updatedAt: '',
       deletedAt: null,
       resourceRequirements: [{ id: 'req-1', specialty: 'BAR', minQuantity: 2 }],
+      taskTemplates: [],
     },
     resourceRequirements: [{ id: 'req-1', specialty: 'BAR', minQuantity: 2 }],
   },
