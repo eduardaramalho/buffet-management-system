@@ -17,6 +17,7 @@ const makeRule = (overrides: Partial<RuleRecord> = {}): RuleRecord => ({
   updatedAt: new Date("2026-09-28T00:00:00.000Z"),
   deletedAt: null,
   resourceRequirements: [{ id: "req-1", specialty: "BAR", minQuantity: 1 }],
+  taskTemplates: [],
   ...overrides,
 });
 

@@ -14,6 +14,7 @@ import type {
 } from "../domain/task.types.js";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const shortageAlertPattern = /^Faltam \d+ equipe\(s\) de (.+) para o evento$/;
 
 export class RuleEngineExecutionError extends Error {
   constructor(message: string) {
@@ -49,7 +50,7 @@ export class RuleEngineExecutionService {
     const contractedServiceIds = event.services.map((service) => service.serviceId);
     const matches = await this.ruleEngine.evaluate({ serviceType: event.serviceType, guestsCount: event.guestsCount }, contractedServiceIds);
 
-    const result: ExecutionResult = { tasksCreated: 0, teamsAutoAssigned: 0, alertsGenerated: 0 };
+    const result: ExecutionResult = { tasksCreated: 0, tasksSkipped: 0, teamsAutoAssigned: 0, alertsGenerated: 0 };
 
     for (const match of matches) {
       // Idempotency guard (decision 2): a rule is only ever processed once per event.
@@ -61,6 +62,7 @@ export class RuleEngineExecutionService {
       // writes (e.g. after creating a Task but before the RuleApplication row) would leave the rule
       // looking "not yet applied" on the next run, duplicating tasks/assignments.
       await this.transactions.run(async (tx) => {
+        const existingTasks = await this.tasks.listAllByEventId(eventId);
         const assignedTeamIds = new Set((await this.eventTeamService.listTeamsByEvent(eventId)).map((assignment) => assignment.teamId));
 
         for (const requirement of match.resourceRequirements) {
@@ -93,28 +95,43 @@ export class RuleEngineExecutionService {
           }
 
           if (remaining > 0) {
-            const alertTask = await this.tasks.create({
-              eventId,
-              title: `Faltam ${remaining} equipe(s) de ${requirement.specialty} para o evento`,
-              description: null,
-              dueDate: null,
-              assignedTeamId: null,
-              sourceRuleId: match.rule.id,
-            }, tx);
-            result.tasksCreated += 1;
-            result.alertsGenerated += 1;
-            await this.audit.record({
-              userId: actorId,
-              action: "TASK_GENERATED",
-              entity: "Task",
-              entityId: alertTask.id,
-              changes: { eventId, ruleId: match.rule.id, kind: "TEAM_SHORTAGE_ALERT", specialty: requirement.specialty },
+            const alertTitle = `Faltam ${remaining} equipe(s) de ${requirement.specialty} para o evento`;
+            const alertExists = existingTasks.some((task) => {
+              if (task.sourceRuleId !== match.rule.id) return false;
+              const alertMatch = task.title.match(shortageAlertPattern);
+              return alertMatch?.[1] === requirement.specialty;
             });
+            if (alertExists) {
+              result.tasksSkipped += 1;
+            } else {
+              const alertTask = await this.tasks.create({
+                eventId,
+                title: alertTitle,
+                description: null,
+                dueDate: null,
+                assignedTeamId: null,
+                sourceRuleId: match.rule.id,
+              }, tx);
+              result.tasksCreated += 1;
+              result.alertsGenerated += 1;
+              await this.audit.record({
+                userId: actorId,
+                action: "TASK_GENERATED",
+                entity: "Task",
+                entityId: alertTask.id,
+                changes: { eventId, ruleId: match.rule.id, kind: "TEAM_SHORTAGE_ALERT", specialty: requirement.specialty },
+              });
+            }
           }
         }
 
         const templates = await this.ruleTaskTemplates.listByRuleId(match.rule.id);
         for (const template of templates) {
+          const templateExists = existingTasks.some((task) => task.sourceRuleId === match.rule.id && task.title === template.title);
+          if (templateExists) {
+            result.tasksSkipped += 1;
+            continue;
+          }
           const dueDate = template.daysBeforeEvent != null
             ? new Date(event.eventDate.getTime() - template.daysBeforeEvent * MS_PER_DAY)
             : null;

@@ -25,6 +25,10 @@ export class PrismaTaskRepository implements TaskRepository {
     }) as Promise<TaskRecord[]>;
   }
 
+  listAllByEventId(eventId: string) {
+    return this.prisma.task.findMany({ where: { eventId }, orderBy: { createdAt: "asc" } }) as Promise<TaskRecord[]>;
+  }
+
   update(id: string, input: UpdateTaskStatusInput) {
     return this.prisma.task.update({ where: { id }, data: input }) as Promise<TaskRecord>;
   }

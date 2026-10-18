@@ -85,11 +85,13 @@ describe("PrismaRuleRepository", () => {
   it("updates a rule without touching resource requirements when they are not provided", async () => {
     const update = jest.fn(async (_input: unknown) => ({}));
     const deleteMany = jest.fn(async (_input: unknown) => ({}));
-    const repository = new PrismaRuleRepository({ rule: { update }, ruleResourceRequirement: { deleteMany } } as never);
+    const templateDeleteMany = jest.fn(async (_input: unknown) => ({}));
+    const repository = new PrismaRuleRepository({ rule: { update }, ruleResourceRequirement: { deleteMany }, ruleTaskTemplate: { deleteMany: templateDeleteMany } } as never);
 
     await repository.update("rule-1", { name: "Regra B" });
 
     expect(deleteMany).not.toHaveBeenCalled();
+    expect(templateDeleteMany).not.toHaveBeenCalled();
     expect(update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "rule-1" }, data: { name: "Regra B" } }));
   });
 
@@ -106,5 +108,18 @@ describe("PrismaRuleRepository", () => {
         data: expect.objectContaining({ resourceRequirements: { create: [{ specialty: "SALAO", minQuantity: 2 }] } }),
       }),
     );
+  });
+
+  it("replaces task templates only when taskTemplates is provided", async () => {
+    const update = jest.fn(async (_input: unknown) => ({}));
+    const deleteMany = jest.fn(async (_input: unknown) => ({}));
+    const repository = new PrismaRuleRepository({ rule: { update }, ruleTaskTemplate: { deleteMany } } as never);
+
+    await repository.update("rule-1", { name: "Preserva" });
+    expect(deleteMany).not.toHaveBeenCalled();
+
+    await repository.update("rule-1", { taskTemplates: [] });
+    expect(deleteMany).toHaveBeenCalledWith({ where: { ruleId: "rule-1" } });
+    expect(update).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ taskTemplates: { create: [] } }) }));
   });
 });

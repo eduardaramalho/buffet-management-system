@@ -43,6 +43,8 @@ export interface TaskRepository {
   create(input: CreateTaskInput, tx?: TransactionClient): Promise<TaskRecord>;
   findById(id: string): Promise<TaskRecord | null>;
   list(filter: TaskListFilter): Promise<TaskRecord[]>;
+  // Includes every task for the event, including cancelled, completed and soft-deleted rows.
+  listAllByEventId(eventId: string): Promise<TaskRecord[]>;
   update(id: string, input: UpdateTaskStatusInput): Promise<TaskRecord>;
 }
 
@@ -78,6 +80,7 @@ export interface RuleTaskTemplateRepository {
 
 export type ExecutionResult = {
   tasksCreated: number;
+  tasksSkipped: number;
   teamsAutoAssigned: number;
   alertsGenerated: number;
 };

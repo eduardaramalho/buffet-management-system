@@ -2,6 +2,7 @@ import { describe, expect, it, jest } from "@jest/globals";
 
 import { RuleEngineService } from "./RuleEngineService.js";
 import type { AuditService, CreateRuleInput, RuleRecord, RuleRepository } from "../domain/rule.types.js";
+import type { TransactionRunner } from "../../../shared/domain/transaction.types.js";
 
 const makeRule = (overrides: Partial<RuleRecord> = {}): RuleRecord => ({
   id: "rule-1",
@@ -17,10 +18,13 @@ const makeRule = (overrides: Partial<RuleRecord> = {}): RuleRecord => ({
   updatedAt: new Date("2026-09-28T00:00:00.000Z"),
   deletedAt: null,
   resourceRequirements: [{ id: "req-1", specialty: "BAR", minQuantity: 1 }],
+  taskTemplates: [],
   ...overrides,
 });
 
 describe("RuleEngineService", () => {
+  const transactions = { run: jest.fn(async (work: (tx: unknown) => Promise<unknown>) => work({})) } as unknown as TransactionRunner;
+
   describe("CRUD", () => {
     it("lists and gets an existing rule", async () => {
       const rule = makeRule();
@@ -53,7 +57,7 @@ describe("RuleEngineService", () => {
         resourceRequirements: [{ specialty: "BAR", minQuantity: 1 }],
       };
       const rules = {
-        create: jest.fn(async (ruleInput: CreateRuleInput) => makeRule({ ...ruleInput, resourceRequirements: [{ id: "req-1", specialty: "BAR", minQuantity: 1 }] })),
+        create: jest.fn(async (_ruleInput: CreateRuleInput) => makeRule({ resourceRequirements: [{ id: "req-1", specialty: "BAR", minQuantity: 1 }] })),
       } as unknown as RuleRepository;
       const audit = { record: jest.fn() } as unknown as AuditService;
       const service = new RuleEngineService(rules, audit);
@@ -65,6 +69,85 @@ describe("RuleEngineService", () => {
       expect(audit.record).toHaveBeenCalledWith(
         expect.objectContaining({ action: "RULE_CREATED", entity: "Rule", entityId: "rule-1", userId: "actor-1" }),
       );
+    });
+
+    it("persists two task templates in the same transaction when creating a rule", async () => {
+      const input = {
+        name: "Regra com tarefas",
+        description: null,
+        conditionServiceTypeIn: null,
+        conditionMinGuests: null,
+        conditionMaxGuests: null,
+        conditionRequiredServiceIds: null,
+        resourceRequirements: [],
+        taskTemplates: [
+          { title: "Confirmar fornecedor", description: null, daysBeforeEvent: 10 },
+          { title: "Separar materiais", description: "Checklist", daysBeforeEvent: 2 },
+        ],
+        createdById: "actor-1",
+      } as unknown as CreateRuleInput;
+      const rules = { create: jest.fn(async () => makeRule()) } as unknown as RuleRepository;
+      const audit = { record: jest.fn() } as unknown as AuditService;
+      const service = new RuleEngineService(rules, audit, transactions);
+
+      await service.create(input);
+
+      expect(transactions.run).toHaveBeenCalled();
+      expect(rules.create).toHaveBeenCalledWith(expect.objectContaining({ taskTemplates: input.taskTemplates }), expect.anything());
+    });
+
+    it("rejects repeated task template titles", async () => {
+      const rules = { create: jest.fn() } as unknown as RuleRepository;
+      const service = new RuleEngineService(rules, { record: jest.fn() } as unknown as AuditService, transactions);
+
+      await expect(service.create({
+        name: "Regra inválida",
+        description: null,
+        conditionServiceTypeIn: null,
+        conditionMinGuests: null,
+        conditionMaxGuests: null,
+        conditionRequiredServiceIds: null,
+        resourceRequirements: [],
+        taskTemplates: [{ title: "  Preparar salão " }, { title: "Preparar salão" }],
+        createdById: "actor-1",
+      } as unknown as CreateRuleInput)).rejects.toThrow("títulos das tarefas");
+      expect(rules.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects a negative daysBeforeEvent in the service", async () => {
+      const rules = { create: jest.fn() } as unknown as RuleRepository;
+      const service = new RuleEngineService(rules, { record: jest.fn() } as unknown as AuditService, transactions);
+
+      await expect(service.create({
+        name: "Regra inválida",
+        description: null,
+        conditionServiceTypeIn: null,
+        conditionMinGuests: null,
+        conditionMaxGuests: null,
+        conditionRequiredServiceIds: null,
+        resourceRequirements: [],
+        taskTemplates: [{ title: "Preparar", daysBeforeEvent: -1 }],
+        createdById: "actor-1",
+      } as unknown as CreateRuleInput)).rejects.toThrow("0 e 365");
+      expect(rules.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects more than twenty task templates", async () => {
+      const rules = { create: jest.fn() } as unknown as RuleRepository;
+      const service = new RuleEngineService(rules, { record: jest.fn() } as unknown as AuditService, transactions);
+
+      await expect(service.create({
+        name: "Regra inválida",
+        description: null,
+        conditionServiceTypeIn: null,
+        conditionMinGuests: null,
+        conditionMaxGuests: null,
+        conditionRequiredServiceIds: null,
+        resourceRequirements: [],
+        taskTemplates: Array.from({ length: 21 }, (_, index) => ({ title: `Tarefa ${index}` })),
+        createdById: "actor-1",
+      } as unknown as CreateRuleInput)).rejects.toThrow("20");
+      expect(rules.create).not.toHaveBeenCalled();
     });
 
     it("rejects a rule with an empty name", async () => {
@@ -153,6 +236,24 @@ describe("RuleEngineService", () => {
       expect(rules.softDelete).toHaveBeenCalledWith("rule-1");
       expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "RULE_UPDATED" }));
       expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "RULE_DELETED" }));
+    });
+
+    it("includes template changes in the update audit", async () => {
+      const current = makeRule({ taskTemplates: [{ id: "tpl-1", ruleId: "rule-1", title: "Antiga", description: null, daysBeforeEvent: null }] } as never);
+      const updated = makeRule({ taskTemplates: [{ id: "tpl-2", ruleId: "rule-1", title: "Nova", description: null, daysBeforeEvent: 3 }] } as never);
+      const rules = {
+        findById: jest.fn(async () => current),
+        update: jest.fn(async () => updated),
+      } as unknown as RuleRepository;
+      const audit = { record: jest.fn() } as unknown as AuditService;
+      const service = new RuleEngineService(rules, audit, transactions);
+
+      await service.update("rule-1", { taskTemplates: [{ title: "Nova", description: null, daysBeforeEvent: 3 }] } as never, "actor-1");
+
+      expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({
+        action: "RULE_UPDATED",
+        changes: expect.objectContaining({ beforeTaskTemplates: current.taskTemplates, afterTaskTemplates: updated.taskTemplates }),
+      }));
     });
 
     it("rejects updating a missing rule", async () => {

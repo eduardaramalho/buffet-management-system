@@ -26,7 +26,10 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
   if (error instanceof RuleEngineExecutionError || error instanceof TaskManagementError) {
     return response.status(400).json({ message: error.message });
   }
-  if (error instanceof z.ZodError) return response.status(422).json({ message: "Dados inválidos", issues: error.issues });
+  if (error instanceof z.ZodError) {
+    const isTaskTemplateError = error.issues.some((issue) => issue.path[0] === "taskTemplates");
+    return response.status(isTaskTemplateError ? 400 : 422).json({ message: "Dados inválidos", issues: error.issues });
+  }
   logger.error({ err: error, requestId: request.id }, "Unhandled request error");
   return response.status(500).json({ message: "Erro interno do servidor" });
 };

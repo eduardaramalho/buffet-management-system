@@ -8,6 +8,7 @@ import type {
   RuleRepository,
   UpdateRuleInput,
 } from "../domain/rule.types.js";
+import type { TransactionRunner } from "../../../shared/domain/transaction.types.js";
 
 export class RuleManagementError extends Error {
   constructor(message: string) {
@@ -17,6 +18,7 @@ export class RuleManagementError extends Error {
 }
 
 const MIN_QUANTITY_FLOOR = 1;
+export const MAX_TASK_TEMPLATES_PER_RULE = 20;
 
 // null/undefined and empty arrays both mean "no restriction" for list-based conditions.
 const normalizeConditionList = <T>(values: T[] | null | undefined): T[] | null => (values && values.length > 0 ? values : null);
@@ -25,6 +27,7 @@ export class RuleEngineService {
   constructor(
     private readonly rules: RuleRepository,
     private readonly audit: AuditService,
+    private readonly transactions?: TransactionRunner,
   ) {}
 
   private assertConsistentCondition(
@@ -42,17 +45,42 @@ export class RuleEngineService {
     }
   }
 
+  private validateTaskTemplates(templates: CreateRuleInput["taskTemplates"] | undefined) {
+    if (!templates) return;
+    if (templates.length > MAX_TASK_TEMPLATES_PER_RULE) {
+      throw new RuleManagementError(`Uma regra pode ter no máximo ${MAX_TASK_TEMPLATES_PER_RULE} tarefas`);
+    }
+    const titles = new Set<string>();
+    for (const template of templates) {
+      const title = template.title.trim();
+      if (!title) throw new RuleManagementError("O título da tarefa é obrigatório");
+      if (titles.has(title.toLocaleLowerCase())) throw new RuleManagementError("Os títulos das tarefas devem ser únicos dentro da regra");
+      titles.add(title.toLocaleLowerCase());
+      if (template.daysBeforeEvent != null && (!Number.isInteger(template.daysBeforeEvent) || template.daysBeforeEvent < 0 || template.daysBeforeEvent > 365)) {
+        throw new RuleManagementError("Os dias antes do evento devem estar entre 0 e 365");
+      }
+    }
+  }
+
+  private normalizeTaskTemplates(templates: CreateRuleInput["taskTemplates"]) {
+    return templates?.map((template) => ({ ...template, title: template.title.trim(), description: template.description?.trim() || null }));
+  }
+
   async create(input: CreateRuleInput) {
     const name = input.name.trim();
     if (!name) throw new RuleManagementError("O nome da regra é obrigatório");
     this.assertConsistentCondition(input.conditionMinGuests, input.conditionMaxGuests, input.resourceRequirements);
+    this.validateTaskTemplates(input.taskTemplates);
 
-    const rule = await this.rules.create({
+    const normalizedInput = {
       ...input,
       name,
       conditionServiceTypeIn: normalizeConditionList(input.conditionServiceTypeIn),
       conditionRequiredServiceIds: normalizeConditionList(input.conditionRequiredServiceIds),
-    });
+      ...(input.taskTemplates !== undefined ? { taskTemplates: this.normalizeTaskTemplates(input.taskTemplates) } : {}),
+    };
+    const create = (tx?: unknown) => tx === undefined ? this.rules.create(normalizedInput) : this.rules.create(normalizedInput, tx);
+    const rule = await (this.transactions ? this.transactions.run(create) : create());
     await this.audit.record({
       userId: input.createdById,
       action: "RULE_CREATED",
@@ -82,21 +110,25 @@ export class RuleEngineService {
     const minGuests = input.conditionMinGuests !== undefined ? input.conditionMinGuests : current.conditionMinGuests;
     const maxGuests = input.conditionMaxGuests !== undefined ? input.conditionMaxGuests : current.conditionMaxGuests;
     this.assertConsistentCondition(minGuests, maxGuests, input.resourceRequirements);
+    this.validateTaskTemplates(input.taskTemplates);
 
-    const updated = await this.rules.update(id, {
+    const normalizedInput = {
       ...input,
       name: input.name?.trim(),
       conditionServiceTypeIn:
         input.conditionServiceTypeIn !== undefined ? normalizeConditionList(input.conditionServiceTypeIn) : undefined,
       conditionRequiredServiceIds:
         input.conditionRequiredServiceIds !== undefined ? normalizeConditionList(input.conditionRequiredServiceIds) : undefined,
-    });
+      ...(input.taskTemplates !== undefined ? { taskTemplates: this.normalizeTaskTemplates(input.taskTemplates) } : {}),
+    };
+    const update = (tx?: unknown) => tx === undefined ? this.rules.update(id, normalizedInput) : this.rules.update(id, normalizedInput, tx);
+    const updated = await (this.transactions ? this.transactions.run(update) : update());
     await this.audit.record({
       userId: actorId,
       action: "RULE_UPDATED",
       entity: "Rule",
       entityId: id,
-      changes: { after: updated },
+      changes: { beforeTaskTemplates: current.taskTemplates, afterTaskTemplates: updated.taskTemplates, after: updated },
     });
     return updated;
   }

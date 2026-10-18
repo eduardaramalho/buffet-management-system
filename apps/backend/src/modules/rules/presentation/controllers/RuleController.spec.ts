@@ -80,6 +80,54 @@ describe("RuleController", () => {
     expect(update).toHaveBeenCalledWith("rule-1", expect.objectContaining({ name: "Regra atualizada" }), "actor-1");
   });
 
+  it("preserves templates when taskTemplates is omitted from PUT", async () => {
+    const update = jest.fn(async () => ({ id: "rule-1" }));
+    const controller = new RuleController({ update } as never);
+    const app = express();
+    app.use(express.json(), authenticated);
+    app.put("/rules/:id", controller.update);
+
+    await request(app).put("/rules/rule-1").send({ name: "Regra atualizada" });
+
+    expect(update).toHaveBeenCalledWith("rule-1", expect.not.objectContaining({ taskTemplates: expect.anything() }), "actor-1");
+  });
+
+  it("passes an empty taskTemplates list to PUT to remove all templates", async () => {
+    const update = jest.fn(async () => ({ id: "rule-1" }));
+    const controller = new RuleController({ update } as never);
+    const app = express();
+    app.use(express.json(), authenticated);
+    app.put("/rules/:id", controller.update);
+
+    await request(app).put("/rules/rule-1").send({ taskTemplates: [] });
+
+    expect(update).toHaveBeenCalledWith("rule-1", expect.objectContaining({ taskTemplates: [] }), "actor-1");
+  });
+
+  it("returns 400 for an empty task template title", async () => {
+    const controller = new RuleController({ create: jest.fn() } as never);
+    const app = express();
+    app.use(express.json(), authenticated);
+    app.post("/rules", controller.create);
+    app.use(errorHandler);
+
+    const response = await request(app).post("/rules").send({ name: "Regra", taskTemplates: [{ title: "" }] });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("returns 400 for a negative daysBeforeEvent", async () => {
+    const controller = new RuleController({ create: jest.fn() } as never);
+    const app = express();
+    app.use(express.json(), authenticated);
+    app.post("/rules", controller.create);
+    app.use(errorHandler);
+
+    const response = await request(app).post("/rules").send({ name: "Regra", taskTemplates: [{ title: "Preparar", daysBeforeEvent: -1 }] });
+
+    expect(response.status).toBe(400);
+  });
+
   it("rejects update without an authenticated actor", async () => {
     const update = jest.fn();
     const controller = new RuleController({ update } as never);

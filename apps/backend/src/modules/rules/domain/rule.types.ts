@@ -1,6 +1,14 @@
 import type { EventType } from "../../events/domain/event.types.js";
 import type { TeamSpecialty } from "../../teams/domain/team.types.js";
 
+export type RuleTaskTemplateRecord = {
+  id: string;
+  ruleId: string;
+  title: string;
+  description: string | null;
+  daysBeforeEvent: number | null;
+};
+
 export type RuleResourceRequirementRecord = {
   id: string;
   specialty: TeamSpecialty;
@@ -21,11 +29,18 @@ export type RuleRecord = {
   updatedAt: Date;
   deletedAt: Date | null;
   resourceRequirements: RuleResourceRequirementRecord[];
+  taskTemplates: RuleTaskTemplateRecord[];
 };
 
 export type RuleResourceRequirementInput = {
   specialty: TeamSpecialty;
   minQuantity: number;
+};
+
+export type RuleTaskTemplateInput = {
+  title: string;
+  description?: string | null;
+  daysBeforeEvent?: number | null;
 };
 
 export type CreateRuleInput = {
@@ -37,6 +52,7 @@ export type CreateRuleInput = {
   conditionRequiredServiceIds: string[] | null;
   createdById: string;
   resourceRequirements: RuleResourceRequirementInput[];
+  taskTemplates?: RuleTaskTemplateInput[];
 };
 
 export type UpdateRuleInput = Partial<Omit<CreateRuleInput, "createdById">> & {
@@ -49,11 +65,11 @@ export type RuleListFilter = {
 };
 
 export interface RuleRepository {
-  create(input: CreateRuleInput): Promise<RuleRecord>;
+  create(input: CreateRuleInput, tx?: unknown): Promise<RuleRecord>;
   findById(id: string): Promise<RuleRecord | null>;
   list(filter: RuleListFilter): Promise<RuleRecord[]>;
   listActive(): Promise<RuleRecord[]>;
-  update(id: string, input: UpdateRuleInput): Promise<RuleRecord>;
+  update(id: string, input: UpdateRuleInput, tx?: unknown): Promise<RuleRecord>;
   softDelete(id: string): Promise<RuleRecord>;
 }
 

@@ -52,6 +52,7 @@ const makeMatch = (overrides: Partial<MatchedRule> = {}): MatchedRule => ({
     updatedAt: new Date("2026-09-28T00:00:00.000Z"),
     deletedAt: null,
     resourceRequirements: [{ id: "req-1", specialty: "BAR", minQuantity: 1 }],
+    taskTemplates: [],
   },
   resourceRequirements: [{ id: "req-1", specialty: "BAR", minQuantity: 1 }],
   ...overrides,
@@ -111,6 +112,7 @@ const makeTaskRepositoryFake = (): TaskRepository & { created: TaskRecord[] } =>
     }),
     findById: jest.fn(async (id: string) => created.find((task) => task.id === id) ?? null),
     list: jest.fn(async () => created),
+    listAllByEventId: jest.fn(async (eventId: string) => created.filter((task) => task.eventId === eventId)),
     update: jest.fn(async (id: string, input: { status: TaskRecord["status"] }) => {
       const task = created.find((t) => t.id === id);
       if (!task) throw new Error("task not found");
@@ -133,6 +135,31 @@ const makeEventTeamServiceFake = (options: { shouldConflict?: (teamId: string) =
       return { eventId, teamId, assignedAt: new Date(), assignedById: actorId };
     }),
   };
+};
+
+const makeExecutionHarness = (templates: Array<{ id: string; ruleId: string; title: string; description: string | null; daysBeforeEvent: number | null }>, teamsList = [{ id: "team-1", specialty: "BAR", status: "ATIVA" }]) => {
+  const event = makeEvent();
+  const match = makeMatch();
+  const ruleEngine = { evaluate: jest.fn(async () => [match]) } as unknown as RuleEngineService;
+  const events = { findById: jest.fn(async () => event) } as unknown as EventRepository;
+  const teams = { list: jest.fn(async () => teamsList) } as unknown as TeamRepository;
+  const eventTeamService = makeEventTeamServiceFake();
+  const tasks = makeTaskRepositoryFake();
+  const ruleApplications = makeRuleApplicationFake();
+  const ruleTaskTemplates = { listByRuleId: jest.fn(async () => templates) } as unknown as RuleTaskTemplateRepository;
+  const audit = { record: jest.fn(async () => undefined) } as unknown as AuditService;
+  const service = new RuleEngineExecutionService(
+    ruleEngine,
+    events,
+    teams,
+    eventTeamService as unknown as EventTeamService,
+    tasks,
+    ruleApplications,
+    ruleTaskTemplates,
+    audit,
+    makeFakeTransactionRunner(),
+  );
+  return { service, tasks, audit, eventTeamService, templates };
 };
 
 describe("RuleEngineExecutionService", () => {
@@ -175,7 +202,7 @@ describe("RuleEngineExecutionService", () => {
     expect(ruleApplications.create).toHaveBeenCalledWith("event-1", "rule-1", expect.anything());
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "TEAM_AUTO_ASSIGNED", entity: "Event" }));
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "TASK_GENERATED", entity: "Task" }));
-    expect(result).toEqual({ tasksCreated: 1, teamsAutoAssigned: 1, alertsGenerated: 0 });
+    expect(result).toEqual({ tasksCreated: 1, tasksSkipped: 0, teamsAutoAssigned: 1, alertsGenerated: 0 });
   });
 
   it("applying the same rule twice on the same event does not duplicate tasks or team assignments (idempotency)", async () => {
@@ -206,8 +233,8 @@ describe("RuleEngineExecutionService", () => {
     const first = await service.applyRules("event-1", "actor-1");
     const second = await service.applyRules("event-1", "actor-1");
 
-    expect(first).toEqual({ tasksCreated: 1, teamsAutoAssigned: 1, alertsGenerated: 0 });
-    expect(second).toEqual({ tasksCreated: 0, teamsAutoAssigned: 0, alertsGenerated: 0 });
+    expect(first).toEqual({ tasksCreated: 1, tasksSkipped: 0, teamsAutoAssigned: 1, alertsGenerated: 0 });
+    expect(second).toEqual({ tasksCreated: 0, tasksSkipped: 0, teamsAutoAssigned: 0, alertsGenerated: 0 });
     expect(tasks.create).toHaveBeenCalledTimes(1);
     expect(eventTeamService.assignTeamToEvent).toHaveBeenCalledTimes(1);
     expect(ruleApplications.create).toHaveBeenCalledTimes(1);
@@ -241,7 +268,7 @@ describe("RuleEngineExecutionService", () => {
     expect(eventTeamService.assignTeamToEvent).not.toHaveBeenCalled();
     expect(tasks.create).toHaveBeenCalledWith(expect.objectContaining({ eventId: "event-1", assignedTeamId: null, sourceRuleId: "rule-1" }), expect.anything());
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "TASK_GENERATED" }));
-    expect(result).toEqual({ tasksCreated: 1, teamsAutoAssigned: 0, alertsGenerated: 1 });
+    expect(result).toEqual({ tasksCreated: 1, tasksSkipped: 0, teamsAutoAssigned: 0, alertsGenerated: 1 });
   });
 
   it("skips a team with a scheduling conflict and tries the next candidate instead of throwing", async () => {
@@ -276,10 +303,10 @@ describe("RuleEngineExecutionService", () => {
 
     expect(eventTeamService.assignTeamToEvent).toHaveBeenCalledWith("event-1", "team-1", "actor-1", expect.anything());
     expect(eventTeamService.assignTeamToEvent).toHaveBeenCalledWith("event-1", "team-2", "actor-1", expect.anything());
-    expect(result).toEqual({ tasksCreated: 0, teamsAutoAssigned: 1, alertsGenerated: 0 });
+    expect(result).toEqual({ tasksCreated: 0, tasksSkipped: 0, teamsAutoAssigned: 1, alertsGenerated: 0 });
   });
 
-  it("forced reprocessing clears the existing RuleApplication and reapplies the rule", async () => {
+  it("forced reprocessing keeps existing template tasks and reports them as skipped", async () => {
     const event = makeEvent();
     const match = makeMatch();
     const ruleEngine = { evaluate: jest.fn(async () => [match]) } as unknown as RuleEngineService;
@@ -308,9 +335,69 @@ describe("RuleEngineExecutionService", () => {
     const second = await service.applyRules("event-1", "actor-1", { forceRuleId: "rule-1" });
 
     expect(ruleApplications.remove).toHaveBeenCalledWith("event-1", "rule-1");
-    expect(second).toEqual({ tasksCreated: 1, teamsAutoAssigned: 0, alertsGenerated: 0 });
-    expect(tasks.create).toHaveBeenCalledTimes(2);
+    expect(second).toEqual({ tasksCreated: 0, tasksSkipped: 1, teamsAutoAssigned: 0, alertsGenerated: 0 });
+    expect(tasks.create).toHaveBeenCalledTimes(1);
     expect(ruleApplications.create).toHaveBeenCalledTimes(2);
+  });
+
+  it("forced reprocessing creates only a template added after the first application", async () => {
+    const harness = makeExecutionHarness([{ id: "tpl-1", ruleId: "rule-1", title: "Primeira", description: null, daysBeforeEvent: null }]);
+    await harness.service.applyRules("event-1", "actor-1");
+    harness.templates.push({ id: "tpl-2", ruleId: "rule-1", title: "Nova", description: null, daysBeforeEvent: null });
+
+    const result = await harness.service.applyRules("event-1", "actor-1", { forceRuleId: "rule-1" });
+
+    expect(result).toEqual({ tasksCreated: 1, tasksSkipped: 1, teamsAutoAssigned: 0, alertsGenerated: 0 });
+    expect(harness.tasks.created.map((task) => task.title)).toEqual(["Primeira", "Nova"]);
+  });
+
+  it("does not recreate a cancelled template task", async () => {
+    const harness = makeExecutionHarness([{ id: "tpl-1", ruleId: "rule-1", title: "Cancelar depois", description: null, daysBeforeEvent: null }]);
+    await harness.service.applyRules("event-1", "actor-1");
+    harness.tasks.created[0].status = "CANCELADA";
+
+    const result = await harness.service.applyRules("event-1", "actor-1", { forceRuleId: "rule-1" });
+
+    expect(result.tasksCreated).toBe(0);
+    expect(result.tasksSkipped).toBe(1);
+    expect(harness.tasks.created).toHaveLength(1);
+  });
+
+  it("does not recreate a soft-deleted template task", async () => {
+    const harness = makeExecutionHarness([{ id: "tpl-1", ruleId: "rule-1", title: "Excluir depois", description: null, daysBeforeEvent: null }]);
+    await harness.service.applyRules("event-1", "actor-1");
+    harness.tasks.created[0].deletedAt = new Date();
+
+    const result = await harness.service.applyRules("event-1", "actor-1", { forceRuleId: "rule-1" });
+
+    expect(result.tasksCreated).toBe(0);
+    expect(result.tasksSkipped).toBe(1);
+    expect(harness.tasks.created).toHaveLength(1);
+  });
+
+  it("handles two template titles independently", async () => {
+    const harness = makeExecutionHarness([
+      { id: "tpl-1", ruleId: "rule-1", title: "Primeira", description: null, daysBeforeEvent: null },
+      { id: "tpl-2", ruleId: "rule-1", title: "Segunda", description: null, daysBeforeEvent: null },
+    ]);
+    await harness.service.applyRules("event-1", "actor-1");
+
+    const result = await harness.service.applyRules("event-1", "actor-1", { forceRuleId: "rule-1" });
+
+    expect(result.tasksCreated).toBe(0);
+    expect(result.tasksSkipped).toBe(2);
+    expect(harness.tasks.created).toHaveLength(2);
+  });
+
+  it("does not duplicate a shortage alert during successive forced reprocessing", async () => {
+    const harness = makeExecutionHarness([], []);
+    await harness.service.applyRules("event-1", "actor-1");
+
+    const result = await harness.service.applyRules("event-1", "actor-1", { forceRuleId: "rule-1" });
+
+    expect(result).toEqual({ tasksCreated: 0, tasksSkipped: 1, teamsAutoAssigned: 0, alertsGenerated: 0 });
+    expect(harness.tasks.created).toHaveLength(1);
+    expect(harness.audit.record).toHaveBeenCalledTimes(1);
   });
 
   it("does not leave a partial write when the final RuleApplication write fails mid-loop (atomicity)", async () => {

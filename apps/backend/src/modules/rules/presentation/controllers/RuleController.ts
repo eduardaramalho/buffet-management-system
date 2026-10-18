@@ -8,6 +8,11 @@ const resourceRequirementSchema = z.object({
   specialty: z.enum(teamSpecialties),
   minQuantity: z.number().int().min(1),
 });
+const taskTemplateSchema = z.object({
+  title: z.string().trim().min(1).max(150),
+  description: z.string().optional().nullable(),
+  daysBeforeEvent: z.number().int().min(0).max(365).optional().nullable(),
+});
 
 const ruleSchema = z.object({
   name: z.string().min(1).max(150),
@@ -17,6 +22,7 @@ const ruleSchema = z.object({
   conditionMaxGuests: z.number().int().min(0).nullable().optional().default(null),
   conditionRequiredServiceIds: z.array(z.string().min(1)).nullable().optional().default(null),
   resourceRequirements: z.array(resourceRequirementSchema).default([]),
+  taskTemplates: z.array(taskTemplateSchema).max(20).optional(),
 });
 const updateSchema = ruleSchema.partial().extend({ isActive: z.boolean().optional() });
 const listSchema = z.object({
