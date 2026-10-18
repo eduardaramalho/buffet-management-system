@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import axios from 'axios'
+import { getApiErrorMessage } from '../api/apiError'
 import { assignTeamToEvent, listTeams, listTeamsByEvent, unassignTeamFromEvent } from '../api/teamsApi'
 import { attachEventService, createEvent, detachEventService, updateEvent } from '../api/eventsApi'
 import { listServices } from '../api/servicesApi'
@@ -11,8 +11,6 @@ import type { Team } from '../types/team'
 type EventFormProps = { event?: Event; onClose: () => void; onCreated: (event: Event) => void; onUpdated: (event: Event) => void }
 const eventTypes: Array<[EventType, string]> = [['CASAMENTO', 'Casamento'], ['ANIVERSARIO', 'Aniversário'], ['FORMATURA', 'Formatura'], ['CORPORATIVO', 'Corporativo'], ['CONFRATERNIZACAO', 'Confraternização'], ['BATIZADO', 'Batizado'], ['OUTRO', 'Outro']]
 const toDateInput = (value?: string) => value ? new Date(value).toISOString().slice(0, 16) : ''
-const apiErrorMessage = (cause: unknown) => axios.isAxiosError(cause) ? cause.response?.data?.message ?? 'Não foi possível salvar o evento' : cause instanceof Error ? cause.message : 'Não foi possível salvar o evento'
-
 export function EventForm({ event, onClose, onCreated, onUpdated }: EventFormProps) {
   const [name, setName] = useState(event?.name ?? '')
   const [eventDate, setEventDate] = useState(toDateInput(event?.eventDate))
@@ -28,14 +26,14 @@ export function EventForm({ event, onClose, onCreated, onUpdated }: EventFormPro
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => { void listServices().then(setServices).catch((cause) => setError(apiErrorMessage(cause))) }, [])
+  useEffect(() => { void listServices().then(setServices).catch((cause) => setError(getApiErrorMessage(cause, 'Não foi possível salvar o evento'))) }, [])
   useEffect(() => {
     if (!event) return
     void Promise.all([listTeams(), listTeamsByEvent(event.id)]).then(([teams, assignments]) => {
       const assignedIds = new Set(assignments.map((assignment) => assignment.teamId))
       setAvailableTeams(teams.filter((team) => !assignedIds.has(team.id) && team.status === 'ATIVA'))
       setAssignedTeams(teams.filter((team) => assignedIds.has(team.id)))
-    }).catch((cause) => setError(apiErrorMessage(cause)))
+    }).catch((cause) => setError(getApiErrorMessage(cause, 'Não foi possível salvar o evento')))
   }, [event])
 
   const otherService = services.find((service) => service.isCustom)
@@ -47,12 +45,12 @@ export function EventForm({ event, onClose, onCreated, onUpdated }: EventFormPro
       const assigned = availableTeams.find((team) => team.id === teamToAssign)
       if (assigned) { setAssignedTeams((current) => [...current, assigned]); setAvailableTeams((current) => current.filter((team) => team.id !== teamToAssign)) }
       setTeamToAssign('')
-    } catch (cause) { setError(apiErrorMessage(cause)) }
+    } catch (cause) { setError(getApiErrorMessage(cause, 'Não foi possível salvar o evento')) }
   }
   const unassignTeam = async (team: Team) => {
     if (!event) return
     try { await unassignTeamFromEvent(team.id, event.id); setAssignedTeams((current) => current.filter((item) => item.id !== team.id)); setAvailableTeams((current) => [...current, team]) }
-    catch (cause) { setError(apiErrorMessage(cause)) }
+    catch (cause) { setError(getApiErrorMessage(cause, 'Não foi possível salvar o evento')) }
   }
   const submit = async (formEvent: FormEvent) => {
     formEvent.preventDefault(); setError('')
@@ -72,7 +70,7 @@ export function EventForm({ event, onClose, onCreated, onUpdated }: EventFormPro
       const result = { ...saved, services: services.filter((service) => selected[service.id] !== undefined).map((service) => ({ serviceId: service.id, customLabel: selected[service.id] || null, service })) }
       event ? onUpdated(result) : onCreated(result)
       onClose()
-    } catch (cause) { setError(apiErrorMessage(cause)) } finally { setLoading(false) }
+    } catch (cause) { setError(getApiErrorMessage(cause, 'Não foi possível salvar o evento')) } finally { setLoading(false) }
   }
 
   return <aside className="user-form-panel event-form-panel" role="dialog" aria-modal="true" aria-labelledby="event-form-title"><div className="form-wrap"><button type="button" className="link-button" onClick={onClose}>Voltar</button><h2 id="event-form-title">{event ? 'Editar evento' : 'Novo Evento'}</h2><form onSubmit={submit}><div className="event-form-grid"><section><h3>Informações principais</h3><label>Nome do evento<input aria-label="Nome do evento" value={name} onChange={(e) => setName(e.target.value)} /></label><label>Data do evento<input aria-label="Data do evento" type="datetime-local" value={eventDate} onChange={(e) => setEventDate(e.target.value)} /></label><label>Local<input aria-label="Local" value={location} onChange={(e) => setLocation(e.target.value)} /></label><label>Tipo de serviço<select aria-label="Tipo de serviço" value={serviceType} onChange={(e) => setServiceType(e.target.value as EventType)}><option value="">Selecione</option>{eventTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>Número de convidados<input aria-label="Número de convidados" type="number" min="1" value={guestsCount} onChange={(e) => setGuestsCount(e.target.value)} /></label><label>Observações<textarea aria-label="Observações" value={observations} onChange={(e) => setObservations(e.target.value)} /></label></section><section><h3>Serviços contratados</h3><div className="service-checks">{services.map((service) => <label key={service.id}><span><input type="checkbox" aria-label={service.name} checked={selected[service.id] !== undefined} onChange={() => toggleService(service)} /> {service.name}</span>{service.isCustom && selected[service.id] !== undefined && <input aria-label="Especifique..." placeholder="Especifique..." value={selected[service.id]} onChange={(e) => setSelected((current) => ({ ...current, [service.id]: e.target.value }))} />}</label>)}</div></section></div>{event && <section><h3>Equipes designadas</h3><div className="content-head"><select aria-label="Equipe para adicionar" value={teamToAssign} onChange={(e) => setTeamToAssign(e.target.value)}><option value="">Selecione uma equipe ativa</option>{availableTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select><Button type="button" className="secondary" onClick={() => void assignTeam()} disabled={!teamToAssign}>Vincular equipe</Button></div><div className="service-checks">{assignedTeams.map((team) => <label key={team.id}><span>{team.name}</span><Button type="button" className="ghost" onClick={() => void unassignTeam(team)}>Desvincular</Button></label>)}</div>{assignedTeams.length === 0 && <p>Nenhuma equipe designada.</p>}</section>}{error && <Notice message={error} error />}<div className="form-actions"><Button type="button" className="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" className="primary" disabled={loading}>{loading ? 'Salvando...' : 'Salvar'}</Button></div></form></div></aside>

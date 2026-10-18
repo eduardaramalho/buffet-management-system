@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import axios from 'axios'
+import { getApiErrorMessage } from '../api/apiError'
 import { getEventRuleMatches } from '../api/rulesApi'
 import { Button } from './Button'
 import { Notice } from './Notice'
 import type { Event } from '../types/event'
 import type { MatchedRule } from '../types/rule'
-
-const apiErrorMessage = (cause: unknown) => axios.isAxiosError(cause) ? cause.response?.data?.message ?? 'Não foi possível testar as regras' : cause instanceof Error ? cause.message : 'Não foi possível testar as regras'
 
 // Preview-only: calls the read-only rule-matches endpoint, no task/team is created here (Part 2).
 export function EventDetails({ event, onClose }: { event: Event; onClose: () => void }) {
@@ -17,7 +15,7 @@ export function EventDetails({ event, onClose }: { event: Event; onClose: () => 
   const testRules = async () => {
     setLoading(true); setError('')
     try { setMatches(await getEventRuleMatches(event.id)) }
-    catch (cause) { setError(apiErrorMessage(cause)) }
+    catch (cause) { setError(getApiErrorMessage(cause, 'Não foi possível testar as regras')) }
     finally { setLoading(false) }
   }
 
