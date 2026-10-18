@@ -26,7 +26,13 @@ Esse mecanismo é necessário porque `applyRules()` pode ser invocado mais de um
 
 A granularidade escolhida é por regra, não pelo evento inteiro: permite que uma regra nova (criada ou ativada depois da primeira aplicação) seja processada em uma chamada futura sem reprocessar regras que já geraram seus efeitos. O reprocessamento forçado (`forceRuleId`) existe exatamente para contornar esse mecanismo quando necessário — ele remove o registro de `RuleApplication` daquela regra especificamente antes de reavaliar, deixando as demais regras já aplicadas intocadas.
 
-### 3. Atualização de status de Task fica fora deste módulo
+### 3. Reprocessamento completa tarefas ausentes
+
+Com `forceRuleId`, o motor remove o marcador da regra e reavalia seus efeitos, mas não reescreve tarefas existentes. Templates são comparados pela chave `(eventId, sourceRuleId, title)` e alertas de falta de equipe por `(eventId, sourceRuleId, especialidade)`. A busca inclui tarefas em qualquer status, inclusive canceladas, concluídas e com soft delete; por isso uma tarefa cancelada ou excluída não volta a ser criada. Renomear um template e reaplicar gera uma tarefa nova com o novo título.
+
+O retorno informa `tasksCreated` e `tasksSkipped`. Sem `forceRuleId`, uma regra já aplicada continua sendo ignorada integralmente.
+
+### 4. Atualização de status de Task fica fora deste módulo
 
 `Task` nasce sempre com `status = PENDENTE` e os endpoints desta etapa (`GET /api/v1/tasks`, `GET /api/v1/tasks/:id`) são somente leitura — não há `PATCH`/`PUT` para transicionar `PENDENTE → EM_ANDAMENTO → CONCLUIDA`/`CANCELADA`.
 
@@ -36,6 +42,7 @@ Essa fronteira é proposital, não uma omissão: o cronograma do TCC trata a ges
 
 - `RuleEngineExecutionService.applyRules()` nunca lança erro por falta de equipe; o chamador (incluindo a transição automática para `CONFIRMADO`) não precisa tratar esse caso como falha.
 - `RuleApplication` é uma tabela de controle, sem valor de negócio direto para o usuário final, mas obrigatória para a correção do reprocessamento — não deve ser removida ou ter sua constraint de unicidade relaxada sem revisar este ADR.
-- Reprocessamento sem `forceRuleId` é sempre seguro de chamar repetidamente (idempotente); com `forceRuleId`, o chamador assume que pode haver duplicação de `Task` para aquela regra especificamente (ver `RuleEngineExecutionService.spec.ts`, teste de reprocessamento forçado).
+- Reprocessamento sem `forceRuleId` e reprocessamento forçado são idempotentes para tarefas e alocações: o primeiro ignora a regra aplicada; o segundo completa ausências e informa quantas tarefas foram ignoradas.
+- Editar ou remover templates não altera tarefas já geradas para eventos anteriores.
 - `Task.status` além de `PENDENTE`/`CANCELADA` por exclusão de regra não é alcançável nesta etapa; qualquer necessidade de mudar status hoje exige alteração direta no banco, o que é esperado até o próximo módulo ser implementado.
 - O próximo módulo do cronograma deve adicionar as rotas de transição de status e decidir permissões específicas (ex.: `tasks:update-status`), sem reabrir o `RuleEngineExecutionService`.

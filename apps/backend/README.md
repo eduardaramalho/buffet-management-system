@@ -149,6 +149,23 @@ Exemplo de criação:
 }
 ```
 
+## Regras, tarefas e motor de regras
+
+As regras são gerenciadas por `GET/POST /api/v1/rules` e `GET/PUT/DELETE /api/v1/rules/:id`, usando as permissões `rules:list`, `rules:read`, `rules:create`, `rules:update` e `rules:delete`. O payload de criação e atualização pode embutir até 20 templates de tarefas:
+
+```json
+{
+  "name": "Casamento grande",
+  "resourceRequirements": [],
+  "taskTemplates": [
+    { "title": "Confirmar fornecedor", "description": "Ligar para o fornecedor", "daysBeforeEvent": 10 },
+    { "title": "Separar materiais", "daysBeforeEvent": 2 }
+  ]
+}
+```
+
+`title` tem de 1 a 150 caracteres após o trim; `description` é opcional; `daysBeforeEvent` é um inteiro entre 0 e 365 ou `null`. Os títulos devem ser únicos dentro da regra. No `PUT`, omitir `taskTemplates` preserva os templates atuais; enviar `taskTemplates: []` remove todos. A criação e a substituição dos templates ocorrem na mesma transação da regra.
+
 ## Tarefas e motor de regras
 
 Todos os endpoints abaixo exigem `Authorization: Bearer <access-token>`. `Task` é gerada automaticamente pelo motor de regras (nunca criada manualmente nesta etapa) e usa soft delete.
@@ -182,11 +199,14 @@ Corpo opcional, usado apenas para reprocessamento forçado de uma regra específ
 
 Sem `forceRuleId`, regras já aplicadas ao evento (controladas por `RuleApplication`) são ignoradas — a aplicação de regras é idempotente por padrão (ver ADR 0003).
 
+Em um reprocessamento com `forceRuleId`, o motor completa somente o que ainda não existe. A identidade de uma tarefa de template é `(eventId, sourceRuleId, title)` e considera tarefas em qualquer status, inclusive canceladas e com soft delete. Alertas de falta de equipe são idempotentes por `(eventId, sourceRuleId, especialidade)`. Tarefas já geradas nunca são alteradas por edições ou remoções posteriores de templates; renomear um template e reaplicar gera uma nova tarefa com o novo nome.
+
 Resposta:
 
 ```json
 {
   "tasksCreated": 2,
+  "tasksSkipped": 0,
   "teamsAutoAssigned": 1,
   "alertsGenerated": 1
 }
