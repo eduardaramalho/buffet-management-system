@@ -4,16 +4,21 @@ import { eventStatuses, eventTypes } from "../../domain/event.types.js";
 import type { EventManagementService } from "../../application/EventManagementService.js";
 
 const dateSchema = z.coerce.date();
-const createSchema = z.object({
+// Base sem defaults: o .partial() do Zod 4 mantém .default(), o que sobrescreveria campos omitidos no PUT.
+const eventBaseSchema = z.object({
   name: z.string().min(3).max(150),
   eventDate: dateSchema,
-  endDate: dateSchema.nullable().optional().default(null),
+  endDate: dateSchema.nullable().optional(),
   location: z.string().min(1).max(200),
   serviceType: z.enum(eventTypes),
   guestsCount: z.number().int().min(1).max(5000),
-  observations: z.string().max(2000).nullable().optional().default(null),
+  observations: z.string().max(2000).nullable().optional(),
 });
-const updateSchema = createSchema.partial().extend({ status: z.enum(eventStatuses).optional(), reason: z.string().max(1000).optional() });
+const createSchema = eventBaseSchema.extend({
+  endDate: eventBaseSchema.shape.endDate.default(null),
+  observations: eventBaseSchema.shape.observations.default(null),
+});
+const updateSchema = eventBaseSchema.partial().extend({ status: z.enum(eventStatuses).optional(), reason: z.string().max(1000).optional() });
 const listSchema = z.object({
   status: z.enum(eventStatuses).optional(),
   from: dateSchema.optional(),

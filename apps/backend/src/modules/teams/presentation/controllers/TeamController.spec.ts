@@ -75,7 +75,7 @@ describe("TeamController", () => {
     const response = await request(app).put("/teams/team-1").send({ name: "Equipe Cozinha B" });
 
     expect(response.status).toBe(200);
-    expect(update).toHaveBeenCalledWith("team-1", { name: "Equipe Cozinha B", observations: null }, "actor-1");
+    expect(update).toHaveBeenCalledWith("team-1", { name: "Equipe Cozinha B" }, "actor-1");
   });
 
   it("rejects update without an authenticated actor", async () => {

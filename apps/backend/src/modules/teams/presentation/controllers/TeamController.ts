@@ -3,12 +3,14 @@ import { z } from "zod";
 import { teamSpecialties } from "../../domain/team.types.js";
 import type { TeamService } from "../../application/TeamService.js";
 
-const teamSchema = z.object({
+// Base sem defaults: o .partial() do Zod 4 mantém .default(), o que sobrescreveria campos omitidos no PUT.
+const teamBaseSchema = z.object({
   name: z.string().min(1).max(150),
   specialty: z.enum(teamSpecialties),
-  observations: z.string().max(2000).nullable().optional().default(null),
+  observations: z.string().max(2000).nullable().optional(),
 });
-const updateSchema = teamSchema.partial();
+const teamSchema = teamBaseSchema.extend({ observations: teamBaseSchema.shape.observations.default(null) });
+const updateSchema = teamBaseSchema.partial();
 const memberSchema = z.object({ collaboratorId: z.string().min(1), isLeader: z.boolean().default(false) });
 const listSchema = z.object({
   search: z.string().optional(),

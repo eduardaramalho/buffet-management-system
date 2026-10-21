@@ -14,17 +14,26 @@ const taskTemplateSchema = z.object({
   daysBeforeEvent: z.number().int().min(0).max(365).optional().nullable(),
 });
 
-const ruleSchema = z.object({
+// Base sem defaults: o .partial() do Zod 4 mantém .default(), o que sobrescreveria campos omitidos no PUT.
+const ruleBaseSchema = z.object({
   name: z.string().min(1).max(150),
-  description: z.string().max(2000).nullable().optional().default(null),
-  conditionServiceTypeIn: z.array(z.enum(eventTypes)).nullable().optional().default(null),
-  conditionMinGuests: z.number().int().min(0).nullable().optional().default(null),
-  conditionMaxGuests: z.number().int().min(0).nullable().optional().default(null),
-  conditionRequiredServiceIds: z.array(z.string().min(1)).nullable().optional().default(null),
-  resourceRequirements: z.array(resourceRequirementSchema).default([]),
+  description: z.string().max(2000).nullable().optional(),
+  conditionServiceTypeIn: z.array(z.enum(eventTypes)).nullable().optional(),
+  conditionMinGuests: z.number().int().min(0).nullable().optional(),
+  conditionMaxGuests: z.number().int().min(0).nullable().optional(),
+  conditionRequiredServiceIds: z.array(z.string().min(1)).nullable().optional(),
+  resourceRequirements: z.array(resourceRequirementSchema),
   taskTemplates: z.array(taskTemplateSchema).max(20).optional(),
 });
-const updateSchema = ruleSchema.partial().extend({ isActive: z.boolean().optional() });
+const ruleSchema = ruleBaseSchema.extend({
+  description: ruleBaseSchema.shape.description.default(null),
+  conditionServiceTypeIn: ruleBaseSchema.shape.conditionServiceTypeIn.default(null),
+  conditionMinGuests: ruleBaseSchema.shape.conditionMinGuests.default(null),
+  conditionMaxGuests: ruleBaseSchema.shape.conditionMaxGuests.default(null),
+  conditionRequiredServiceIds: ruleBaseSchema.shape.conditionRequiredServiceIds.default(null),
+  resourceRequirements: ruleBaseSchema.shape.resourceRequirements.default([]),
+});
+const updateSchema = ruleBaseSchema.partial().extend({ isActive: z.boolean().optional() });
 const listSchema = z.object({
   search: z.string().optional(),
   isActive: z

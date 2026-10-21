@@ -70,7 +70,7 @@ describe("CollaboratorController", () => {
     const response = await request(app).put("/collaborators/collaborator-1").send({ name: "Ana Souza" });
 
     expect(response.status).toBe(200);
-    expect(update).toHaveBeenCalledWith("collaborator-1", { name: "Ana Souza", phone: null }, "actor-1");
+    expect(update).toHaveBeenCalledWith("collaborator-1", { name: "Ana Souza" }, "actor-1");
   });
 
   it("rejects update without an authenticated actor", async () => {

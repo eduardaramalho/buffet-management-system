@@ -104,6 +104,18 @@ describe("RuleController", () => {
     expect(update).toHaveBeenCalledWith("rule-1", expect.objectContaining({ taskTemplates: [] }), "actor-1");
   });
 
+  it("does not apply Zod defaults to omitted fields on partial PUT", async () => {
+    const update = jest.fn(async () => ({ id: "rule-1" }));
+    const controller = new RuleController({ update } as never);
+    const app = express();
+    app.use(express.json(), authenticated);
+    app.put("/rules/:id", controller.update);
+
+    await request(app).put("/rules/rule-1").send({ name: "Só o nome" });
+
+    expect(update).toHaveBeenCalledWith("rule-1", { name: "Só o nome" }, "actor-1");
+  });
+
   it("returns 400 for an empty task template title", async () => {
     const controller = new RuleController({ create: jest.fn() } as never);
     const app = express();
