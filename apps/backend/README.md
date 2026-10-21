@@ -29,9 +29,12 @@ Exemplo de criação:
   "location": "Salao Principal",
   "serviceType": "CASAMENTO",
   "guestsCount": 120,
-  "observations": "Menu sem lactose"
+  "observations": "Menu sem lactose",
+  "clientId": "client-uuid"
 }
 ```
+
+`clientId` é obrigatório na criação e precisa apontar para um cliente ativo (não excluído). Na edição é opcional; quando enviado, passa pela mesma validação. Eventos criados antes do cadastro de clientes podem ter `clientId: null` (ver [ADR 0005](../../docs/adr/0005-cadastro-de-clientes.md)). As respostas de evento trazem `client` com `id`, `name`, `email`, `phone` e `deletedAt` (o documento não é exposto no evento).
 
 Exemplo de edição:
 
@@ -73,6 +76,53 @@ Exemplo de criação:
 ```
 
 A exclusão de serviços e eventos é lógica (`deletedAt`); os registros permanecem armazenados para preservar histórico.
+
+## Clientes
+
+Cadastro de clientes (pessoa física ou jurídica) vinculados aos eventos. Exclusão sempre lógica (soft delete).
+
+| Método | Path | Permissão |
+|---|---|---|
+| `GET` | `/api/v1/clients` | `clients:list` |
+| `GET` | `/api/v1/clients/:id` | `clients:read` |
+| `POST` | `/api/v1/clients` | `clients:create` |
+| `PUT` | `/api/v1/clients/:id` | `clients:update` |
+| `DELETE` | `/api/v1/clients/:id` | `clients:delete` |
+
+`GET /api/v1/clients` aceita o filtro opcional `search`, que busca por nome, e-mail ou documento (com ou sem pontuação). Clientes excluídos não aparecem.
+
+Exemplo de criação:
+
+```json
+{
+  "type": "PF",
+  "name": "Ana Souza",
+  "document": "529.982.247-25",
+  "email": "ana@email.com",
+  "phone": "(47) 99999-0000",
+  "notes": "Prefere contato por WhatsApp"
+}
+```
+
+O `PUT` é parcial: campos omitidos não são alterados.
+
+Regras de negócio:
+
+- `type`: `PF` ou `PJ`. `name` é obrigatório; `document`, `email`, `phone` e `notes` são opcionais (string vazia vira `null`).
+- `document` é validado pelos dígitos verificadores conforme o tipo: CPF para `PF`, CNPJ para `PJ`, incluindo o CNPJ alfanumérico emitido pela Receita Federal desde julho de 2026. É armazenado sem pontuação e em maiúsculas.
+- O documento é único entre todos os clientes, inclusive os excluídos. Ao mudar só o `type`, o documento atual é revalidado.
+- O e-mail é armazenado em minúsculas.
+- A exclusão é bloqueada enquanto o cliente tiver eventos não excluídos em status diferente de `CONCLUIDO` ou `CANCELADO`. Eventos concluídos ou cancelados mantêm o vínculo com o cliente excluído.
+- Auditoria: `CLIENT_CREATED`, `CLIENT_UPDATED` (nomes dos campos alterados) e `CLIENT_DELETED`. Por minimização de dados (LGPD), a auditoria não grava documento, e-mail nem telefone.
+
+Respostas de erro:
+
+| Status | Quando |
+|---|---|
+| `400` | Nome vazio, CPF ou CNPJ inválido |
+| `404` | Cliente não encontrado (ou excluído) |
+| `409` | Documento já usado (por cliente ativo ou excluído) ou cliente com eventos em aberto |
+| `422` | Payload fora do formato (Zod), por exemplo `type` inválido ou e-mail malformado |
 
 ## Equipes e colaboradores
 
