@@ -1,14 +1,16 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TasksBoardPage } from './TasksBoardPage'
-import { listTasks, updateTaskStatus } from '../api/tasksApi'
+import { createTask, listTasks, removeTask, updateTask, updateTaskStatus } from '../api/tasksApi'
 import { listEvents } from '../api/eventsApi'
-import { listTeams } from '../api/teamsApi'
+import { listTeams, listTeamsByEvent } from '../api/teamsApi'
 import type { Task } from '../types/task'
 
-vi.mock('../api/tasksApi', () => ({ listTasks: vi.fn(), getTask: vi.fn(), updateTaskStatus: vi.fn() }))
+vi.mock('../api/tasksApi', () => ({ listTasks: vi.fn(), getTask: vi.fn(), updateTaskStatus: vi.fn(), createTask: vi.fn(), updateTask: vi.fn(), removeTask: vi.fn() }))
 vi.mock('../api/eventsApi', () => ({ listEvents: vi.fn() }))
-vi.mock('../api/teamsApi', () => ({ listTeams: vi.fn() }))
+vi.mock('../api/teamsApi', () => ({ listTeams: vi.fn(), listTeamsByEvent: vi.fn() }))
+let permissions = ['tasks:list', 'tasks:create', 'tasks:update', 'tasks:delete', 'tasks:update-status']
+vi.mock('../contexts/useAuth', () => ({ useAuth: () => ({ user: { roles: [{ name: 'Administrador', permissions }] } }) }))
 
 const task = (overrides: Partial<Task> = {}): Task => ({
   id: 'task-1',
@@ -29,6 +31,12 @@ const event = { id: 'event-1', name: 'Casamento Ana', eventDate: '2026-11-10T15:
 const team = { id: 'team-1', name: 'Equipe Cozinha A', specialty: 'COZINHA' as const, status: 'ATIVA' as const, observations: null, createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, members: [], events: [] }
 
 describe('TasksBoardPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    permissions = ['tasks:list', 'tasks:create', 'tasks:update', 'tasks:delete', 'tasks:update-status']
+    vi.mocked(listTeamsByEvent).mockResolvedValue([{ eventId: 'event-1', teamId: 'team-1', assignedAt: '', assignedById: 'a' }])
+  })
+
   it('atualiza silenciosamente via botão e mantém os dados quando a atualização falha', async () => {
     vi.mocked(listTasks).mockResolvedValueOnce([task({ title: 'Confirmar decoração' })])
     vi.mocked(listEvents).mockResolvedValue([event])
@@ -105,5 +113,98 @@ describe('TasksBoardPage', () => {
     render(<TasksBoardPage />)
 
     expect(await screen.findByText('Sem equipe — ação necessária')).toBeInTheDocument()
+  })
+
+  describe('tarefas manuais', () => {
+    const arrange = (tasks: Task[]) => {
+      vi.mocked(listTasks).mockResolvedValue(tasks)
+      vi.mocked(listEvents).mockResolvedValue([event])
+      vi.mocked(listTeams).mockResolvedValue([team])
+    }
+
+    it('cria uma tarefa pelo botão "Nova tarefa" e a mostra na coluna Pendente', async () => {
+      arrange([])
+      vi.mocked(createTask).mockResolvedValue(task({ id: 'new', title: 'Montar mesas' }))
+      render(<TasksBoardPage />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Nova tarefa' }))
+      fireEvent.change(screen.getByLabelText('Evento'), { target: { value: 'event-1' } })
+      fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Montar mesas' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+      await waitFor(() => expect(createTask).toHaveBeenCalledWith(expect.objectContaining({ eventId: 'event-1', title: 'Montar mesas' })))
+      expect(within(await screen.findByRole('region', { name: 'Pendente' })).getByText('Montar mesas')).toBeInTheDocument()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('edita uma tarefa existente e atualiza o card', async () => {
+      arrange([task({ title: 'Confirmar decoração' })])
+      vi.mocked(updateTask).mockResolvedValue(task({ title: 'Confirmar decoração', description: 'Nova descrição' }))
+      render(<TasksBoardPage />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Editar Confirmar decoração' }))
+      fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: 'Nova descrição' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+      await waitFor(() => expect(updateTask).toHaveBeenCalledWith('task-1', { description: 'Nova descrição' }))
+    })
+
+    it('abre o formulário de edição ao clicar em "Atribuir equipe" numa tarefa sem equipe', async () => {
+      arrange([task()])
+      render(<TasksBoardPage />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Atribuir equipe a Confirmar decoração' }))
+      expect(screen.getByRole('heading', { name: 'Editar tarefa' })).toBeInTheDocument()
+    })
+
+    it('exclui após confirmação e remove o card', async () => {
+      arrange([task()])
+      vi.mocked(removeTask).mockResolvedValue(undefined)
+      vi.spyOn(window, 'confirm').mockReturnValue(true)
+      render(<TasksBoardPage />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Excluir Confirmar decoração' }))
+      await waitFor(() => expect(removeTask).toHaveBeenCalledWith('task-1'))
+      await waitFor(() => expect(screen.queryByText('Confirmar decoração')).not.toBeInTheDocument())
+    })
+
+    it('não exclui quando a confirmação é recusada', async () => {
+      arrange([task()])
+      vi.spyOn(window, 'confirm').mockReturnValue(false)
+      render(<TasksBoardPage />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Excluir Confirmar decoração' }))
+      expect(removeTask).not.toHaveBeenCalled()
+      expect(screen.getByText('Confirmar decoração')).toBeInTheDocument()
+    })
+
+    it('mostra o erro da API quando a exclusão falha', async () => {
+      arrange([task()])
+      vi.mocked(removeTask).mockRejectedValue(new Error('Tarefas concluídas ou canceladas não podem ser excluídas'))
+      vi.spyOn(window, 'confirm').mockReturnValue(true)
+      render(<TasksBoardPage />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Excluir Confirmar decoração' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('Tarefas concluídas ou canceladas não podem ser excluídas')
+      expect(screen.getByText('Confirmar decoração')).toBeInTheDocument()
+    })
+
+    it('esconde as ações de tarefas terminais', async () => {
+      arrange([task({ status: 'CONCLUIDA', title: 'Feita' })])
+      render(<TasksBoardPage />)
+      await screen.findByText('Feita')
+      expect(screen.queryByRole('button', { name: 'Editar Feita' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Excluir Feita' })).not.toBeInTheDocument()
+    })
+
+    it('esconde as ações sem a permissão correspondente', async () => {
+      permissions = ['tasks:list', 'tasks:update-status']
+      arrange([task()])
+      render(<TasksBoardPage />)
+      await screen.findByText('Confirmar decoração')
+      expect(screen.queryByRole('button', { name: 'Nova tarefa' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Editar Confirmar decoração' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Excluir Confirmar decoração' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Atribuir equipe a Confirmar decoração' })).not.toBeInTheDocument()
+    })
+
+    it('mantém o card de tarefa gerada com o selo e permite excluí-la', async () => {
+      arrange([task({ sourceRuleId: 'rule-1' })])
+      render(<TasksBoardPage />)
+      expect(await screen.findByText('Gerada automaticamente')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Excluir Confirmar decoração' })).toBeInTheDocument()
+    })
   })
 })

@@ -14,6 +14,7 @@ export type Task = {
   completedAt?: string | null
   status: TaskStatus
   assignedTeamId: string | null
+  assignedAt?: string | null
   sourceRuleId: string | null
   createdAt: string
   updatedAt: string
@@ -21,3 +22,21 @@ export type Task = {
 }
 
 export type TaskFilters = { eventId?: string; status?: TaskStatus }
+
+export const TASK_TITLE_MAX_LENGTH = 150
+
+export type CreateTaskInput = {
+  eventId: string
+  title: string
+  description?: string
+  dueDate?: string
+  assignedTeamId?: string
+}
+
+// PUT parcial: chaves omitidas não são alteradas; null limpa o campo.
+export type UpdateTaskInput = {
+  title?: string
+  description?: string | null
+  dueDate?: string | null
+  assignedTeamId?: string | null
+}
