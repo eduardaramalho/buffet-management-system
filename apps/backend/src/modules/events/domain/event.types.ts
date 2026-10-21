@@ -18,6 +18,15 @@ export type EventServiceRecord = {
   service: ServiceRecord;
 };
 
+// Read model of the event's client: only what the event screens show (no document).
+export type EventClientSummary = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  deletedAt: Date | null;
+};
+
 export type EventRecord = {
   id: string;
   name: string;
@@ -33,6 +42,9 @@ export type EventRecord = {
   updatedAt: Date;
   deletedAt: Date | null;
   services: EventServiceRecord[];
+  // Null only for events created before the clients module (expand/contract migration, ADR 0005).
+  clientId: string | null;
+  client: EventClientSummary | null;
 };
 
 export type CreateEventInput = {
@@ -44,6 +56,7 @@ export type CreateEventInput = {
   guestsCount: number;
   observations: string | null;
   createdById: string;
+  clientId: string;
 };
 
 export type UpdateEventInput = Partial<Omit<CreateEventInput, "createdById">> & {
@@ -92,6 +105,12 @@ export interface EventAuditService {
     changes?: Record<string, unknown>;
     reason?: string;
   }): Promise<void>;
+}
+
+// Port to the Clients module: resolves an active (non-deleted) client. Kept here so Events does not
+// import the Clients module directly; the factory injects PrismaClientRepository, which fits this shape.
+export interface EventClientReader {
+  findById(id: string): Promise<{ id: string } | null>;
 }
 
 // Port for the Rule Engine Part 2 module (tasks), kept here instead of importing its concrete

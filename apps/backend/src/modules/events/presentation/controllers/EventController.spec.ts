@@ -35,7 +35,7 @@ describe("EventController", () => {
     jest.spyOn(eventService, "restore").mockResolvedValue({} as never);
 
     const createResponse = await request(app).post("/api/v1/events").set("Authorization", `Bearer ${token()}`).send({
-      name: "Casamento de Alice", eventDate: "2026-10-10T15:00:00.000Z", endDate: null, location: "Salao", serviceType: "CASAMENTO", guestsCount: 100, observations: null,
+      name: "Casamento de Alice", eventDate: "2026-10-10T15:00:00.000Z", endDate: null, location: "Salao", serviceType: "CASAMENTO", guestsCount: 100, observations: null, clientId: "client-1",
     });
     const updateResponse = await request(app).put("/api/v1/events/event-1").set("Authorization", `Bearer ${token()}`).send({ observations: "Atualizado" });
     const removeResponse = await request(app).delete("/api/v1/events/event-1").set("Authorization", `Bearer ${token()}`);
@@ -45,7 +45,7 @@ describe("EventController", () => {
     expect(updateResponse.status).toBe(200);
     expect(removeResponse.status).toBe(204);
     expect(restoreResponse.status).toBe(200);
-    expect(eventService.create).toHaveBeenCalledWith(expect.objectContaining({ createdById: "actor-1" }));
+    expect(eventService.create).toHaveBeenCalledWith(expect.objectContaining({ createdById: "actor-1", clientId: "client-1" }));
     expect(eventService.update).toHaveBeenCalledWith("event-1", expect.any(Object), "actor-1");
     expect(eventService.remove).toHaveBeenCalledWith("event-1", "actor-1");
     expect(eventService.restore).toHaveBeenCalledWith("event-1", "actor-1");
@@ -88,5 +88,20 @@ describe("EventController", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({ message: "Permissão insuficiente" });
+  });
+  it("requires clientId on create and accepts it on a partial update", async () => {
+    jest.spyOn(authService, "hasPermission").mockResolvedValue(true);
+    const create = jest.spyOn(eventService, "create").mockResolvedValue({} as never);
+    const update = jest.spyOn(eventService, "update").mockResolvedValue({} as never);
+
+    const missingClient = await request(app).post("/api/v1/events").set("Authorization", `Bearer ${token()}`).send({
+      name: "Casamento de Alice", eventDate: "2026-10-10T15:00:00.000Z", location: "Salao", serviceType: "CASAMENTO", guestsCount: 100,
+    });
+    const updateResponse = await request(app).put("/api/v1/events/event-1").set("Authorization", `Bearer ${token()}`).send({ clientId: "client-2" });
+
+    expect(missingClient.status).toBe(422);
+    expect(create).not.toHaveBeenCalled();
+    expect(updateResponse.status).toBe(200);
+    expect(update).toHaveBeenCalledWith("event-1", { clientId: "client-2" }, "actor-1");
   });
 });

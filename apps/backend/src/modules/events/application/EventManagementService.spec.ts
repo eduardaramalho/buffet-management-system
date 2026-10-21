@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 
 import { EventManagementService } from "./EventManagementService.js";
-import type { EventRepository, EventRecord, CreateEventInput, EventRuleExecutionTrigger, ServiceRepository, EventAuditService } from "../domain/event.types.js";
+import type { EventRepository, EventRecord, CreateEventInput, EventRuleExecutionTrigger, ServiceRepository, EventAuditService, EventClientReader } from "../domain/event.types.js";
 import type { Logger } from "../../../shared/domain/logger.types.js";
 
 const FUTURE_DATE = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -21,8 +21,12 @@ const makeEvent = (overrides: Partial<EventRecord> = {}): EventRecord => ({
   updatedAt: new Date("2026-08-28T00:00:00.000Z"),
   deletedAt: null,
   services: [],
+  clientId: "client-1",
+  client: { id: "client-1", name: "Ana Souza", email: null, phone: null, deletedAt: null },
   ...overrides,
 });
+
+const activeClients = (found = true) => ({ findById: jest.fn(async (id: string) => (found ? { id } : null)) }) as unknown as EventClientReader;
 
 describe("EventManagementService", () => {
   it("records EVENT_CREATED with actor, entity id and old/new changes", async () => {
@@ -35,15 +39,18 @@ describe("EventManagementService", () => {
       guestsCount: 100,
       observations: null,
       createdById: "actor-1",
+      clientId: "client-1",
     };
     const events = {
       create: jest.fn(async (eventInput: CreateEventInput & { status: "PLANEJAMENTO" }) => makeEvent({ ...eventInput, status: "PLANEJAMENTO" })),
     } as unknown as EventRepository;
     const audit = { record: jest.fn(async (_input: Parameters<EventAuditService["record"]>[0]) => undefined) } as unknown as EventAuditService;
-    const service = new EventManagementService(events, audit);
+    const clients = activeClients();
+    const service = new EventManagementService(events, audit, undefined, undefined, undefined, clients);
 
     const result = await service.create(input);
 
+    expect(clients.findById).toHaveBeenCalledWith("client-1");
     expect(events.create).toHaveBeenCalledWith({ ...input, status: "PLANEJAMENTO" });
     expect(result.status).toBe("PLANEJAMENTO");
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({
@@ -71,6 +78,7 @@ describe("EventManagementService", () => {
       guestsCount: 5001,
       observations: null,
       createdById: "actor-1",
+      clientId: "client-1",
     })).rejects.toThrow("exceder");
     expect(events.create).not.toHaveBeenCalled();
   });
@@ -237,6 +245,7 @@ describe("EventManagementService", () => {
       guestsCount,
       observations: null,
       createdById: "actor-1",
+      clientId: "client-1",
     })).rejects.toThrow("convidados");
     expect(events.create).not.toHaveBeenCalled();
   });
@@ -254,6 +263,7 @@ describe("EventManagementService", () => {
       guestsCount: 100,
       observations: null,
       createdById: "actor-1",
+      clientId: "client-1",
     })).rejects.toThrow("passado");
     expect(events.create).not.toHaveBeenCalled();
   });
@@ -424,5 +434,77 @@ describe("EventManagementService", () => {
         after: { deletedAt: null },
       },
     }));
+  });
+  describe("client link", () => {
+    const createInput = (overrides: Partial<CreateEventInput> = {}): CreateEventInput => ({
+      name: "Casamento de Alice",
+      eventDate: FUTURE_DATE,
+      endDate: null,
+      location: "Salao Principal",
+      serviceType: "CASAMENTO",
+      guestsCount: 100,
+      observations: null,
+      createdById: "actor-1",
+      clientId: "client-1",
+      ...overrides,
+    });
+
+    it("requires a client to create an event", async () => {
+      const events = { create: jest.fn() } as unknown as EventRepository;
+      const service = new EventManagementService(events, { record: jest.fn() } as unknown as EventAuditService, undefined, undefined, undefined, activeClients());
+
+      await expect(service.create(createInput({ clientId: "  " }))).rejects.toThrow("O cliente do evento é obrigatório");
+      expect(events.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects a missing or deleted client on create", async () => {
+      const events = { create: jest.fn() } as unknown as EventRepository;
+      const service = new EventManagementService(events, { record: jest.fn() } as unknown as EventAuditService, undefined, undefined, undefined, activeClients(false));
+
+      await expect(service.create(createInput())).rejects.toThrow("Cliente não encontrado");
+      expect(events.create).not.toHaveBeenCalled();
+    });
+
+    it("fails clearly when the client reader is not configured", async () => {
+      const events = { create: jest.fn() } as unknown as EventRepository;
+      const service = new EventManagementService(events, { record: jest.fn() } as unknown as EventAuditService);
+
+      await expect(service.create(createInput())).rejects.toThrow("Cadastro de clientes não configurado");
+    });
+
+    it("validates the client when it changes on update and audits the change in EVENT_UPDATED", async () => {
+      const before = makeEvent({ clientId: null, client: null });
+      const after = makeEvent({ clientId: "client-2" });
+      const events = { findById: jest.fn(async () => before), update: jest.fn(async () => after) } as unknown as EventRepository;
+      const audit = { record: jest.fn(async (_input: Parameters<EventAuditService["record"]>[0]) => undefined) } as unknown as EventAuditService;
+      const clients = activeClients();
+      const service = new EventManagementService(events, audit, undefined, undefined, undefined, clients);
+
+      await service.update("event-1", { clientId: "client-2" }, "actor-1");
+
+      expect(clients.findById).toHaveBeenCalledWith("client-2");
+      expect(events.update).toHaveBeenCalledWith("event-1", { clientId: "client-2" });
+      expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "EVENT_UPDATED", changes: { before, after } }));
+    });
+
+    it("rejects an unknown client on update", async () => {
+      const events = { findById: jest.fn(async () => makeEvent()), update: jest.fn() } as unknown as EventRepository;
+      const service = new EventManagementService(events, { record: jest.fn() } as unknown as EventAuditService, undefined, undefined, undefined, activeClients(false));
+
+      await expect(service.update("event-1", { clientId: "client-9" }, "actor-1")).rejects.toThrow("Cliente não encontrado");
+      expect(events.update).not.toHaveBeenCalled();
+    });
+
+    it("keeps legacy events without a client editable when clientId is not sent", async () => {
+      const legacy = makeEvent({ clientId: null, client: null });
+      const events = { findById: jest.fn(async () => legacy), update: jest.fn(async () => legacy) } as unknown as EventRepository;
+      const clients = activeClients();
+      const service = new EventManagementService(events, { record: jest.fn() } as unknown as EventAuditService, undefined, undefined, undefined, clients);
+
+      await service.update("event-1", { observations: "Atualizado" }, "actor-1");
+
+      expect(clients.findById).not.toHaveBeenCalled();
+      expect(events.update).toHaveBeenCalledWith("event-1", { observations: "Atualizado" });
+    });
   });
 });

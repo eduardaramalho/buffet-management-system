@@ -34,6 +34,8 @@ const makeEvent = (overrides: Partial<EventRecord> = {}): EventRecord => ({
   updatedAt: new Date("2026-09-28T00:00:00.000Z"),
   deletedAt: null,
   services: [],
+  clientId: null,
+  client: null,
   ...overrides,
 });
 

@@ -19,9 +19,16 @@ describe("PrismaEventRepository", () => {
       guestsCount: 10,
       observations: null,
       createdById: "actor-1",
+      clientId: "client-1",
       status: "PLANEJAMENTO",
     })).resolves.toEqual(event);
-    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "event-1", deletedAt: null } }));
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { id: "event-1", deletedAt: null },
+      include: {
+        services: { include: { service: true } },
+        client: { select: { id: true, name: true, email: true, phone: true, deletedAt: true } },
+      },
+    });
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: "PLANEJAMENTO" }) }));
   });
   it("filters out soft-deleted events and applies status/date filters", async () => {

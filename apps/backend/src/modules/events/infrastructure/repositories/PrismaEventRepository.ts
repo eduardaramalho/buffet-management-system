@@ -10,6 +10,7 @@ import type {
 
 const eventInclude = {
   services: { include: { service: true } },
+  client: { select: { id: true, name: true, email: true, phone: true, deletedAt: true } },
 } as const;
 
 export class PrismaEventRepository implements EventRepository {

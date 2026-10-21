@@ -5,6 +5,7 @@ import type {
   EventRepository,
   EventRecord,
   AttachServiceInput,
+  EventClientReader,
   EventRuleExecutionTrigger,
   ServiceRepository,
   UpdateEventInput,
@@ -34,6 +35,7 @@ export class EventManagementService {
     private readonly services?: ServiceRepository,
     private readonly ruleExecution?: EventRuleExecutionTrigger,
     private readonly logger?: Logger,
+    private readonly clients?: EventClientReader,
   ) {}
 
   async create(input: CreateEventInput): Promise<EventRecord> {
@@ -48,6 +50,9 @@ export class EventManagementService {
     if (input.guestsCount > MAX_GUESTS_COUNT) {
       throw new EventManagementError(`O número de convidados não pode exceder ${MAX_GUESTS_COUNT}`);
     }
+
+    if (!input.clientId?.trim()) throw new EventManagementError("O cliente do evento é obrigatório");
+    await this.assertClientAvailable(input.clientId);
 
     const event = await this.events.create({ ...input, status: "PLANEJAMENTO" });
     await this.audit.record({
@@ -85,6 +90,9 @@ export class EventManagementService {
     if (input.guestsCount !== undefined && input.guestsCount > MAX_GUESTS_COUNT) {
       throw new EventManagementError(`O número de convidados não pode exceder ${MAX_GUESTS_COUNT}`);
     }
+    // clientId is optional on update so legacy events (no client) can still change status from the Event Hub;
+    // when sent, it must point to an active client. The change is audited through EVENT_UPDATED before/after.
+    if (input.clientId !== undefined) await this.assertClientAvailable(input.clientId);
 
     const updated = await this.events.update(id, input);
     await this.audit.record({
@@ -138,6 +146,12 @@ export class EventManagementService {
       changes: { before: { deletedAt: "set" }, after: { deletedAt: null } },
     });
     return restored;
+  }
+
+  private async assertClientAvailable(clientId: string) {
+    if (!this.clients) throw new EventManagementError("Cadastro de clientes não configurado");
+    const client = await this.clients.findById(clientId);
+    if (!client) throw new EventManagementError("Cliente não encontrado");
   }
 
   async attachService(input: AttachServiceInput, actorId: string) {

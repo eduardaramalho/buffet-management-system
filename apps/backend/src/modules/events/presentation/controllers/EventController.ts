@@ -13,6 +13,7 @@ const eventBaseSchema = z.object({
   serviceType: z.enum(eventTypes),
   guestsCount: z.number().int().min(1).max(5000),
   observations: z.string().max(2000).nullable().optional(),
+  clientId: z.string().min(1).max(36),
 });
 const createSchema = eventBaseSchema.extend({
   endDate: eventBaseSchema.shape.endDate.default(null),
