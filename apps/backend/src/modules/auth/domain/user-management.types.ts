@@ -24,4 +24,15 @@ export interface UserManagementRepository {
 
 export interface AuditRepository {
   record(input: { userId?: string; action: string; entity: string; entityId?: string; changes?: Record<string, unknown> }): Promise<void>;
+  listByEntity(entity: string, entityId: string, limit: number): Promise<AuditLogRecord[]>;
 }
+
+export type AuditLogRecord = {
+  id: string;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  changes: unknown;
+  actorName: string | null;
+  createdAt: Date;
+};

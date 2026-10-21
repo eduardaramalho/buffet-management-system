@@ -1,4 +1,5 @@
 import type { PrismaClient } from "../../../generated/client.js";
+import { formatAuditActivityMessage } from "../../../shared/auditActivity.js";
 
 const TASK_STATUSES = ["PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "CANCELADA"] as const;
 type TaskStatus = (typeof TASK_STATUSES)[number];
@@ -17,8 +18,6 @@ type RecentActivity = {
   entity: string;
   createdAt: Date;
 };
-
-type AuditChanges = { name?: string; title?: string; after?: string | { name?: string; title?: string }; eventName?: string } | null;
 
 export class DashboardService {
   constructor(
@@ -68,7 +67,7 @@ export class DashboardService {
   async getRecentActivity(limit = 10): Promise<RecentActivity[]> {
     const logs = await this.prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: limit });
     return Promise.all(logs.map(async (log) => {
-      const changes = (log.changes ?? null) as AuditChanges;
+      const changes = log.changes ?? null;
       const after = typeof changes?.after === "object" ? changes.after : null;
       let subject = changes?.name ?? changes?.title ?? after?.name ?? after?.title ?? changes?.eventName;
       if (!subject && log.entityId && log.action === "TEAM_AUTO_ASSIGNED") {
@@ -80,13 +79,7 @@ export class DashboardService {
         subject = task?.title;
       }
       subject ??= log.entityId ?? log.entity;
-      const message = log.action === "EVENT_CREATED"
-        ? `Evento '${subject}' criado`
-        : log.action === "TASK_STATUS_CHANGED"
-          ? `Tarefa '${subject}' marcada como ${typeof changes?.after === "string" ? changes.after : "atualizada"}`
-          : log.action === "TEAM_AUTO_ASSIGNED"
-            ? `Equipe atribuída automaticamente ao evento '${subject}'`
-            : `${log.action} em ${log.entity}`;
+      const message = formatAuditActivityMessage({ action: log.action, entity: log.entity, changes, subject });
       return { id: log.id, message, action: log.action, entity: log.entity, createdAt: log.createdAt };
     }));
   }

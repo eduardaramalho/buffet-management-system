@@ -55,9 +55,16 @@ export type RuleApplicationRecord = {
   appliedAt: Date;
 };
 
+export type RuleApplicationView = {
+  ruleId: string;
+  ruleName: string;
+  appliedAt: Date;
+};
+
 // Idempotency guard: find/create/remove by (eventId, ruleId) instead of by its own id, since
 // callers only ever reason about "has this rule already been applied to this event".
 export interface RuleApplicationRepository {
+  listByEvent(eventId: string): Promise<RuleApplicationView[]>;
   findByEventAndRule(eventId: string, ruleId: string): Promise<RuleApplicationRecord | null>;
   // tx (optional): see TaskRepository.create above — keeps this write inside the same transaction.
   create(eventId: string, ruleId: string, tx?: TransactionClient): Promise<RuleApplicationRecord>;

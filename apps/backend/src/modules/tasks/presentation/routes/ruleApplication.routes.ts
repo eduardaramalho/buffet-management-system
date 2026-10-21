@@ -7,4 +7,5 @@ import { ruleApplicationController } from "../../infrastructure/factories/task.f
 // convention as the Rules module's ruleEvaluation.routes.ts.
 export const ruleApplicationRoutes = Router();
 ruleApplicationRoutes.use(authenticate);
+ruleApplicationRoutes.get("/:eventId/rule-applications", authorize("rules:read"), ruleApplicationController.list);
 ruleApplicationRoutes.post("/:eventId/apply-rules", authorize("rules:apply"), ruleApplicationController.apply);

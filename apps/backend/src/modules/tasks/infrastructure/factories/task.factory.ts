@@ -11,6 +11,7 @@ import { RuleEngineExecutionService } from "../../application/RuleEngineExecutio
 import { TaskService } from "../../application/TaskService.js";
 import { TaskController } from "../../presentation/controllers/TaskController.js";
 import { RuleApplicationController } from "../../presentation/controllers/RuleApplicationController.js";
+import { RuleApplicationQueryService } from "../../application/RuleApplicationQueryService.js";
 import { PrismaTaskRepository } from "../repositories/PrismaTaskRepository.js";
 import { PrismaRuleApplicationRepository } from "../repositories/PrismaRuleApplicationRepository.js";
 import { PrismaRuleTaskTemplateRepository } from "../repositories/PrismaRuleTaskTemplateRepository.js";
@@ -40,4 +41,5 @@ export const ruleEngineExecutionService = new RuleEngineExecutionService(
   transactionRunner,
 );
 export const taskController = new TaskController(taskService);
-export const ruleApplicationController = new RuleApplicationController(ruleEngineExecutionService);
+export const ruleApplicationQueryService = new RuleApplicationQueryService(eventReader, ruleApplicationRepository);
+export const ruleApplicationController = new RuleApplicationController(ruleEngineExecutionService, ruleApplicationQueryService);

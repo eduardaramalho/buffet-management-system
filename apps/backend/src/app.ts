@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import { randomUUID } from "node:crypto";
 import { pinoHttp } from "pino-http";
 import { authRoutes } from "./modules/auth/presentation/routes/auth.routes.js";
+import { auditRoutes } from "./modules/auth/presentation/routes/audit.routes.js";
 import { createAuthRoutes } from "./modules/auth/presentation/routes/auth.routes.js";
 import type { AuthController } from "./modules/auth/presentation/controllers/AuthController.js";
 import { userRoutes } from "./modules/auth/presentation/routes/user.routes.js";
@@ -152,6 +153,7 @@ app.use("/api/v1/rules", ruleRoutes);
 app.use("/api/v1/events", ruleEvaluationRoutes);
 app.use("/api/v1/tasks", taskRoutes);
 app.use("/api/v1/events", ruleApplicationRoutes);
+app.use("/api/v1/events", auditRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
 
 app.get("/api/v1/health", (_req, res) => {

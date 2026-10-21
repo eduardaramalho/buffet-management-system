@@ -10,9 +10,11 @@ import { TeamManagementError } from "../../modules/teams/application/TeamService
 import { RuleManagementError } from "../../modules/rules/application/RuleEngineService.js";
 import { RuleEngineExecutionError } from "../../modules/tasks/application/RuleEngineExecutionService.js";
 import { TaskManagementError } from "../../modules/tasks/application/TaskService.js";
+import { NotFoundError } from "../errors/NotFoundError.js";
 import { logger } from "../config/logger.js";
 
 export const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
+  if (error instanceof NotFoundError) return response.status(404).json({ message: error.message });
   if (error instanceof AuthError) return response.status(400).json({ message: error.message });
   if (error instanceof UserManagementError) return response.status(403).json({ message: error.message });
   if (error instanceof EventManagementError || error instanceof ServiceCatalogError) return response.status(400).json({ message: error.message });
