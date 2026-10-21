@@ -211,3 +211,14 @@ Resposta:
   "alertsGenerated": 1
 }
 ```
+
+### Acompanhamento do evento
+
+| Método | Path | Permissão |
+|---|---|---|
+| `GET` | `/api/v1/events/:eventId/rule-applications` | `rules:read` |
+| `GET` | `/api/v1/events/:eventId/history` | `audit:read` |
+
+As aplicações de regras retornam `ruleId`, `ruleName` e `appliedAt`, ordenadas da mais recente para a mais antiga. Ambos os endpoints retornam `404` para eventos inexistentes ou excluídos logicamente.
+
+O histórico retorna no máximo 20 registros de auditoria do próprio evento, com `id`, `action`, `message`, `actorName` e `createdAt`; o campo interno `changes` nunca é exposto.
