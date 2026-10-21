@@ -325,3 +325,66 @@ Resposta:
 As aplicações de regras retornam `ruleId`, `ruleName` e `appliedAt`, ordenadas da mais recente para a mais antiga. Ambos os endpoints retornam `404` para eventos inexistentes ou excluídos logicamente.
 
 O histórico retorna no máximo 20 registros de auditoria do próprio evento, com `id`, `action`, `message`, `actorName` e `createdAt`; o campo interno `changes` nunca é exposto.
+
+## Relatórios
+
+Relatórios gerenciais da RFC (seção 4): eventos realizados, tarefas executadas e desempenho operacional das equipes, além dos indicadores da hipótese (tarefas esquecidas e tempo de atribuição). Somente leitura, sem alteração de schema. Decisões em ADR 0006.
+
+| Método | Path | Permissão |
+|---|---|---|
+| `GET` | `/api/v1/reports/events` | `reports:view` |
+| `GET` | `/api/v1/reports/events/export` | `reports:view` |
+| `GET` | `/api/v1/reports/tasks` | `reports:view` |
+| `GET` | `/api/v1/reports/tasks/export` | `reports:view` |
+| `GET` | `/api/v1/reports/teams-performance` | `reports:view` |
+| `GET` | `/api/v1/reports/teams-performance/export` | `reports:view` |
+
+A permissão `reports:view` é concedida só ao papel `admin` pelo seed. Em bancos já existentes, rode `npm run db:seed` de novo para criá-la.
+
+### Parâmetros
+
+Todos os endpoints exigem o período `from` e `to` (ISO 8601, ex.: `2026-10-01T03:00:00.000Z`). O frontend envia o início do primeiro dia e o fim do último dia no fuso do usuário.
+
+| Endpoint | Filtros opcionais |
+|---|---|
+| `events` | `status` (`EventStatus`), `serviceType` (`EventType`), `clientId` |
+| `tasks` | `status` (`TaskStatus`), `teamId`, `origin` (`REGRA` ou `MANUAL`) |
+| `teams-performance` | nenhum |
+
+- Listagens JSON de `events` e `tasks` são paginadas: `page` (padrão 1) e `pageSize` (padrão 20, máximo 100). `teams-performance` não pagina (uma linha por equipe).
+- Exportações recebem `format` (`csv` ou `pdf`) e trazem todas as linhas do período, sem paginação.
+- O período vale sempre pela **data do evento** (`eventDate`), inclusive nos relatórios de tarefas e equipes, para que os três relatórios descrevam o mesmo conjunto de eventos.
+
+### Definições dos indicadores
+
+| Indicador | Definição |
+|---|---|
+| Tarefa esquecida (atrasada em aberto) | Status `PENDENTE` ou `EM_ANDAMENTO` com `dueDate` anterior ao momento da consulta |
+| Concluída no prazo / com atraso | Status `CONCLUIDA` com `completedAt <= dueDate` / `completedAt > dueDate`. Tarefas sem prazo não entram |
+| Pontualidade | `no prazo / (no prazo + com atraso)`. `null` ("Sem dados") quando não há o que medir. Canceladas aparecem só como contagem |
+| Origem | `REGRA` quando a tarefa veio do motor (`sourceRuleId` preenchido), `MANUAL` caso contrário |
+| Atribuição média | Média de `assignedAt - createdAt` em minutos, separada por origem, ponderada pelo número de tarefas atribuídas |
+
+Limitações conhecidas do tempo de atribuição: o motor gera tarefas sem equipe, então o valor de `REGRA` mede da geração até a atribuição manual; e `assignedAt` é sobrescrito a cada reatribuição, medindo a última atribuição. Tarefas anteriores à coluna `assigned_at` não entram na média.
+
+O desempenho das equipes considera só tarefas com equipe atribuída e inclui equipes inativas ou excluídas que tiveram tarefas no período (relatório histórico).
+
+### Exportação
+
+- **CSV:** UTF-8 com BOM, separador `;` e quebra de linha CRLF (abre direto no Excel pt-BR). Células de texto iniciadas por `=`, `+`, `-`, `@`, tab ou CR recebem `'` na frente (proteção contra CSV injection, OWASP).
+- **PDF:** A4 paisagem gerado com [PDFKit](https://pdfkit.org) (licença MIT): título, período, data de geração, resumo, tabela com quebra de texto, cabeçalho repetido a cada página e numeração "x de y".
+- Datas dos arquivos ficam no fuso `America/Sao_Paulo`, independente do fuso do servidor.
+- Resposta com `Content-Disposition: attachment` (nome `relatorio-<tipo>_<inicio>_<fim>.<ext>`) e `Cache-Control: no-store`. O CORS expõe `Content-Disposition` para o frontend ler o nome do arquivo.
+- Cada exportação gera auditoria `REPORT_EXPORTED` com tipo, formato, filtros e número de linhas (rastreabilidade de dados pessoais, LGPD).
+
+### Respostas de erro
+
+| Status | Quando |
+|---|---|
+| `401` | Sem token |
+| `403` | Sem `reports:view` |
+| `422` | Período ausente ou inválido, `to` anterior a `from`, período maior que 366 dias, filtro fora do enum, `page`/`pageSize` fora dos limites, `format` inválido |
+
+### Consultas
+
+Cada relatório executa um número fixo de consultas, independente do número de linhas (sem N+1): `groupBy`/`count` do Prisma para totais, uma `findMany` paginada com `select` das relações, um `groupBy` por `(eventId, status)` para contar tarefas dos eventos da página e uma única consulta SQL parametrizada (`Prisma.sql`) para o desempenho das equipes.
