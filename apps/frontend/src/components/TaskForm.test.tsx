@@ -11,7 +11,7 @@ import type { Team } from '../types/team'
 vi.mock('../api/tasksApi', () => ({ createTask: vi.fn(), updateTask: vi.fn() }))
 vi.mock('../api/teamsApi', () => ({ listTeamsByEvent: vi.fn() }))
 
-const baseEvent = { endDate: null, location: 'Salão', serviceType: 'CASAMENTO' as const, guestsCount: 100, observations: null, createdById: 'u', createdAt: '', updatedAt: '', deletedAt: null, services: [] }
+const baseEvent = { endDate: null, location: 'Salão', serviceType: 'CASAMENTO' as const, guestsCount: 100, observations: null, createdById: 'u', createdAt: '', updatedAt: '', deletedAt: null, services: [], clientId: null, client: null }
 const events: Event[] = [
   { ...baseEvent, id: 'event-1', name: 'Casamento Ana', eventDate: '2026-11-10T15:00:00.000Z', status: 'CONFIRMADO' },
   { ...baseEvent, id: 'event-2', name: 'Formatura Beto', eventDate: '2026-12-01T15:00:00.000Z', status: 'PLANEJAMENTO' },

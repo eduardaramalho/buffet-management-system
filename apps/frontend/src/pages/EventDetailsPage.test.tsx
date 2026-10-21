@@ -6,6 +6,7 @@ import { getEvent, getEventHistory, updateEvent } from '../api/eventsApi'
 import { listTasks } from '../api/tasksApi'
 import { listTeams, listTeamsByEvent } from '../api/teamsApi'
 import { applyEventRules, listEventRuleApplications } from '../api/rulesApi'
+import type { Event } from '../types/event'
 
 vi.mock('../api/eventsApi', () => ({ getEvent: vi.fn(), getEventHistory: vi.fn(), updateEvent: vi.fn() }))
 vi.mock('../api/tasksApi', () => ({ listTasks: vi.fn() }))
@@ -13,7 +14,11 @@ vi.mock('../api/teamsApi', () => ({ listTeams: vi.fn(), listTeamsByEvent: vi.fn(
 vi.mock('../api/rulesApi', () => ({ applyEventRules: vi.fn(), getEventRuleMatches: vi.fn(), listEventRuleApplications: vi.fn() }))
 vi.mock('../contexts/useAuth', () => ({ useAuth: () => ({ user: { roles: [{ permissions: ['events:read', 'events:update', 'rules:apply'] }] } }) }))
 
-const event = (status: 'PLANEJAMENTO' | 'CONFIRMADO' | 'EM_ANDAMENTO' | 'CONCLUIDO' = 'CONFIRMADO') => ({ id: 'event-1', name: 'Casamento Ana', eventDate: '2026-11-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO' as const, guestsCount: 100, observations: null, status, createdById: 'user', createdAt: '', updatedAt: '', deletedAt: null, services: [] })
+const event = (status: Event['status'] = 'CONFIRMADO'): Event => ({
+  id: 'event-1', name: 'Casamento Ana', eventDate: '2026-11-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO', guestsCount: 100,
+  observations: null, status, createdById: 'user', createdAt: '', updatedAt: '', deletedAt: null, services: [],
+  clientId: 'client-1', client: { id: 'client-1', name: 'Ana Souza', email: 'ana@email.com', phone: '47999990000', deletedAt: null },
+})
 const renderPage = () => render(<MemoryRouter initialEntries={['/events/event-1']}><Routes><Route path="/events/:id" element={<EventDetailsPage />} /></Routes></MemoryRouter>)
 
 describe('EventDetailsPage', () => {
@@ -79,5 +84,39 @@ describe('EventDetailsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reaplicar' }))
     await waitFor(() => expect(applyEventRules).toHaveBeenCalledWith('event-1'))
     expect(await screen.findByText('2 tarefas criadas, 1 ignorada')).toBeInTheDocument()
+  })
+
+  it('shows the event client contact in the client panel', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event())
+    vi.mocked(listTasks).mockResolvedValue([])
+    vi.mocked(listTeamsByEvent).mockResolvedValue([])
+    vi.mocked(listTeams).mockResolvedValue([])
+    vi.mocked(listEventRuleApplications).mockResolvedValue([])
+    vi.mocked(getEventHistory).mockResolvedValue([])
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Cliente' })).toBeInTheDocument()
+    expect(screen.getByText('Ana Souza')).toBeInTheDocument()
+    expect(screen.getByText('ana@email.com')).toBeInTheDocument()
+    expect(screen.getByText('47999990000')).toBeInTheDocument()
+  })
+
+  it('flags legacy events without a client and inactive clients', async () => {
+    vi.mocked(getEvent).mockResolvedValueOnce({ ...event(), clientId: null, client: null })
+    vi.mocked(listTasks).mockResolvedValue([])
+    vi.mocked(listTeamsByEvent).mockResolvedValue([])
+    vi.mocked(listTeams).mockResolvedValue([])
+    vi.mocked(listEventRuleApplications).mockResolvedValue([])
+    vi.mocked(getEventHistory).mockResolvedValue([])
+    const { unmount } = renderPage()
+
+    expect(await screen.findByText('Nenhum cliente vinculado. Edite o evento para vincular um cliente.')).toBeInTheDocument()
+    unmount()
+
+    vi.mocked(getEvent).mockResolvedValueOnce({ ...event(), client: { id: 'client-1', name: 'Ana Souza', email: null, phone: null, deletedAt: '2026-10-01T00:00:00.000Z' } })
+    renderPage()
+
+    expect(await screen.findByText('Cliente inativo')).toBeInTheDocument()
+    expect(screen.getByText('Sem contato cadastrado')).toBeInTheDocument()
   })
 })

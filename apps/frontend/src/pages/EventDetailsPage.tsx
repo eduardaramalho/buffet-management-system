@@ -148,11 +148,19 @@ export function EventDetailsPage() {
         {tasksState.status !== 'hidden' && <section className="event-panel"><div className="panel-heading"><h2>Tarefas do evento</h2><Link className="panel-link" to="/tasks">Ver no quadro</Link></div>{tasksState.status === 'error' && <BlockError message={tasksState.message ?? 'Não foi possível carregar tarefas'} retry={() => void loadTasks()} />}{tasksState.status === 'ready' && <><div className="progress-summary"><strong>{completedTasks} de {progressTasks.length}</strong><span>tarefas concluídas</span><div className="progress-track"><span style={{ width: `${progressTasks.length ? completedTasks / progressTasks.length * 100 : 0}%` }} /></div></div><div className="task-list">{tasks.map((task) => <div className="event-task-row" key={task.id}><span className={`task-status-dot ${task.status.toLowerCase()}`}><Icon name={task.status === 'CONCLUIDA' ? 'check' : 'tasks'} /></span><div><strong>{task.title}</strong><small>{task.dueDate ? `Prazo ${formatShortDate(task.dueDate)}` : 'Sem prazo'}</small></div><Badge tone={task.status === 'CONCLUIDA' ? 'active' : task.status === 'CANCELADA' ? 'inactive' : 'viewer'}>{task.status === 'CONCLUIDA' ? 'Concluída' : task.status === 'EM_ANDAMENTO' ? 'Em andamento' : task.status === 'CANCELADA' ? 'Cancelada' : 'Pendente'}</Badge></div>)}</div></>}</section>}
       </div>
       <div className="event-details-side">
+        <ClientPanel client={event.client} />
         {rulesState.status !== 'hidden' && <section className="event-panel"><div className="panel-heading"><h2>{event.status === 'PLANEJAMENTO' ? 'Motor de regras' : 'Regras aplicadas'}</h2>{event.status !== 'PLANEJAMENTO' && hasPermission('rules:apply') && <button type="button" className="panel-link button-link" onClick={() => void reapplyRules()} disabled={rulesAction}><Icon name="bolt" />{rulesAction ? 'Reaplicando...' : 'Reaplicar'}</button>}</div>{rulesResult && <p className="alert">{rulesResult}</p>}{rulesState.status === 'error' && <BlockError message={rulesState.message ?? 'Não foi possível carregar regras'} retry={() => void loadRules()} />}{rulesState.status === 'ready' && event.status === 'PLANEJAMENTO' && <RuleMatches data={rulesState.data as Awaited<ReturnType<typeof getEventRuleMatches>>} />}{rulesState.status === 'ready' && event.status !== 'PLANEJAMENTO' && <AppliedRules data={rulesState.data as RuleApplication[]} />}</section>}
         {historyState.status !== 'hidden' && <section className="event-panel"><div className="panel-heading"><h2>Histórico</h2></div>{historyState.status === 'error' && <BlockError message={historyState.message ?? 'Não foi possível carregar histórico'} retry={() => void loadHistory()} />}{historyState.status === 'ready' && (historyState.data?.length ? <ul className="event-history-list">{historyState.data.map((item) => <li key={item.id}><span /><div><strong>{item.message}</strong><small>{item.actorName ?? 'Sistema'} · {formatDate(item.createdAt)}</small></div></li>)}</ul> : <p className="empty-state">Nenhum registro no histórico.</p>)}</section>}
       </div>
     </div>
   </main>
+}
+
+// The client comes embedded in GET /events/:id, so this block needs no extra request or permission.
+function ClientPanel({ client }: { client: Event['client'] }) {
+  return <section className="event-panel"><div className="panel-heading"><h2>Cliente</h2></div>{client
+    ? <div className="team-row"><span className="team-avatar"><Icon name="contact" /></span><div><strong>{client.name}</strong>{client.email && <small>{client.email}</small>}{client.phone && <small>{client.phone}</small>}{!client.email && !client.phone && <small>Sem contato cadastrado</small>}</div>{client.deletedAt && <Badge tone="inactive">Cliente inativo</Badge>}</div>
+    : <p className="empty-state">Nenhum cliente vinculado. Edite o evento para vincular um cliente.</p>}</section>
 }
 
 function RuleMatches({ data }: { data: Awaited<ReturnType<typeof getEventRuleMatches>> }) {

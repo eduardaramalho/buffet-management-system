@@ -27,7 +27,7 @@ const task = (overrides: Partial<Task> = {}): Task => ({
   ...overrides,
 })
 
-const event = { id: 'event-1', name: 'Casamento Ana', eventDate: '2026-11-10T15:00:00.000Z', endDate: null, location: 'Salão', serviceType: 'CASAMENTO' as const, guestsCount: 100, observations: null, status: 'CONFIRMADO' as const, createdById: 'user', createdAt: '', updatedAt: '', deletedAt: null, services: [] }
+const event = { id: 'event-1', name: 'Casamento Ana', eventDate: '2026-11-10T15:00:00.000Z', endDate: null, location: 'Salão', serviceType: 'CASAMENTO' as const, guestsCount: 100, observations: null, status: 'CONFIRMADO' as const, createdById: 'user', createdAt: '', updatedAt: '', deletedAt: null, services: [], clientId: null, client: null }
 const team = { id: 'team-1', name: 'Equipe Cozinha A', specialty: 'COZINHA' as const, status: 'ATIVA' as const, observations: null, createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, members: [], events: [] }
 
 describe('TasksBoardPage', () => {

@@ -8,7 +8,7 @@ import { listServices } from '../api/servicesApi'
 vi.mock('../api/eventsApi', () => ({ listEvents: vi.fn(), createEvent: vi.fn(), updateEvent: vi.fn(), removeEvent: vi.fn(), attachEventService: vi.fn(), detachEventService: vi.fn() }))
 vi.mock('../api/servicesApi', () => ({ listServices: vi.fn() }))
 
-const event = (status: 'PLANEJAMENTO' | 'CONFIRMADO') => ({ id: status, name: status === 'CONFIRMADO' ? 'Evento confirmado' : 'Evento planejamento', eventDate: '2026-10-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO' as const, guestsCount: 100, observations: null, status, createdById: 'user', createdAt: '', updatedAt: '', deletedAt: null, services: [] })
+const event = (status: 'PLANEJAMENTO' | 'CONFIRMADO') => ({ id: status, name: status === 'CONFIRMADO' ? 'Evento confirmado' : 'Evento planejamento', eventDate: '2026-10-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO' as const, guestsCount: 100, observations: null, status, createdById: 'user', createdAt: '', updatedAt: '', deletedAt: null, services: [], clientId: null, client: null })
 
 describe('EventsListPage', () => {
   it('applies the status filter and loads the filtered events', async () => {
