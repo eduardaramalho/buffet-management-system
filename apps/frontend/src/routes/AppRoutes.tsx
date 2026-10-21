@@ -14,6 +14,7 @@ import { TeamsListPage } from '../pages/TeamsListPage'
 import { CollaboratorsListPage } from '../pages/CollaboratorsListPage'
 import { RulesListPage } from '../pages/RulesListPage'
 import { TasksBoardPage } from '../pages/TasksBoardPage'
+import { EventDetailsPage } from '../pages/EventDetailsPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { InternalLayout } from '../components/InternalLayout'
 
@@ -31,6 +32,7 @@ export function AppRoutes() {
 			<Route path="/users/new" element={<ProtectedRoute permission="users:create">{withNavigation(<UserFormPage />)}</ProtectedRoute>} />
 			<Route path="/users/:id/edit" element={<ProtectedRoute permission="users:update">{withNavigation(<UserFormPage />)}</ProtectedRoute>} />
 			<Route path="/events" element={<ProtectedRoute permission="events:list">{withNavigation(<EventsListPage />)}</ProtectedRoute>} />
+			<Route path="/events/:id" element={<ProtectedRoute permission="events:read">{withNavigation(<EventDetailsPage />)}</ProtectedRoute>} />
 			<Route path="/teams" element={<ProtectedRoute permission="teams:list">{withNavigation(<TeamsListPage />)}</ProtectedRoute>} />
 			<Route path="/collaborators" element={<ProtectedRoute permission="collaborators:manage">{withNavigation(<CollaboratorsListPage />)}</ProtectedRoute>} />
 			<Route path="/rules" element={<ProtectedRoute permission="rules:list">{withNavigation(<RulesListPage />)}</ProtectedRoute>} />

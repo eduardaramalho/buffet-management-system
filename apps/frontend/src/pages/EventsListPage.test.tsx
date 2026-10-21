@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { EventsListPage } from './EventsListPage'
 import { createEvent, listEvents } from '../api/eventsApi'
@@ -13,7 +14,7 @@ describe('EventsListPage', () => {
   it('applies the status filter and loads the filtered events', async () => {
     vi.mocked(listEvents).mockResolvedValue([event('PLANEJAMENTO'), event('CONFIRMADO')])
     vi.mocked(listServices).mockResolvedValue([])
-    render(<EventsListPage />)
+    render(<MemoryRouter><EventsListPage /></MemoryRouter>)
     await screen.findByText('Evento confirmado')
 
     fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'CONFIRMADO' } })
@@ -24,7 +25,7 @@ describe('EventsListPage', () => {
   it('opens the creation form from Novo Evento', async () => {
     vi.mocked(listEvents).mockResolvedValue([])
     vi.mocked(listServices).mockResolvedValue([])
-    render(<EventsListPage />)
+    render(<MemoryRouter><EventsListPage /></MemoryRouter>)
     fireEvent.click(await screen.findByRole('button', { name: 'Novo Evento' }))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(createEvent).not.toHaveBeenCalled()

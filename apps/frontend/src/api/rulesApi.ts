@@ -9,3 +9,7 @@ export const removeRule = async (id: string) => { await httpClient.delete(`/api/
 export const setRuleActive = async (id: string, active: boolean) => (await httpClient.patch<Rule>(`/api/v1/rules/${id}/${active ? 'activate' : 'deactivate'}`)).data
 
 export const getEventRuleMatches = async (eventId: string) => (await httpClient.get<MatchedRule[]>(`/api/v1/events/${eventId}/rule-matches`)).data
+export type RuleApplication = { ruleId: string; ruleName: string; appliedAt: string }
+export type ApplyRulesResult = { tasksCreated: number; tasksSkipped: number; teamsAutoAssigned: number; alertsGenerated: number }
+export const listEventRuleApplications = async (eventId: string) => (await httpClient.get<RuleApplication[]>(`/api/v1/events/${eventId}/rule-applications`)).data
+export const applyEventRules = async (eventId: string) => (await httpClient.post<ApplyRulesResult>(`/api/v1/events/${eventId}/apply-rules`, {})).data
