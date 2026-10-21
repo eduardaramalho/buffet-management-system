@@ -4,6 +4,8 @@ import { listEvents } from '../api/eventsApi'
 import { listTeams } from '../api/teamsApi'
 import { Badge } from '../components/Badge'
 import { Notice } from '../components/Notice'
+import { RefreshIndicator } from '../components/RefreshIndicator'
+import { usePolling } from '../hooks/usePolling'
 import { Icon } from '../components/Icon'
 import { StatCard } from '../components/StatCard'
 import { TASK_STATUSES, TERMINAL_TASK_STATUSES } from '../types/task'
@@ -54,18 +56,21 @@ export function TasksBoardPage() {
   const [teamId, setTeamId] = useState('')
   const [error, setError] = useState('')
 
+  // Rejeita em caso de erro: o polling silencioso o ignora e mantém os dados atuais.
+  const fetchAll = async () => {
+    const [taskList, eventList, teamList] = await Promise.all([listTasks(), listEvents(), listTeams()])
+    setTasks(taskList)
+    setEvents(eventList)
+    setTeams(teamList)
+    setError('')
+  }
   const load = async () => {
-    try {
-      const [taskList, eventList, teamList] = await Promise.all([listTasks(), listEvents(), listTeams()])
-      setTasks(taskList)
-      setEvents(eventList)
-      setTeams(teamList)
-      setError('')
-    } catch (cause) {
+    try { await fetchAll() } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Erro ao carregar tarefas')
     }
   }
   useEffect(() => { void load() }, [])
+  const { lastUpdatedAt, refreshing, refresh } = usePolling(fetchAll)
 
   const eventsById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events])
   const teamsById = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams])
@@ -93,7 +98,7 @@ export function TasksBoardPage() {
   }
 
   return <main className="app-shell">
-    <header><div><span className="eyebrow">MOTOR DE REGRAS</span><h1>Tarefas</h1></div></header>
+    <header><div><span className="eyebrow">MOTOR DE REGRAS</span><h1>Tarefas</h1></div><RefreshIndicator lastUpdatedAt={lastUpdatedAt} refreshing={refreshing} onRefresh={() => void refresh()} /></header>
     <section className="summary">
       <StatCard icon="☰" value={tasks.length} label="Total de tarefas" tone="blue" />
       <StatCard icon="⚠" value={noTeamCount} label="Sem equipe — ação necessária" tone="gold" />

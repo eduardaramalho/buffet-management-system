@@ -130,3 +130,5 @@ nav[aria-label="Paginação"] { display: flex; justify-content: flex-end; align-
 @media (max-width: 700px) { .rule-requirement-row { grid-template-columns: 1fr; } }
 .rule-match-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
 .rule-match-list li { padding: 10px 12px; border: 1px solid var(--line-200); border-radius: 6px; }
+.refresh-indicator { display: flex; align-items: center; gap: 12px; color: var(--muted, #667085); }
+.refresh-indicator .link-button { margin-top: 0; }

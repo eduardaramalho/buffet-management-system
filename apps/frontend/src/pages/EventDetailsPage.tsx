@@ -9,6 +9,8 @@ import { useAuth } from '../contexts/useAuth'
 import { Badge } from '../components/Badge'
 import { Icon } from '../components/Icon'
 import { Notice } from '../components/Notice'
+import { RefreshIndicator } from '../components/RefreshIndicator'
+import { usePolling } from '../hooks/usePolling'
 import type { Event, EventStatus } from '../types/event'
 import type { Task } from '../types/task'
 import type { Team } from '../types/team'
@@ -52,36 +54,36 @@ export function EventDetailsPage() {
   const [rulesAction, setRulesAction] = useState(false)
   const [rulesResult, setRulesResult] = useState('')
 
-  const loadEvent = async () => {
-    setEventState(loading())
+  const loadEvent = async (silent = false) => {
+    if (!silent) setEventState(loading())
     try { setEventState({ status: 'ready', data: await getEvent(id) }) }
-    catch (cause) { setEventState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar o evento') }) }
+    catch (cause) { if (silent) throw cause; setEventState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar o evento') }) }
   }
-  const loadTeams = async () => {
-    setTeamsState(loading())
+  const loadTeams = async (silent = false) => {
+    if (!silent) setTeamsState(loading())
     try {
       const [assignments, teams] = await Promise.all([listTeamsByEvent(id), listTeams()])
       const teamsById = new Map(teams.map((team) => [team.id, team]))
       setTeamsState({ status: 'ready', data: assignments.flatMap((assignment) => { const team = teamsById.get(assignment.teamId); return team ? [{ team, assignedAt: assignment.assignedAt }] : [] }) })
-    } catch (cause) { setTeamsState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar equipes') }) }
+    } catch (cause) { if (silent) throw cause; setTeamsState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar equipes') }) }
   }
-  const loadTasks = async () => {
-    setTasksState(loading())
+  const loadTasks = async (silent = false) => {
+    if (!silent) setTasksState(loading())
     try { setTasksState({ status: 'ready', data: await listTasks({ eventId: id }) }) }
-    catch (cause) { setTasksState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar tarefas') }) }
+    catch (cause) { if (silent) throw cause; setTasksState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar tarefas') }) }
   }
-  const loadRules = async () => {
-    setRulesState(loading())
+  const loadRules = async (silent = false) => {
+    if (!silent) setRulesState(loading())
     try {
       const event = eventState.data
       const data = event?.status === 'PLANEJAMENTO' ? await getEventRuleMatches(id) : await listEventRuleApplications(id)
       setRulesState({ status: 'ready', data })
-    } catch (cause) { setRulesState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar regras') }) }
+    } catch (cause) { if (silent) throw cause; setRulesState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar regras') }) }
   }
-  const loadHistory = async () => {
-    setHistoryState(loading())
+  const loadHistory = async (silent = false) => {
+    if (!silent) setHistoryState(loading())
     try { setHistoryState({ status: 'ready', data: await getEventHistory(id) }) }
-    catch (cause) { setHistoryState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar histórico') }) }
+    catch (cause) { if (silent) throw cause; setHistoryState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar histórico') }) }
   }
   const loadAll = async () => {
     await loadEvent()
@@ -89,6 +91,9 @@ export function EventDetailsPage() {
   }
 
   useEffect(() => { void loadAll() }, [id])
+
+  const pollAll = () => Promise.all([loadEvent(true), loadTeams(true), loadTasks(true), loadRules(true), loadHistory(true)])
+  const { lastUpdatedAt, refreshing, refresh } = usePolling(pollAll, { enabled: eventState.status === 'ready' })
 
   const event = eventState.data
   const next = event ? NEXT_STATUS[event.status] : undefined
@@ -132,7 +137,7 @@ export function EventDetailsPage() {
   if (!event) return null
 
   return <main className="app-shell event-details-page">
-    <header className="event-details-header"><div><button type="button" className="link-button back-link" onClick={() => navigate('/events')}><Icon name="chevron-left" />Eventos</button><span className="eyebrow">CENTRAL DO EVENTO</span><h1>{event.name}</h1><p className="event-meta">{formatDate(event.eventDate)} · {event.location} · {event.guestsCount} convidados</p></div><div className="event-header-actions">{hasPermission('events:update') && next && <button type="button" className="secondary" onClick={() => void changeStatus(next.status)}>{next.label}</button>}<div className="more-actions"><button type="button" className="secondary outline" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>Mais ações <Icon name="chevron-down" /></button>{menuOpen && <div className="action-menu"><button type="button" onClick={() => setCancelOpen(true)}>Cancelar evento</button></div>}</div></div></header>
+    <header className="event-details-header"><div><button type="button" className="link-button back-link" onClick={() => navigate('/events')}><Icon name="chevron-left" />Eventos</button><span className="eyebrow">CENTRAL DO EVENTO</span><h1>{event.name}</h1><p className="event-meta">{formatDate(event.eventDate)} · {event.location} · {event.guestsCount} convidados</p></div><div className="event-header-actions"><RefreshIndicator lastUpdatedAt={lastUpdatedAt} refreshing={refreshing} onRefresh={() => void refresh()} />{hasPermission('events:update') && next && <button type="button" className="secondary" onClick={() => void changeStatus(next.status)}>{next.label}</button>}<div className="more-actions"><button type="button" className="secondary outline" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>Mais ações <Icon name="chevron-down" /></button>{menuOpen && <div className="action-menu"><button type="button" onClick={() => setCancelOpen(true)}>Cancelar evento</button></div>}</div></div></header>
     <div className="event-status-steps" aria-label="Etapas do evento">{STATUS_STEPS.map((step, index) => <div key={step.status} className={`event-step ${step.status === event.status ? 'current' : ''} ${STATUS_STEPS.findIndex((item) => item.status === event.status) > index ? 'complete' : ''}`}><span>{index + 1}</span>{step.label}</div>)}</div>
     {actionError && <Notice message={actionError} error />}
     {cancelOpen && <section className="cancel-panel"><h2>Cancelar evento</h2><label>Motivo do cancelamento<textarea aria-label="Motivo do cancelamento" value={cancelReason} onChange={(changeEvent) => setCancelReason(changeEvent.target.value)} /></label><div className="form-actions"><button type="button" className="link-button" onClick={() => setCancelOpen(false)}>Voltar</button><button type="button" className="danger-button" onClick={cancel}>Confirmar cancelamento</button></div></section>}

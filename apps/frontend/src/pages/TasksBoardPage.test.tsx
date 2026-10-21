@@ -29,6 +29,20 @@ const event = { id: 'event-1', name: 'Casamento Ana', eventDate: '2026-11-10T15:
 const team = { id: 'team-1', name: 'Equipe Cozinha A', specialty: 'COZINHA' as const, status: 'ATIVA' as const, observations: null, createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, members: [], events: [] }
 
 describe('TasksBoardPage', () => {
+  it('atualiza silenciosamente via botão e mantém os dados quando a atualização falha', async () => {
+    vi.mocked(listTasks).mockResolvedValueOnce([task({ title: 'Confirmar decoração' })])
+    vi.mocked(listEvents).mockResolvedValue([event])
+    vi.mocked(listTeams).mockResolvedValue([team])
+    render(<TasksBoardPage />)
+    await screen.findByText('Confirmar decoração')
+
+    vi.mocked(listTasks).mockRejectedValueOnce(new Error('rede'))
+    fireEvent.click(screen.getByRole('button', { name: 'Atualizar agora' }))
+    await waitFor(() => expect(listTasks).toHaveBeenCalledTimes(2))
+    expect(screen.getByText('Confirmar decoração')).toBeInTheDocument()
+    expect(screen.queryByText('rede')).not.toBeInTheDocument()
+  })
+
   it('loads tasks and groups them by status column', async () => {
     vi.mocked(listTasks).mockResolvedValue([
       task({ id: 'task-1', title: 'Confirmar decoração', status: 'PENDENTE' }),
