@@ -168,7 +168,7 @@ As regras são gerenciadas por `GET/POST /api/v1/rules` e `GET/PUT/DELETE /api/v
 
 ## Tarefas e motor de regras
 
-Todos os endpoints abaixo exigem `Authorization: Bearer <access-token>`. `Task` é gerada automaticamente pelo motor de regras (nunca criada manualmente nesta etapa) e usa soft delete.
+Todos os endpoints abaixo exigem `Authorization: Bearer <access-token>`. Uma `Task` pode ser gerada pelo motor de regras (`sourceRuleId` preenchido) ou criada manualmente (`sourceRuleId: null`). Tarefas usam soft delete.
 
 ### Tarefas
 
@@ -176,10 +176,63 @@ Todos os endpoints abaixo exigem `Authorization: Bearer <access-token>`. `Task` 
 |---|---|---|
 | `GET` | `/api/v1/tasks` | `tasks:list` |
 | `GET` | `/api/v1/tasks/:id` | `tasks:read` |
+| `POST` | `/api/v1/tasks` | `tasks:create` |
+| `PUT` | `/api/v1/tasks/:id` | `tasks:update` |
+| `DELETE` | `/api/v1/tasks/:id` | `tasks:delete` |
+| `PATCH` | `/api/v1/tasks/:id/status` | `tasks:update-status` |
+
+As permissões `tasks:create`, `tasks:update` e `tasks:delete` são concedidas ao perfil administrador pelo seed.
 
 `GET /api/v1/tasks` aceita os filtros opcionais `eventId` e `status` (`PENDENTE`, `EM_ANDAMENTO`, `CONCLUIDA`, `CANCELADA`).
 
-Esta etapa expõe somente leitura. A atualização de status de uma `Task` (por exemplo, marcar como `CONCLUIDA`) é escopo do próximo módulo do cronograma — ver [ADR 0003](../../docs/adr/0003-task-de-alerta-e-idempotencia-do-motor-de-regras.md).
+#### Criação manual
+
+`POST /api/v1/tasks` responde `201` com a tarefa criada, sempre em `PENDENTE` e com `sourceRuleId: null`.
+
+```json
+{
+  "eventId": "event-uuid",
+  "title": "Montar mesas",
+  "description": "Salão principal",
+  "dueDate": "2026-11-08T15:00:00.000Z",
+  "assignedTeamId": "team-uuid"
+}
+```
+
+`eventId` e `title` são obrigatórios; `description`, `dueDate` e `assignedTeamId` são opcionais. `title` tem de 1 a 150 caracteres após o trim.
+
+#### Edição
+
+`PUT /api/v1/tasks/:id` é parcial: chave omitida não é alterada e `null` limpa o campo.
+
+```json
+{
+  "description": null,
+  "dueDate": "2026-11-09T15:00:00.000Z",
+  "assignedTeamId": null
+}
+```
+
+Campos aceitos: `title`, `description` (`string | null`), `dueDate` (`string | null`) e `assignedTeamId` (`string | null`; `null` desatribui a equipe). O status não é alterado por aqui, e sim por `PATCH /api/v1/tasks/:id/status`. Se nada mudar, a tarefa é devolvida sem gravação nem auditoria.
+
+#### Exclusão
+
+`DELETE /api/v1/tasks/:id` faz soft delete e responde `204`. Excluir uma tarefa gerada por regra não faz o motor recriá-la: a identidade de template considera também tarefas excluídas (ver abaixo).
+
+#### Status
+
+`PATCH /api/v1/tasks/:id/status` recebe `{"status": "EM_ANDAMENTO"}`. `CONCLUIDA` preenche `completedAt`. Tarefas em `CONCLUIDA` ou `CANCELADA` não voltam a `PENDENTE` nem a `EM_ANDAMENTO`.
+
+#### Regras de negócio
+
+- Só é possível criar tarefa em evento existente e não terminal (não `CONCLUIDO` nem `CANCELADO`).
+- A equipe atribuída (na criação ou na edição) precisa estar `ATIVA` e já alocada ao evento da tarefa (`POST /api/v1/teams/:teamId/events/:eventId`). Caso contrário, a API responde `400` com "Aloque a equipe ao evento antes de atribuí-la à tarefa".
+- O título de tarefa gerada por regra é imutável, pois faz parte da chave de idempotência do motor (ver [ADR 0003](../../docs/adr/0003-task-de-alerta-e-idempotencia-do-motor-de-regras.md)). Descrição, prazo e equipe podem ser editados.
+- Tarefas em `CONCLUIDA` ou `CANCELADA` não podem ser editadas nem excluídas.
+- `assignedAt` registra o momento em que a equipe atual foi atribuída: é preenchido ao atribuir ou trocar a equipe e volta a `null` ao desatribuir. Alimenta o indicador de tempo médio de atribuição.
+- Auditoria: `TASK_CREATED`, `TASK_UPDATED` (com `before`/`after` dos campos alterados), `TASK_DELETED`, `TASK_STATUS_CHANGED` e `TASK_TEAM_ASSIGNED` (equipe anterior e nova).
+
+Erros: corpo inválido retorna `422` com `issues` do Zod; violação de regra de negócio retorna `400` com `message`; tarefa ou evento inexistente também retorna `400`.
 
 ### Aplicação de regras (motor de regras — Parte 2)
 
