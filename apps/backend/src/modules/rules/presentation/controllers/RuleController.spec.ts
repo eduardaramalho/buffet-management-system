@@ -116,7 +116,7 @@ describe("RuleController", () => {
     expect(update).toHaveBeenCalledWith("rule-1", { name: "Só o nome" }, "actor-1");
   });
 
-  it("returns 400 for an empty task template title", async () => {
+  it("returns 422 for an empty task template title", async () => {
     const controller = new RuleController({ create: jest.fn() } as never);
     const app = express();
     app.use(express.json(), authenticated);
@@ -125,10 +125,10 @@ describe("RuleController", () => {
 
     const response = await request(app).post("/rules").send({ name: "Regra", taskTemplates: [{ title: "" }] });
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(422);
   });
 
-  it("returns 400 for a negative daysBeforeEvent", async () => {
+  it("returns 422 for a negative daysBeforeEvent", async () => {
     const controller = new RuleController({ create: jest.fn() } as never);
     const app = express();
     app.use(express.json(), authenticated);
@@ -137,7 +137,7 @@ describe("RuleController", () => {
 
     const response = await request(app).post("/rules").send({ name: "Regra", taskTemplates: [{ title: "Preparar", daysBeforeEvent: -1 }] });
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(422);
   });
 
   it("rejects update without an authenticated actor", async () => {
