@@ -12,6 +12,8 @@ export type TaskRecord = {
   completedAt?: Date | null;
   status: TaskStatus;
   assignedTeamId: string | null;
+  // Moment the current team was assigned; null while unassigned. Feeds the average-assignment-time report.
+  assignedAt?: Date | null;
   sourceRuleId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -24,7 +26,25 @@ export type CreateTaskInput = {
   description: string | null;
   dueDate: Date | null;
   assignedTeamId: string | null;
+  assignedAt?: Date | null;
   sourceRuleId: string | null;
+};
+
+// Manual task = sourceRuleId null (no dedicated column). Title is optional-by-omission, never null.
+export type CreateManualTaskInput = {
+  eventId: string;
+  title: string;
+  description?: string | null;
+  dueDate?: Date | null;
+  assignedTeamId?: string | null;
+};
+
+// Omitted keys mean "leave untouched"; null clears (description, dueDate) or unassigns (assignedTeamId).
+export type UpdateTaskDetailsInput = {
+  title?: string;
+  description?: string | null;
+  dueDate?: Date | null;
+  assignedTeamId?: string | null;
 };
 
 export type TaskListFilter = {
@@ -32,9 +52,29 @@ export type TaskListFilter = {
   status?: TaskStatus;
 };
 
-export type UpdateTaskStatusInput = {
-  status: TaskStatus;
+export type UpdateTaskInput = UpdateTaskDetailsInput & {
+  status?: TaskStatus;
   completedAt?: Date | null;
+  assignedAt?: Date | null;
+};
+
+// Narrow read ports so this module does not depend on the full Events/Teams repository contracts.
+export interface TaskEventReader {
+  findById(id: string): Promise<{ id: string; status: string; deletedAt: Date | null } | null>;
+}
+
+export interface TaskTeamReader {
+  findById(id: string): Promise<{ id: string; status: string } | null>;
+}
+
+export interface TaskEventTeamReader {
+  listTeamsByEvent(eventId: string): Promise<{ teamId: string }[]>;
+}
+
+export type TaskReferenceReaders = {
+  events: TaskEventReader;
+  teams: TaskTeamReader;
+  eventTeams: TaskEventTeamReader;
 };
 
 export interface TaskRepository {
@@ -45,7 +85,8 @@ export interface TaskRepository {
   list(filter: TaskListFilter): Promise<TaskRecord[]>;
   // Includes every task for the event, including cancelled, completed and soft-deleted rows.
   listAllByEventId(eventId: string): Promise<TaskRecord[]>;
-  update(id: string, input: UpdateTaskStatusInput): Promise<TaskRecord>;
+  update(id: string, input: UpdateTaskInput): Promise<TaskRecord>;
+  softDelete(id: string): Promise<void>;
 }
 
 export type RuleApplicationRecord = {

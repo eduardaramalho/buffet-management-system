@@ -2008,6 +2008,7 @@ export const TaskScalarFieldEnum = {
   completedAt: 'completedAt',
   status: 'status',
   assignedTeamId: 'assignedTeamId',
+  assignedAt: 'assignedAt',
   sourceRuleId: 'sourceRuleId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',

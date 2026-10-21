@@ -1,0 +1,1 @@
+ALTER TABLE `tasks` ADD COLUMN `assigned_at` DATETIME(3) NULL;

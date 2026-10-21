@@ -65,4 +65,13 @@ describe("PrismaTaskRepository", () => {
 
     expect(update).toHaveBeenCalledWith({ where: { id: "task-1" }, data: { status: "EM_ANDAMENTO" } });
   });
+
+  it("soft deletes a task by setting deletedAt (never a physical delete)", async () => {
+    const update = jest.fn(async (_input: unknown) => ({}));
+    const repository = new PrismaTaskRepository({ task: { update } } as never);
+
+    await repository.softDelete("task-1");
+
+    expect(update).toHaveBeenCalledWith({ where: { id: "task-1" }, data: { deletedAt: expect.any(Date) } });
+  });
 });

@@ -28,7 +28,11 @@ const teamRepository = new PrismaTeamRepository(prisma);
 const eventTeamService = new EventTeamService(new PrismaEventTeamRepository(prisma), auditService);
 const transactionRunner = new PrismaTransactionRunner(prisma);
 
-export const taskService = new TaskService(taskRepository, auditService);
+export const taskService = new TaskService(taskRepository, auditService, {
+  events: eventReader,
+  teams: teamRepository,
+  eventTeams: new PrismaEventTeamRepository(prisma),
+});
 export const ruleEngineExecutionService = new RuleEngineExecutionService(
   ruleEngineService,
   eventReader,

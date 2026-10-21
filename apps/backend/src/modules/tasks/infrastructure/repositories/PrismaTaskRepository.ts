@@ -1,6 +1,6 @@
 import type { PrismaClient } from "../../../../generated/client.js";
 import type { TransactionClient } from "../../../../shared/domain/transaction.types.js";
-import type { CreateTaskInput, TaskListFilter, TaskRecord, TaskRepository, UpdateTaskStatusInput } from "../../domain/task.types.js";
+import type { CreateTaskInput, TaskListFilter, TaskRecord, TaskRepository, UpdateTaskInput } from "../../domain/task.types.js";
 
 export class PrismaTaskRepository implements TaskRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -29,7 +29,11 @@ export class PrismaTaskRepository implements TaskRepository {
     return this.prisma.task.findMany({ where: { eventId }, orderBy: { createdAt: "asc" } }) as Promise<TaskRecord[]>;
   }
 
-  update(id: string, input: UpdateTaskStatusInput) {
+  update(id: string, input: UpdateTaskInput) {
     return this.prisma.task.update({ where: { id }, data: input }) as Promise<TaskRecord>;
+  }
+
+  async softDelete(id: string) {
+    await this.prisma.task.update({ where: { id }, data: { deletedAt: new Date() } });
   }
 }

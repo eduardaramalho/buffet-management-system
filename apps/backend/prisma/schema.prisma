@@ -343,6 +343,8 @@ model Task {
   completedAt    DateTime?  @map("completed_at")
   status         TaskStatus @default(PENDENTE)
   assignedTeamId String?    @map("assigned_team_id") @db.Char(36)
+  // Set when the team is assigned or changed, cleared when unassigned (average assignment time report).
+  assignedAt     DateTime?  @map("assigned_at")
   sourceRuleId   String?    @map("source_rule_id") @db.Char(36)
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
