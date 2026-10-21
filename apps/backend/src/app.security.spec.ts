@@ -42,6 +42,15 @@ describe('API security middleware', () => {
     expect(response.text).toContain('status_code="200"');
   });
 
+  it('exposes Content-Disposition to the allowed frontend origin so report downloads keep their file name', async () => {
+    const response = await request(app)
+      .get('/api/v1/health')
+      .set('Origin', 'http://localhost:5173');
+
+    expect(response.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+    expect(response.headers['access-control-expose-headers']).toBe('Content-Disposition');
+  });
+
   it('blocks a disallowed CORS origin', async () => {
     const response = await request(app)
       .get('/api/v1/health')

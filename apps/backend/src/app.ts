@@ -20,6 +20,7 @@ import { ruleEvaluationRoutes } from "./modules/rules/presentation/routes/ruleEv
 import { taskRoutes } from "./modules/tasks/presentation/routes/task.routes.js";
 import { ruleApplicationRoutes } from "./modules/tasks/presentation/routes/ruleApplication.routes.js";
 import { dashboardRoutes } from "./modules/dashboard/presentation/routes/dashboard.routes.js";
+import { reportRoutes } from "./modules/reports/presentation/routes/report.routes.js";
 import { errorHandler } from "./shared/middlewares/errorHandler.js";
 import { env } from "./shared/config/env.js";
 import { logger } from "./shared/config/logger.js";
@@ -113,7 +114,9 @@ app.use(
     // Tokens are exchanged in the request body today, so browser credentials are not required for the frontend flow.
     credentials: false,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization"],
+    // Lets the frontend read the file name of report exports (CSV/PDF) on cross-origin deployments.
+    exposedHeaders: ["Content-Disposition"]
   })
 );
 
@@ -157,6 +160,7 @@ app.use("/api/v1/tasks", taskRoutes);
 app.use("/api/v1/events", ruleApplicationRoutes);
 app.use("/api/v1/events", auditRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
+app.use("/api/v1/reports", reportRoutes);
 
 app.get("/api/v1/health", (_req, res) => {
   res.json({
