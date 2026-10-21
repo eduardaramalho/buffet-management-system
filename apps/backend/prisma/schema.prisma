@@ -53,6 +53,32 @@ enum EventStatus {
   CANCELADO
 }
 
+enum ClientType {
+  PF
+  PJ
+}
+
+// document is stored without punctuation (CPF: 11 digits, CNPJ: 14 chars, alphanumeric since 07/2026).
+// The unique index is global (soft-deleted rows included): MySQL treats NULLs as distinct, so clients
+// without a document never collide.
+model Client {
+  id        String     @id @default(uuid()) @db.Char(36)
+  type      ClientType
+  name      String     @db.VarChar(150)
+  document  String?    @unique @db.VarChar(14)
+  email     String?    @db.VarChar(150)
+  phone     String?    @db.VarChar(30)
+  notes     String?    @db.Text
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  deletedAt DateTime?  @map("deleted_at")
+  events    Event[]
+
+  @@index([name])
+  @@index([deletedAt])
+  @@map("clients")
+}
+
 model Event {
   id               String            @id @default(uuid()) @db.Char(36)
   name             String            @db.VarChar(150)
@@ -63,17 +89,22 @@ model Event {
   guestsCount      Int               @map("guests_count")
   observations     String?           @db.Text
   status           EventStatus       @default(PLANEJAMENTO)
+  // Nullable on purpose (expand/contract, ADR 0005): required by the application for new events;
+  // a later migration makes it NOT NULL once legacy events are linked to a client.
+  clientId         String?           @map("client_id") @db.Char(36)
   createdById      String            @map("created_by_id") @db.Char(36)
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
   deletedAt        DateTime?         @map("deleted_at")
   createdBy        User              @relation("EventCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  client           Client?           @relation(fields: [clientId], references: [id], onDelete: Restrict)
   services         EventService[]
   teams            EventTeam[]
   tasks            Task[]
   ruleApplications RuleApplication[]
 
   @@index([createdById])
+  @@index([clientId])
   @@index([status])
   @@index([eventDate])
   @@index([deletedAt])

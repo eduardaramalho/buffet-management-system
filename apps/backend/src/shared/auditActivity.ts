@@ -7,6 +7,12 @@ export type AuditActivityInput = {
   subject?: string;
 };
 
+const CLIENT_ACTION_VERBS: Record<string, string> = {
+  CLIENT_CREATED: "cadastrado",
+  CLIENT_UPDATED: "atualizado",
+  CLIENT_DELETED: "excluído",
+};
+
 export function formatAuditActivityMessage({ action, entity, changes, subject }: AuditActivityInput) {
   const after = typeof changes?.after === "object" ? changes.after : null;
   const resolvedSubject = subject ?? changes?.name ?? changes?.title ?? after?.name ?? after?.title ?? changes?.eventName;
@@ -18,5 +24,7 @@ export function formatAuditActivityMessage({ action, entity, changes, subject }:
       ? `Tarefa '${fallbackSubject}' marcada como ${typeof changes?.after === "string" ? changes.after : "atualizada"}`
       : action === "TEAM_AUTO_ASSIGNED"
         ? `Equipe atribuída automaticamente ao evento '${fallbackSubject}'`
-        : `${action} em ${entity}`;
+        : action in CLIENT_ACTION_VERBS
+          ? `Cliente '${fallbackSubject}' ${CLIENT_ACTION_VERBS[action]}`
+          : `${action} em ${entity}`;
 }

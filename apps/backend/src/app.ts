@@ -14,6 +14,7 @@ import { eventRoutes } from "./modules/events/presentation/routes/event.routes.j
 import { serviceRoutes } from "./modules/events/presentation/routes/service.routes.js";
 import { teamRoutes } from "./modules/teams/presentation/routes/team.routes.js";
 import { collaboratorRoutes } from "./modules/teams/presentation/routes/collaborator.routes.js";
+import { clientRoutes } from "./modules/clients/presentation/routes/client.routes.js";
 import { ruleRoutes } from "./modules/rules/presentation/routes/rule.routes.js";
 import { ruleEvaluationRoutes } from "./modules/rules/presentation/routes/ruleEvaluation.routes.js";
 import { taskRoutes } from "./modules/tasks/presentation/routes/task.routes.js";
@@ -149,6 +150,7 @@ app.use("/api/v1/events", eventRoutes);
 app.use("/api/v1/services", serviceRoutes);
 app.use("/api/v1/teams", teamRoutes);
 app.use("/api/v1/collaborators", collaboratorRoutes);
+app.use("/api/v1/clients", clientRoutes);
 app.use("/api/v1/rules", ruleRoutes);
 app.use("/api/v1/events", ruleEvaluationRoutes);
 app.use("/api/v1/tasks", taskRoutes);

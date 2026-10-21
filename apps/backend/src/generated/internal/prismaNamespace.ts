@@ -398,6 +398,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   User: 'User',
+  Client: 'Client',
   Event: 'Event',
   Service: 'Service',
   EventService: 'EventService',
@@ -432,7 +433,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "event" | "service" | "eventService" | "collaborator" | "team" | "teamMember" | "eventTeam" | "role" | "permission" | "userRole" | "rolePermission" | "refreshToken" | "passwordResetToken" | "rule" | "ruleResourceRequirement" | "ruleTaskTemplate" | "task" | "ruleApplication" | "auditLog"
+    modelProps: "user" | "client" | "event" | "service" | "eventService" | "collaborator" | "team" | "teamMember" | "eventTeam" | "role" | "permission" | "userRole" | "rolePermission" | "refreshToken" | "passwordResetToken" | "rule" | "ruleResourceRequirement" | "ruleTaskTemplate" | "task" | "ruleApplication" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -499,6 +500,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCountAggregateOutputType> | number
+        }
+      }
+    }
+    Client: {
+      payload: Prisma.$ClientPayload<ExtArgs>
+      fields: Prisma.ClientFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ClientFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ClientFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientPayload>
+        }
+        findFirst: {
+          args: Prisma.ClientFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ClientFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientPayload>
+        }
+        findMany: {
+          args: Prisma.ClientFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientPayload>[]
+        }
+        create: {
+          args: Prisma.ClientCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientPayload>
+        }
+        createMany: {
+          args: Prisma.ClientCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.ClientDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientPayload>
+        }
+        update: {
+          args: Prisma.ClientUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientPayload>
+        }
+        deleteMany: {
+          args: Prisma.ClientDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ClientUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.ClientUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientPayload>
+        }
+        aggregate: {
+          args: Prisma.ClientAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateClient>
+        }
+        groupBy: {
+          args: Prisma.ClientGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ClientGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ClientCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ClientCountAggregateOutputType> | number
         }
       }
     }
@@ -1809,6 +1876,22 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+export const ClientScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  name: 'name',
+  document: 'document',
+  email: 'email',
+  phone: 'phone',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type ClientScalarFieldEnum = (typeof ClientScalarFieldEnum)[keyof typeof ClientScalarFieldEnum]
+
+
 export const EventScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -1819,6 +1902,7 @@ export const EventScalarFieldEnum = {
   guestsCount: 'guestsCount',
   observations: 'observations',
   status: 'status',
+  clientId: 'clientId',
   createdById: 'createdById',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
@@ -2075,11 +2159,24 @@ export const UserOrderByRelevanceFieldEnum = {
 export type UserOrderByRelevanceFieldEnum = (typeof UserOrderByRelevanceFieldEnum)[keyof typeof UserOrderByRelevanceFieldEnum]
 
 
+export const ClientOrderByRelevanceFieldEnum = {
+  id: 'id',
+  name: 'name',
+  document: 'document',
+  email: 'email',
+  phone: 'phone',
+  notes: 'notes'
+} as const
+
+export type ClientOrderByRelevanceFieldEnum = (typeof ClientOrderByRelevanceFieldEnum)[keyof typeof ClientOrderByRelevanceFieldEnum]
+
+
 export const EventOrderByRelevanceFieldEnum = {
   id: 'id',
   name: 'name',
   location: 'location',
   observations: 'observations',
+  clientId: 'clientId',
   createdById: 'createdById'
 } as const
 
@@ -2295,6 +2392,13 @@ export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
  * Reference to a field of type 'DateTime'
  */
 export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
+    
+
+
+/**
+ * Reference to a field of type 'ClientType'
+ */
+export type EnumClientTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ClientType'>
     
 
 
@@ -2519,6 +2623,7 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
+  client?: Prisma.ClientOmit
   event?: Prisma.EventOmit
   service?: Prisma.ServiceOmit
   eventService?: Prisma.EventServiceOmit

@@ -52,6 +52,7 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
+  Client: 'Client',
   Event: 'Event',
   Service: 'Service',
   EventService: 'EventService',
@@ -103,6 +104,22 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+export const ClientScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  name: 'name',
+  document: 'document',
+  email: 'email',
+  phone: 'phone',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type ClientScalarFieldEnum = (typeof ClientScalarFieldEnum)[keyof typeof ClientScalarFieldEnum]
+
+
 export const EventScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -113,6 +130,7 @@ export const EventScalarFieldEnum = {
   guestsCount: 'guestsCount',
   observations: 'observations',
   status: 'status',
+  clientId: 'clientId',
   createdById: 'createdById',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
@@ -369,11 +387,24 @@ export const UserOrderByRelevanceFieldEnum = {
 export type UserOrderByRelevanceFieldEnum = (typeof UserOrderByRelevanceFieldEnum)[keyof typeof UserOrderByRelevanceFieldEnum]
 
 
+export const ClientOrderByRelevanceFieldEnum = {
+  id: 'id',
+  name: 'name',
+  document: 'document',
+  email: 'email',
+  phone: 'phone',
+  notes: 'notes'
+} as const
+
+export type ClientOrderByRelevanceFieldEnum = (typeof ClientOrderByRelevanceFieldEnum)[keyof typeof ClientOrderByRelevanceFieldEnum]
+
+
 export const EventOrderByRelevanceFieldEnum = {
   id: 'id',
   name: 'name',
   location: 'location',
   observations: 'observations',
+  clientId: 'clientId',
   createdById: 'createdById'
 } as const
 

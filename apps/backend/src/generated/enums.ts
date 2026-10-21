@@ -33,6 +33,14 @@ export const EventStatus = {
 export type EventStatus = (typeof EventStatus)[keyof typeof EventStatus]
 
 
+export const ClientType = {
+  PF: 'PF',
+  PJ: 'PJ'
+} as const
+
+export type ClientType = (typeof ClientType)[keyof typeof ClientType]
+
+
 export const TeamSpecialty = {
   COZINHA: 'COZINHA',
   SALAO: 'SALAO',

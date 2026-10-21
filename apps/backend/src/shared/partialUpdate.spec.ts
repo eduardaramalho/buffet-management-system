@@ -6,6 +6,7 @@ import { TeamController } from "../modules/teams/presentation/controllers/TeamCo
 import { CollaboratorController } from "../modules/teams/presentation/controllers/CollaboratorController.js";
 import { EventController } from "../modules/events/presentation/controllers/EventController.js";
 import { ServiceController } from "../modules/events/presentation/controllers/ServiceController.js";
+import { ClientController } from "../modules/clients/presentation/controllers/ClientController.js";
 
 const authenticated = (req: express.Request, _res: express.Response, next: express.NextFunction) => {
   req.user = { sub: "actor-1", email: "admin@buffet.local" };
@@ -42,5 +43,11 @@ describe("partial PUT does not apply Zod defaults", () => {
     const update = jest.fn(async () => ({}));
     await putPartial(new ServiceController({ update } as never).update, { name: "Bar" });
     expect(update).toHaveBeenCalledWith("item-1", { name: "Bar" }, "actor-1");
+  });
+
+  it("ClientController keeps document, email, phone and notes untouched", async () => {
+    const update = jest.fn(async (..._args: unknown[]) => ({}));
+    await putPartial(new ClientController({ update } as never).update, { name: "Ana" });
+    expect(update).toHaveBeenCalledWith("item-1", { name: "Ana" }, "actor-1");
   });
 });

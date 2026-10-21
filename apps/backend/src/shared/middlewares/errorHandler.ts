@@ -10,6 +10,7 @@ import { TeamManagementError } from "../../modules/teams/application/TeamService
 import { RuleManagementError } from "../../modules/rules/application/RuleEngineService.js";
 import { RuleEngineExecutionError } from "../../modules/tasks/application/RuleEngineExecutionService.js";
 import { TaskManagementError } from "../../modules/tasks/application/TaskService.js";
+import { ClientConflictError, ClientManagementError } from "../../modules/clients/domain/client.errors.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
 import { logger } from "../config/logger.js";
 
@@ -28,6 +29,8 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
   if (error instanceof RuleEngineExecutionError || error instanceof TaskManagementError) {
     return response.status(400).json({ message: error.message });
   }
+  if (error instanceof ClientConflictError) return response.status(409).json({ message: error.message });
+  if (error instanceof ClientManagementError) return response.status(400).json({ message: error.message });
   if (error instanceof z.ZodError) {
     return response.status(422).json({ message: "Dados inválidos", issues: error.issues });
   }
