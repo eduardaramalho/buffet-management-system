@@ -7,7 +7,7 @@ import { authorize } from "../../../auth/presentation/middlewares/authorize.js";
 
 const permissionKeys = ["tasks:list", "tasks:read", "tasks:update-status", "rules:apply", "rules:read"] as const;
 
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => { jest.restoreAllMocks(); });
 
 describe("task/rule-application permissions", () => {
   it.each(permissionKeys)("returns 403 without %s", async (permissionKey) => {
