@@ -12,6 +12,7 @@ const breadcrumbLabels: Record<string, string> = {
   '/collaborators': 'Colaboradores',
   '/clients': 'Clientes',
   '/roles': 'Papéis e permissões',
+  '/reports': 'Relatórios',
 }
 
 export function InternalLayout({ children, onLogout }: { children: ReactNode; onLogout: () => Promise<void> }) {
@@ -32,6 +33,7 @@ export function InternalLayout({ children, onLogout }: { children: ReactNode; on
       <Logo compact />
       <nav className="side-nav">
         {hasPermission('dashboard:view') && <Link aria-label="Dashboard" to="/" className={`side-link${location.pathname === '/' ? ' active' : ''}`}><Icon name="home" /><span>Dashboard</span></Link>}
+        {hasPermission('reports:view') && <Link aria-label="Relatórios" to="/reports" className={`side-link${location.pathname.startsWith('/reports') ? ' active' : ''}`}><Icon name="chart" /><span>Relatórios</span></Link>}
         <span className="side-section">OPERAÇÃO</span>
         {hasPermission('events:list') && <Link aria-label="Eventos" to="/events" className={`side-link${location.pathname.startsWith('/events') ? ' active' : ''}`}><Icon name="calendar" /><span>Eventos</span></Link>}
         {hasPermission('clients:list') && <Link aria-label="Clientes" to="/clients" className={`side-link${location.pathname.startsWith('/clients') ? ' active' : ''}`}><Icon name="contact" /><span>Clientes</span></Link>}
