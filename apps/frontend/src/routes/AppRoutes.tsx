@@ -1,6 +1,6 @@
 import { DashboardPage } from '../pages/DashboardPage'
 import type { ReactNode } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth'
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage'
 import { LoginPage } from '../pages/LoginPage'
@@ -19,10 +19,13 @@ import { EventDetailsPage } from '../pages/EventDetailsPage'
 import { ReportsPage } from '../pages/ReportsPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { InternalLayout } from '../components/InternalLayout'
+import { RouteErrorBoundary } from '../components/RouteErrorBoundary'
 
 export function AppRoutes() {
 	const { user, logout } = useAuth()
-	const withNavigation = (page: ReactNode) => <InternalLayout onLogout={logout}>{page}</InternalLayout>
+	const { pathname } = useLocation()
+	// O boundary fica dentro do layout: um erro numa tela preserva o menu, o botão Sair e a sessão.
+	const withNavigation = (page: ReactNode) => <InternalLayout onLogout={logout}><RouteErrorBoundary resetKey={pathname}>{page}</RouteErrorBoundary></InternalLayout>
 
 	return <Routes>
 		<Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />

@@ -4,11 +4,11 @@ import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { AppRoutes } from './AppRoutes'
 
-const { authState } = vi.hoisted(() => ({ authState: { user: { id: '1', name: 'Alice', email: 'alice@example.com', roles: [{ name: 'admin', permissions: ['users:list', 'roles:list'] }] }, logout: vi.fn() } }))
+const { authState, pageFailure } = vi.hoisted(() => ({ pageFailure: { roles: false }, authState: { user: { id: '1', name: 'Alice', email: 'alice@example.com', roles: [{ name: 'admin', permissions: ['users:list', 'roles:list'] }] }, logout: vi.fn() } }))
 
 vi.mock('../contexts/useAuth', () => ({ useAuth: () => authState }))
 vi.mock('../pages/UsersListPage', () => ({ UsersListPage: () => <h1>Página de Usuários</h1> }))
-vi.mock('../pages/RolesListPage', () => ({ RolesListPage: () => <h1>Página de Papéis</h1> }))
+vi.mock('../pages/RolesListPage', () => ({ RolesListPage: () => { if (pageFailure.roles) throw new Error('falha de renderização'); return <h1>Página de Papéis</h1> } }))
 vi.mock('../pages/UserFormPage', () => ({ UserFormPage: () => <h1>Formulário de Usuário</h1> }))
 vi.mock('../pages/RoleFormPage', () => ({ RoleFormPage: () => <h1>Formulário de Papel</h1> }))
 vi.mock('../pages/LoginPage', () => ({ LoginPage: () => <h1>Login</h1> }))
@@ -31,5 +31,21 @@ describe('AppRoutes navigation and permissions', () => {
 
     expect(screen.queryByRole('link', { name: 'Papéis e permissões' })).not.toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Página de Usuários' })).toBeInTheDocument()
+  })
+
+  // A sessão fica só em memória: uma tela branca obrigava a recarregar e, com isso, a fazer login de novo.
+  it('keeps the navigation and session when a page crashes', async () => {
+    authState.user = { ...authState.user, roles: [{ name: 'admin', permissions: ['users:list', 'roles:list'] }] }
+    pageFailure.roles = true
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    render(<MemoryRouter initialEntries={['/roles']}><AppRoutes /></MemoryRouter>)
+
+    expect(await screen.findByText('Não foi possível exibir esta tela.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('link', { name: 'Usuários' }))
+    expect(await screen.findByRole('heading', { name: 'Página de Usuários' })).toBeInTheDocument()
+    pageFailure.roles = false
+    vi.restoreAllMocks()
   })
 })
