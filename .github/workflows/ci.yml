@@ -153,6 +153,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Historico completo para o Sonar calcular "New Code" e blame corretamente.
+          fetch-depth: 0
 
       - name: Download backend coverage
         uses: actions/download-artifact@v4
@@ -166,26 +169,35 @@ jobs:
           name: frontend-coverage
           path: apps/frontend/coverage
 
-      - name: SonarCloud analysis
-        uses: SonarSource/sonarcloud-github-action@v3
+      - name: Rewrite coverage paths relative to repository root
+        # Jest e Vitest geram "SF:src/...", mas o Sonar resolve a partir da raiz do monorepo.
+        run: |
+          sed -i 's#^SF:src/#SF:apps/backend/src/#' apps/backend/coverage/lcov.info
+          sed -i 's#^SF:src/#SF:apps/frontend/src/#' apps/frontend/coverage/lcov.info
+
+      - name: SonarQube Cloud analysis
+        uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  deploy:
-    # Ativar quando a hospedagem for definida (Trilha 3).
-    if: false
-    runs-on: ubuntu-latest
-    steps: []
-    # Esqueleto futuro:
-    # - name: Build Docker images
-    #   run: docker compose build backend frontend
-    # - name: Login to container registry
-    #   uses: docker/login-action@v3
-    #   with:
-    #     registry: ${{ secrets.REGISTRY_HOST }}
-    #     username: ${{ secrets.REGISTRY_USERNAME }}
-    #     password: ${{ secrets.REGISTRY_PASSWORD }}
-    # - name: Push Docker images
-    #   run: |
-    #     docker push ${{ secrets.BACKEND_IMAGE }}
-    #     docker push ${{ secrets.FRONTEND_IMAGE }}
+  # Job de deploy: sera adicionado quando a hospedagem for definida (Trilha 3).
+  # Nao manter um job com "steps: []", pois o GitHub rejeita o workflow inteiro.
+  # Esqueleto futuro:
+  # deploy:
+  #   needs: [e2e, sonar]
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Build Docker images
+  #       run: docker compose build backend frontend
+  #     - name: Login to container registry
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: ${{ secrets.REGISTRY_HOST }}
+  #         username: ${{ secrets.REGISTRY_USERNAME }}
+  #         password: ${{ secrets.REGISTRY_PASSWORD }}
+  #     - name: Push Docker images
+  #       run: |
+  #         docker push ${{ secrets.BACKEND_IMAGE }}
+  #         docker push ${{ secrets.FRONTEND_IMAGE }}

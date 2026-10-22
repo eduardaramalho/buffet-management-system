@@ -1,4 +1,13 @@
-type AuditChanges = { name?: string; title?: string; after?: string | { name?: string; title?: string }; eventName?: string } | null;
+export type AuditChanges = { name?: string; title?: string; after?: string | { name?: string; title?: string }; eventName?: string } | null;
+
+/**
+ * Converte o JSON persistido em audit_logs.changes (Prisma.JsonValue) para o formato lido
+ * pelas mensagens de atividade. Qualquer valor que nao seja um objeto simples vira null.
+ */
+export function toAuditChanges(value: unknown): AuditChanges {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as AuditChanges;
+}
 
 export type AuditActivityInput = {
   action: string;

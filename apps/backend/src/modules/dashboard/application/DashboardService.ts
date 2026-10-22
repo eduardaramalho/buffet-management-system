@@ -1,5 +1,5 @@
 import type { PrismaClient } from "../../../generated/client.js";
-import { formatAuditActivityMessage } from "../../../shared/auditActivity.js";
+import { formatAuditActivityMessage, toAuditChanges } from "../../../shared/auditActivity.js";
 
 const TASK_STATUSES = ["PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "CANCELADA"] as const;
 type TaskStatus = (typeof TASK_STATUSES)[number];
@@ -67,7 +67,7 @@ export class DashboardService {
   async getRecentActivity(limit = 10): Promise<RecentActivity[]> {
     const logs = await this.prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: limit });
     return Promise.all(logs.map(async (log) => {
-      const changes = log.changes ?? null;
+      const changes = toAuditChanges(log.changes);
       const after = typeof changes?.after === "object" ? changes.after : null;
       let subject = changes?.name ?? changes?.title ?? after?.name ?? after?.title ?? changes?.eventName;
       if (!subject && log.entityId && log.action === "TEAM_AUTO_ASSIGNED") {

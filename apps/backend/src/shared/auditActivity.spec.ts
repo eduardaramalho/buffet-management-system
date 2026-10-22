@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { formatAuditActivityMessage } from "./auditActivity.js";
+import { formatAuditActivityMessage, toAuditChanges } from "./auditActivity.js";
 
 describe("formatAuditActivityMessage", () => {
   it("formats the same messages used by dashboard activity", () => {
@@ -13,5 +13,15 @@ describe("formatAuditActivityMessage", () => {
     expect(formatAuditActivityMessage({ action: "CLIENT_CREATED", entity: "Client", changes: { name: "Ana" } })).toBe("Cliente 'Ana' cadastrado");
     expect(formatAuditActivityMessage({ action: "CLIENT_UPDATED", entity: "Client", changes: { name: "Ana" } })).toBe("Cliente 'Ana' atualizado");
     expect(formatAuditActivityMessage({ action: "CLIENT_DELETED", entity: "Client", changes: { name: "Ana" } })).toBe("Cliente 'Ana' excluído");
+  });
+});
+describe("toAuditChanges", () => {
+  it("returns the object when the persisted JSON is a plain object", () => {
+    const value = { name: "Casamento", after: { title: "Montar mesas" } };
+    expect(toAuditChanges(value)).toEqual(value);
+  });
+
+  it.each([null, undefined, "texto", 42, true, ["a", "b"]])("returns null for non-object JSON (%p)", (value) => {
+    expect(toAuditChanges(value)).toBeNull();
   });
 });
