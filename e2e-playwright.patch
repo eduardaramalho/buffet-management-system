@@ -1,0 +1,1384 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 6ec6d83..3ae1061 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -86,6 +86,67 @@ jobs:
+           path: apps/frontend/coverage
+           if-no-files-found: error
+ 
++  e2e:
++    needs: [backend, frontend]
++    runs-on: ubuntu-latest
++    timeout-minutes: 20
++    services:
++      mysql:
++        image: mysql:8
++        env:
++          MYSQL_ROOT_PASSWORD: e2e-root-password
++        ports:
++          - 3306:3306
++        options: >-
++          --health-cmd="mysqladmin ping -h localhost -uroot -pe2e-root-password --silent"
++          --health-interval=5s --health-timeout=5s --health-retries=20
++    env:
++      E2E_DATABASE_URL: mysql://root:e2e-root-password@127.0.0.1:3306/buffet_management_e2e
++      E2E_BACKEND_PORT: 3100
++      E2E_FRONTEND_PORT: 5174
++      JWT_ACCESS_SECRET: ci-only-e2e-access-secret
++    steps:
++      - name: Checkout
++        uses: actions/checkout@v4
++
++      - name: Setup Node.js
++        uses: actions/setup-node@v4
++        with:
++          node-version: 24.x
++          cache: npm
++          cache-dependency-path: |
++            apps/backend/package-lock.json
++            apps/frontend/package-lock.json
++            apps/e2e/package-lock.json
++
++      - name: Install dependencies
++        run: |
++          npm ci --prefix apps/backend
++          npm ci --prefix apps/frontend
++          npm ci --prefix apps/e2e
++
++      - name: Install Playwright browser
++        working-directory: apps/e2e
++        run: npx playwright install --with-deps chromium
++
++      - name: Typecheck E2E suite
++        working-directory: apps/e2e
++        run: npm run typecheck
++
++      - name: Run E2E journey
++        working-directory: apps/e2e
++        run: npm test
++
++      - name: Upload Playwright report
++        if: always()
++        uses: actions/upload-artifact@v4
++        with:
++          name: playwright-report
++          path: |
++            apps/e2e/playwright-report
++            apps/e2e/test-results
++          if-no-files-found: ignore
++
+   sonar:
+     needs: [backend, frontend]
+     runs-on: ubuntu-latest
+diff --git a/apps/e2e/.env.e2e.example b/apps/e2e/.env.e2e.example
+new file mode 100644
+index 0000000..d3fc6b0
+--- /dev/null
++++ b/apps/e2e/.env.e2e.example
+@@ -0,0 +1,8 @@
++# Banco EXCLUSIVO dos testes E2E. Ele é apagado e recriado a cada execução.
++# Por segurança, o nome do banco precisa conter "e2e" (veja support/env.ts).
++# O usuário precisa de permissão para criar/apagar o banco (ex.: root no MySQL local).
++E2E_DATABASE_URL=mysql://root:change-this-root-password@localhost:3306/buffet_management_e2e
++
++# Portas dedicadas para não reaproveitar o backend/frontend de desenvolvimento por engano.
++E2E_BACKEND_PORT=3100
++E2E_FRONTEND_PORT=5174
+diff --git a/apps/e2e/.gitignore b/apps/e2e/.gitignore
+new file mode 100644
+index 0000000..ef52011
+--- /dev/null
++++ b/apps/e2e/.gitignore
+@@ -0,0 +1,5 @@
++node_modules/
++.env.e2e
++test-results/
++playwright-report/
++blob-report/
+diff --git a/apps/e2e/README.md b/apps/e2e/README.md
+new file mode 100644
+index 0000000..c98b340
+--- /dev/null
++++ b/apps/e2e/README.md
+@@ -0,0 +1,49 @@
++# Testes E2E (Playwright)
++
++Jornada completa do sistema em um navegador real, contra um backend e um banco **dedicados**:
++
++1. Login do administrador
++2. Cadastro de usuário (gestor)
++3. Cadastro de cliente
++4. Cadastro de equipe com colaborador
++5. Criação de regra no motor de regras
++6. Criação do evento e vínculo da equipe
++7. Fluxo alternativo: conflito de agenda (409) e cancelamento de evento
++8. Confirmação do evento → motor de regras gera as tarefas
++9. Tarefa manual e atribuição de equipe às tarefas geradas
++10. Execução: evento iniciado e tarefas concluídas
++11. Conclusão do evento
++12. Dashboard do gestor
++13. Relatórios (eventos, tarefas, desempenho das equipes) e exportação CSV/PDF
++14. Controle de acesso (RBAC) na interface e no backend
++
++Os passos são dependentes (`test.describe.serial`). Erros de JavaScript não tratados na página
++fazem qualquer passo falhar, mesmo que a API tenha respondido corretamente.
++
++## Como funciona o ambiente
++
++- O Playwright sobe o backend na porta `E2E_BACKEND_PORT` (padrão 3100) e o Vite na
++  `E2E_FRONTEND_PORT` (padrão 5174). Nunca reaproveita servidores já abertos.
++- Antes do backend subir, `scripts/start-backend.ts` executa `prisma migrate reset --force` e o seed
++  no banco `E2E_DATABASE_URL`. **Esse banco é apagado a cada execução**; por segurança o nome
++  precisa conter `e2e`.
++- O token de acesso fica em memória no frontend, então a jornada navega pelo menu e não recarrega a
++  página após o login.
++- O limite de login do backend é 5 tentativas a cada 15 min por IP; a jornada usa 4. Como o backend
++  é reiniciado a cada execução, o contador zera entre rodadas.
++
++## Executar localmente
++
++Pré-requisitos: MySQL rodando e dependências instaladas em `apps/backend` e `apps/frontend`.
++
++```bash
++cd apps/e2e
++cp .env.e2e.example .env.e2e   # ajuste usuário/senha do MySQL
++npm install
++npm run install:browsers
++npm test                       # headless
++npm run test:headed            # vendo o navegador
++npm run report                 # relatório HTML com trace das falhas
++```
++
++O usuário do MySQL precisa de permissão para criar e apagar o banco de testes.
+diff --git a/apps/e2e/package-lock.json b/apps/e2e/package-lock.json
+new file mode 100644
+index 0000000..227dba8
+--- /dev/null
++++ b/apps/e2e/package-lock.json
+@@ -0,0 +1,624 @@
++{
++  "name": "e2e",
++  "lockfileVersion": 3,
++  "requires": true,
++  "packages": {
++    "": {
++      "name": "e2e",
++      "devDependencies": {
++        "@playwright/test": "^1.64.1",
++        "@types/node": "^24.10.1",
++        "dotenv": "^17.4.2",
++        "tsx": "^4.23.15",
++        "typescript": "^5.9.3"
++      }
++    },
++    "node_modules/@esbuild/aix-ppc64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.28.2.tgz",
++      "integrity": "sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==",
++      "cpu": [
++        "ppc64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "aix"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/android-arm": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.28.2.tgz",
++      "integrity": "sha512-kXXoiPVVGQcnIYGOeaovwOURpniDBpSq4A03qkQ+BMQqtGG6HYap3xne9C1O1yo4TR3qxlCX5IqqmX6fFo2Lqg==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/android-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.28.2.tgz",
++      "integrity": "sha512-5YfKeeI8qWfBZIX+u2xZC3Zlb3Os/gLS2sbEKM+I4ZOcsWmHS2WLysCcQZDAFRslDUU5Oiq44gf6PYN1vGwG5A==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/android-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.28.2.tgz",
++      "integrity": "sha512-O387ite7SzUyCcy3JQX4P4bLtEA7bLLkx+esve5JHnyYfNTxcVpXZo9jhdB0lTKN44gztELTdU7nS8Nr16Fs1Q==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/darwin-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.28.2.tgz",
++      "integrity": "sha512-n4KqkOQrraxHJcgjM1RvwbigfQKIKJVpM7xp+KsxiyUSrRdIXnt73VhrPAx0fV44hgfmIVKjxMN9J1t5jySVkw==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/darwin-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.28.2.tgz",
++      "integrity": "sha512-uq6suIWYP37qzGddBKPw5QEQPi6HiLGsO7UmkpfyaYNQ3D+rN6w6WfwH+nuqcGXWvawGwxOEroO4YGnFh95azw==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/freebsd-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.2.tgz",
++      "integrity": "sha512-n+I0BTSRIoy+d6RPKnEVwql5UwBJolytvY4mAOIEJorKlqgPII8ix6slVVrfZ5Tnj7glIZvloylbB/EJPMWEXw==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/freebsd-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.28.2.tgz",
++      "integrity": "sha512-78XJTJkvPs0kz2w61301PJjXl4g7q3JqiYMZ/M/yVI73EHBrCRTgkhu9oqG7vPqq+a/yadEW8aD+agKlk5xrmg==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-arm": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.28.2.tgz",
++      "integrity": "sha512-XlDnu2q5yoqems+xay6wSAcg9DDD7K9RLKZEBOMZm3ckNpJBvOX20tSfby8KfrrhINDyv9V2YVZKY/SpoGJI8w==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.28.2.tgz",
++      "integrity": "sha512-pW4AC0P3it8c7do9MVM4p51FzHzdM/TZrerurgRcHJ2WTa1VQ1CIq18xncfpBJw4ojkiZZrKW2yIBWBP92j6Ug==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-ia32": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.28.2.tgz",
++      "integrity": "sha512-CYbnj78HsIeA+DhgUKgFCfvNsTHFhMMrinUrMZpDXJXKN8T3XViTZ/+wtHeVxEWY8ewSzTFN+nRmSwO2tZaLUQ==",
++      "cpu": [
++        "ia32"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-loong64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.28.2.tgz",
++      "integrity": "sha512-buwkd8nsph4R+ajRvw0qM5Hja/TXQow3ptzWO2EbG/cqcIkHloRrdlBtQlshyYGTNFvfkfJ5tpPLVkY4DtsPfQ==",
++      "cpu": [
++        "loong64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-mips64el": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-mips64el/-/linux-mips64el-0.28.2.tgz",
++      "integrity": "sha512-ZVykbDyk7519VwiNb9Lcj9m8XM6v5V9uKPvrEMkkEedVewf+0itkhahp4HDpgERXhwLRpWFypsGbG/J8s0QjJA==",
++      "cpu": [
++        "mips64el"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-ppc64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-ppc64/-/linux-ppc64-0.28.2.tgz",
++      "integrity": "sha512-CAXl+Dtd9UUuJd8pKKdwh6MLm3MUMiqMPmhZ3tTSXPqfyQ3vDl6R5hZdZ/kYojK4ofXtdfSv1tFq8XzWx3heNQ==",
++      "cpu": [
++        "ppc64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-riscv64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-riscv64/-/linux-riscv64-0.28.2.tgz",
++      "integrity": "sha512-GeXCej4IQtU1B+QlDV8W/RRvbzI3O/Stss+/bCXv4lZls5WGRtu2a+3JkA3i4qIUlMXpcHebWpF8AkJhATowuA==",
++      "cpu": [
++        "riscv64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-s390x": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-s390x/-/linux-s390x-0.28.2.tgz",
++      "integrity": "sha512-3H1weTYZPxt/WOhByszQZybS9w5lKzUn1FDMsgEChbHWQwHYQQRfBxgCcZvPhjHfKyJjIievvMmEUawJrdY9Dg==",
++      "cpu": [
++        "s390x"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.28.2.tgz",
++      "integrity": "sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/netbsd-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-arm64/-/netbsd-arm64-0.28.2.tgz",
++      "integrity": "sha512-sSATRjPeDBg3pdgHoQfoYBob11Kk1FGa9lui5RIHZCoCkJa9QKlvl3/vKz2usCmYYjs7ymJR/2Nnsqe+Hjt5nw==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "netbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/netbsd-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-x64/-/netbsd-x64-0.28.2.tgz",
++      "integrity": "sha512-lqnzCV+mM0gIADaKihiCg6ifgfU2L3h5E33rNQBN1Y4MaVGnzryzmvvf7UHxprpQdE8hpqLolJ9Rl+SkIRDpyw==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "netbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/openbsd-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-arm64/-/openbsd-arm64-0.28.2.tgz",
++      "integrity": "sha512-AL2qJILH7lNjrDmCQDvdxMfAUIv8KMNZOvrwAQ8i8//ntL9FflhOyMJ8OZSMBb8/AWXe3/5v5S20y3zCoZWKoQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "openbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/openbsd-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-x64/-/openbsd-x64-0.28.2.tgz",
++      "integrity": "sha512-QtiuPytchRyC4rwUKhexJdQKvDuZ6hWloi3igqPQNUJCS1/v9EiO3UTOXR6A3FoMo4fnAKbWJdqaIwhOzh8qEw==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "openbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/openharmony-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/openharmony-arm64/-/openharmony-arm64-0.28.2.tgz",
++      "integrity": "sha512-WkhYDmpTjLvGlScA1rwjRUmhl4k8oXR3cIbtqWmELgU/dFeHHlEllxDvdWcNJV9rbzCexB5vz8gtNewWLgCT7Q==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "openharmony"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/sunos-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/sunos-x64/-/sunos-x64-0.28.2.tgz",
++      "integrity": "sha512-GPMSkTOtMnv2U2F8gxe4Io6qmVs+YKyp832Etqqxr0hFngmXQ3rzwytelm3GIn7T4VviRUlf3sOgBOiTdvaf7g==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "sunos"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/win32-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-arm64/-/win32-arm64-0.28.2.tgz",
++      "integrity": "sha512-PIhhEkE9uPBleRBrQEJpUn7MBnibZzbGzYWPmY3x+YoVg/95zbjB4CxPPOQ8l5tYYM4mMaCthF8/1DIfBQQyWQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/win32-ia32": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-ia32/-/win32-ia32-0.28.2.tgz",
++      "integrity": "sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA==",
++      "cpu": [
++        "ia32"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/win32-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.28.2.tgz",
++      "integrity": "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@playwright/test": {
++      "version": "1.64.1",
++      "resolved": "https://registry.npmjs.org/@playwright/test/-/test-1.64.1.tgz",
++      "integrity": "sha512-IaYGml/nSOiZWROfPtuIL7neuu9qDOZ3TNvNljUIrhDMxiGTgPjzj/g9p9RxpS2tSepPDRY+UwAaEeiKtUvIAg==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "playwright": "1.64.1"
++      },
++      "bin": {
++        "playwright": "cli.js"
++      },
++      "engines": {
++        "node": ">=20"
++      }
++    },
++    "node_modules/@types/node": {
++      "version": "24.19.2",
++      "resolved": "https://registry.npmjs.org/@types/node/-/node-24.19.2.tgz",
++      "integrity": "sha512-93d49wCWJkCyN87MxLpNN6KXPCwFw7bVUg79mGUV1OS40JGWwVCr8n61DXCSqz7CV6/VfPkb7xec7uP2M+QHWQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "undici-types": ">=7.24.0 <7.24.7"
++      }
++    },
++    "node_modules/dotenv": {
++      "version": "17.4.2",
++      "resolved": "https://registry.npmjs.org/dotenv/-/dotenv-17.4.2.tgz",
++      "integrity": "sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==",
++      "dev": true,
++      "license": "BSD-2-Clause",
++      "engines": {
++        "node": ">=12"
++      },
++      "funding": {
++        "url": "https://dotenvx.com"
++      }
++    },
++    "node_modules/esbuild": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/esbuild/-/esbuild-0.28.2.tgz",
++      "integrity": "sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==",
++      "dev": true,
++      "hasInstallScript": true,
++      "license": "MIT",
++      "bin": {
++        "esbuild": "bin/esbuild"
++      },
++      "engines": {
++        "node": ">=18"
++      },
++      "optionalDependencies": {
++        "@esbuild/aix-ppc64": "0.28.2",
++        "@esbuild/android-arm": "0.28.2",
++        "@esbuild/android-arm64": "0.28.2",
++        "@esbuild/android-x64": "0.28.2",
++        "@esbuild/darwin-arm64": "0.28.2",
++        "@esbuild/darwin-x64": "0.28.2",
++        "@esbuild/freebsd-arm64": "0.28.2",
++        "@esbuild/freebsd-x64": "0.28.2",
++        "@esbuild/linux-arm": "0.28.2",
++        "@esbuild/linux-arm64": "0.28.2",
++        "@esbuild/linux-ia32": "0.28.2",
++        "@esbuild/linux-loong64": "0.28.2",
++        "@esbuild/linux-mips64el": "0.28.2",
++        "@esbuild/linux-ppc64": "0.28.2",
++        "@esbuild/linux-riscv64": "0.28.2",
++        "@esbuild/linux-s390x": "0.28.2",
++        "@esbuild/linux-x64": "0.28.2",
++        "@esbuild/netbsd-arm64": "0.28.2",
++        "@esbuild/netbsd-x64": "0.28.2",
++        "@esbuild/openbsd-arm64": "0.28.2",
++        "@esbuild/openbsd-x64": "0.28.2",
++        "@esbuild/openharmony-arm64": "0.28.2",
++        "@esbuild/sunos-x64": "0.28.2",
++        "@esbuild/win32-arm64": "0.28.2",
++        "@esbuild/win32-ia32": "0.28.2",
++        "@esbuild/win32-x64": "0.28.2"
++      }
++    },
++    "node_modules/fsevents": {
++      "version": "2.3.3",
++      "resolved": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
++      "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
++      "dev": true,
++      "hasInstallScript": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": "^8.16.0 || ^10.6.0 || >=11.0.0"
++      }
++    },
++    "node_modules/playwright": {
++      "version": "1.64.1",
++      "resolved": "https://registry.npmjs.org/playwright/-/playwright-1.64.1.tgz",
++      "integrity": "sha512-HCrVhHr5QQuwYoswEUGTb7gGp522yflbv/ST8nF4sFWGuLjQCt17Q/EubpGGSNKYn1tsTCPZxqHhHCfVURu7UA==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "playwright-core": "1.64.1"
++      },
++      "bin": {
++        "playwright": "cli.js"
++      },
++      "engines": {
++        "node": ">=20"
++      }
++    },
++    "node_modules/playwright-core": {
++      "version": "1.64.1",
++      "resolved": "https://registry.npmjs.org/playwright-core/-/playwright-core-1.64.1.tgz",
++      "integrity": "sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "bin": {
++        "playwright-core": "cli.js"
++      },
++      "engines": {
++        "node": ">=20"
++      }
++    },
++    "node_modules/tsx": {
++      "version": "4.23.15",
++      "resolved": "https://registry.npmjs.org/tsx/-/tsx-4.23.15.tgz",
++      "integrity": "sha512-Yiex1Ovn8z2xPpOWckIiysV1SSyRMY9BkLF++q0yKiDxCqRhosKfMg3janKkiLBwZ5c/YryloKwGZcrEmtwxKw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "esbuild": "~0.28.0"
++      },
++      "bin": {
++        "tsx": "dist/cli.mjs"
++      },
++      "engines": {
++        "node": ">=18.0.0"
++      },
++      "optionalDependencies": {
++        "fsevents": "~2.3.3"
++      }
++    },
++    "node_modules/typescript": {
++      "version": "5.9.3",
++      "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
++      "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "bin": {
++        "tsc": "bin/tsc",
++        "tsserver": "bin/tsserver"
++      },
++      "engines": {
++        "node": ">=14.17"
++      }
++    },
++    "node_modules/undici-types": {
++      "version": "7.24.6",
++      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-7.24.6.tgz",
++      "integrity": "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg==",
++      "dev": true,
++      "license": "MIT"
++    }
++  }
++}
+diff --git a/apps/e2e/package.json b/apps/e2e/package.json
+new file mode 100644
+index 0000000..01df7c9
+--- /dev/null
++++ b/apps/e2e/package.json
+@@ -0,0 +1,20 @@
++{
++  "name": "e2e",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "playwright test",
++    "test:headed": "playwright test --headed",
++    "test:ui": "playwright test --ui",
++    "report": "playwright show-report",
++    "typecheck": "tsc --noEmit",
++    "install:browsers": "playwright install chromium"
++  },
++  "devDependencies": {
++    "@playwright/test": "^1.64.1",
++    "@types/node": "^24.10.1",
++    "dotenv": "^17.4.2",
++    "tsx": "^4.23.15",
++    "typescript": "^5.9.3"
++  }
++}
+diff --git a/apps/e2e/playwright.config.ts b/apps/e2e/playwright.config.ts
+new file mode 100644
+index 0000000..cefc005
+--- /dev/null
++++ b/apps/e2e/playwright.config.ts
+@@ -0,0 +1,43 @@
++import { defineConfig, devices } from '@playwright/test'
++import { FRONTEND_ROOT, e2eEnv } from './support/env'
++
++export default defineConfig({
++  testDir: './tests',
++  // A jornada é uma sequência de passos dependentes sobre o mesmo banco: nada roda em paralelo.
++  fullyParallel: false,
++  workers: 1,
++  // Sem retry: repetir a jornada sobre um banco já alterado mascara falhas (e estoura o limite de login).
++  retries: 0,
++  forbidOnly: Boolean(process.env.CI),
++  timeout: 120_000,
++  expect: { timeout: 10_000 },
++  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list'], ['html', { open: 'never' }]],
++  use: {
++    baseURL: e2eEnv.frontendUrl,
++    locale: 'pt-BR',
++    timezoneId: 'America/Sao_Paulo',
++    trace: 'retain-on-failure',
++    screenshot: 'only-on-failure',
++    video: 'retain-on-failure',
++  },
++  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
++  webServer: [
++    {
++      command: 'npx tsx scripts/start-backend.ts',
++      url: `${e2eEnv.backendUrl}/api/v1/health`,
++      // Nunca reaproveita um servidor já aberto: ele poderia estar ligado ao banco de desenvolvimento.
++      reuseExistingServer: false,
++      timeout: 180_000,
++      stdout: 'pipe',
++      stderr: 'pipe',
++    },
++    {
++      command: `npx vite --port ${e2eEnv.frontendPort} --strictPort`,
++      cwd: FRONTEND_ROOT,
++      url: e2eEnv.frontendUrl,
++      reuseExistingServer: false,
++      timeout: 120_000,
++      env: { VITE_PROXY_TARGET: e2eEnv.backendUrl },
++    },
++  ],
++})
+diff --git a/apps/e2e/scripts/start-backend.ts b/apps/e2e/scripts/start-backend.ts
+new file mode 100644
+index 0000000..4aa43c9
+--- /dev/null
++++ b/apps/e2e/scripts/start-backend.ts
+@@ -0,0 +1,27 @@
++// Sobe o backend para os testes E2E: recria o banco de testes do zero, aplica o seed e inicia a API.
++// Executado pelo webServer do Playwright, então o banco é sempre resetado ANTES da API aceitar requisições.
++import { execSync, spawn } from 'node:child_process'
++import { BACKEND_ROOT, e2eEnv } from '../support/env.js'
++
++const env = {
++  ...process.env,
++  DATABASE_URL: e2eEnv.databaseUrl,
++  PORT: String(e2eEnv.backendPort),
++  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET ?? 'e2e-only-access-secret',
++  JWT_ACCESS_TTL: '15m',
++  CORS_ORIGIN: e2eEnv.frontendUrl,
++  LOG_LEVEL: process.env.LOG_LEVEL ?? 'warn',
++  NODE_ENV: 'test',
++}
++
++const run = (command: string) => execSync(command, { cwd: BACKEND_ROOT, env, stdio: 'inherit' })
++
++run('npx prisma migrate reset --force')
++run('npx prisma generate')
++run('npx tsx prisma/seed.ts')
++
++const server = spawn('npx', ['tsx', 'src/server.ts'], { cwd: BACKEND_ROOT, env, stdio: 'inherit', shell: true })
++const stop = () => server.kill()
++process.on('SIGINT', stop)
++process.on('SIGTERM', stop)
++server.on('exit', (code) => process.exit(code ?? 0))
+diff --git a/apps/e2e/support/api.ts b/apps/e2e/support/api.ts
+new file mode 100644
+index 0000000..b0bedc2
+--- /dev/null
++++ b/apps/e2e/support/api.ts
+@@ -0,0 +1,38 @@
++import { expect, request, type APIRequestContext, type APIResponse } from '@playwright/test'
++import { e2eEnv } from './env'
++
++type Credentials = { email: string; password: string }
++
++/**
++ * Cliente HTTP da suíte, usado para preparar dados e verificar regras que a interface não expõe
++ * (ex.: conflito de agenda e RBAC no backend). O que o usuário faz pela tela é testado pela tela.
++ */
++export class ApiClient {
++  private constructor(private readonly context: APIRequestContext) {}
++
++  static async login(credentials: Credentials) {
++    const anonymous = await request.newContext({ baseURL: e2eEnv.backendUrl })
++    const response = await anonymous.post('/api/v1/auth/login', { data: credentials })
++    await expectStatus(response, 200)
++    const { accessToken } = await response.json() as { accessToken: string }
++    await anonymous.dispose()
++    const context = await request.newContext({ baseURL: e2eEnv.backendUrl, extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` } })
++    return new ApiClient(context)
++  }
++
++  get(path: string) { return this.context.get(`/api/v1${path}`) }
++  post(path: string, data?: unknown) { return this.context.post(`/api/v1${path}`, { data }) }
++
++  async json<T>(response: Promise<APIResponse>, status = 200): Promise<T> {
++    const resolved = await response
++    await expectStatus(resolved, status)
++    return await resolved.json() as T
++  }
++
++  dispose() { return this.context.dispose() }
++}
++
++export async function expectStatus(response: APIResponse, status: number) {
++  // Mostra o corpo na falha: sem isso, um 422 vira só "expected 201, received 422".
++  expect(response.status(), `${response.url()} -> ${await response.text()}`).toBe(status)
++}
+diff --git a/apps/e2e/support/data.ts b/apps/e2e/support/data.ts
+new file mode 100644
+index 0000000..5f38271
+--- /dev/null
++++ b/apps/e2e/support/data.ts
+@@ -0,0 +1,19 @@
++import { daysFromNow } from './dates'
++
++// Dados fixos e legíveis: o banco é recriado a cada execução, então não há colisão entre rodadas.
++export const data = {
++  manager: { name: 'Gestora E2E', email: 'gestora.e2e@buffet.local', password: 'Gestora123!', role: 'gestor' },
++  client: { name: 'Mariana Souza', email: 'mariana.souza@example.com', phone: '(47) 99999-0000' },
++  service: 'Buffet completo',
++  kitchenTeam: { name: 'Cozinha Central', specialty: 'Cozinha', collaborator: { name: 'Carlos Lima', position: 'Chef' } },
++  rule: {
++    name: 'Casamento grande',
++    eventType: 'Casamento',
++    minGuests: 100,
++    tasks: [{ title: 'Preparar cardápio', daysBefore: 5 }, { title: 'Montar salão', daysBefore: 2 }],
++    specialty: 'Cozinha',
++  },
++  event: { name: 'Casamento Mariana e João', location: 'Salão Jardim', type: 'Casamento', guests: 150, date: daysFromNow(10) },
++  conflictingEvent: { name: 'Aniversário no mesmo dia', location: 'Salão Azul', guests: 60 },
++  manualTask: { title: 'Confirmar fornecedor de flores' },
++}
+diff --git a/apps/e2e/support/dates.ts b/apps/e2e/support/dates.ts
+new file mode 100644
+index 0000000..6264adc
+--- /dev/null
++++ b/apps/e2e/support/dates.ts
+@@ -0,0 +1,14 @@
++const pad = (value: number) => String(value).padStart(2, '0')
++
++export const daysFromNow = (days: number, hour = 18) => {
++  const date = new Date()
++  date.setDate(date.getDate() + days)
++  date.setHours(hour, 0, 0, 0)
++  return date
++}
++
++/** Valor aceito por <input type="datetime-local"> (horário local). */
++export const toDateTimeLocal = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
++
++/** Valor aceito por <input type="date">. */
++export const toDateInput = (date: Date) => toDateTimeLocal(date).slice(0, 10)
+diff --git a/apps/e2e/support/env.ts b/apps/e2e/support/env.ts
+new file mode 100644
+index 0000000..1a32175
+--- /dev/null
++++ b/apps/e2e/support/env.ts
+@@ -0,0 +1,37 @@
++import { config } from 'dotenv'
++import path from 'node:path'
++import { fileURLToPath } from 'node:url'
++
++export const E2E_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
++export const BACKEND_ROOT = path.resolve(E2E_ROOT, '../backend')
++export const FRONTEND_ROOT = path.resolve(E2E_ROOT, '../frontend')
++
++// Variáveis já definidas (ex.: no CI) têm prioridade sobre o arquivo local.
++config({ path: path.join(E2E_ROOT, '.env.e2e'), quiet: true })
++
++const required = (name: string) => {
++  const value = process.env[name]
++  if (!value) throw new Error(`${name} não configurada. Copie .env.e2e.example para .env.e2e e ajuste os valores.`)
++  return value
++}
++
++const databaseUrl = required('E2E_DATABASE_URL')
++
++// Trava de segurança: a suíte apaga o banco inteiro a cada execução.
++const databaseName = new URL(databaseUrl).pathname.slice(1)
++if (!databaseName.includes('e2e')) {
++  throw new Error(`E2E_DATABASE_URL aponta para "${databaseName}". O nome do banco de testes precisa conter "e2e".`)
++}
++
++const backendPort = Number(process.env.E2E_BACKEND_PORT ?? 3100)
++const frontendPort = Number(process.env.E2E_FRONTEND_PORT ?? 5174)
++
++export const e2eEnv = {
++  databaseUrl,
++  backendPort,
++  frontendPort,
++  backendUrl: `http://localhost:${backendPort}`,
++  frontendUrl: `http://localhost:${frontendPort}`,
++  // Mesmo usuário do seed do backend (apps/backend/prisma/seed.ts).
++  admin: { email: 'admin@buffet.local', password: 'Admin123!' },
++}
+diff --git a/apps/e2e/support/ui.ts b/apps/e2e/support/ui.ts
+new file mode 100644
+index 0000000..9c594b4
+--- /dev/null
++++ b/apps/e2e/support/ui.ts
+@@ -0,0 +1,28 @@
++import { expect, type Locator, type Page } from '@playwright/test'
++
++/**
++ * O token de acesso fica em memória (apps/frontend/src/api/tokenStore.ts): recarregar a página
++ * encerra a sessão. Por isso a jornada navega pelo menu (client-side) e não usa page.goto após o login.
++ */
++export const navigateTo = async (page: Page, menu: string, heading: string) => {
++  await page.getByRole('navigation').getByRole('link', { name: menu, exact: true }).click()
++  await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible()
++}
++
++export const login = async (page: Page, email: string, password: string) => {
++  await page.getByLabel('E-mail').fill(email)
++  await page.getByLabel('Senha').fill(password)
++  await page.getByRole('button', { name: 'Entrar' }).click()
++  await expect(page.getByRole('button', { name: 'Sair' })).toBeVisible()
++}
++
++export const logout = async (page: Page) => {
++  await page.getByRole('button', { name: 'Sair' }).click()
++  await expect(page.getByRole('heading', { name: 'Acesse sua conta' })).toBeVisible()
++}
++
++/** Seleciona uma opção que chega de forma assíncrona (a lista é carregada da API após abrir o formulário). */
++export const selectWhenLoaded = async (select: Locator, optionLabel: string) => {
++  await expect(select.locator('option', { hasText: optionLabel })).toBeAttached()
++  await select.selectOption({ label: optionLabel })
++}
+diff --git a/apps/e2e/tests/jornada-evento.spec.ts b/apps/e2e/tests/jornada-evento.spec.ts
+new file mode 100644
+index 0000000..132bc98
+--- /dev/null
++++ b/apps/e2e/tests/jornada-evento.spec.ts
+@@ -0,0 +1,292 @@
++import { expect, test, type Page } from '@playwright/test'
++import { ApiClient, expectStatus } from '../support/api'
++import { data } from '../support/data'
++import { daysFromNow, toDateInput, toDateTimeLocal } from '../support/dates'
++import { e2eEnv } from '../support/env'
++import { login, logout, navigateTo, selectWhenLoaded } from '../support/ui'
++
++/**
++ * Jornada completa de um evento, do cadastro à análise gerencial, com um único navegador e um
++ * único banco recriado do zero. Cada teste é um passo de negócio e depende do anterior (serial).
++ *
++ * Erros de JavaScript não tratados (a "tela branca") são coletados durante toda a jornada e
++ * verificados ao final de cada passo: o backend pode ter respondido certo e a interface ter quebrado.
++ */
++test.describe.serial('Jornada do evento: cadastro → regras → confirmação → execução → conclusão → relatórios', () => {
++  let page: Page
++  let admin: ApiClient
++  const pageErrors: string[] = []
++
++  const eventRow = (name: string) => page.getByRole('button', { name: `Visualizar ${name}` })
++  const openEventHub = async (name: string) => {
++    await navigateTo(page, 'Eventos', 'Eventos')
++    await eventRow(name).click()
++    await expect(page.getByRole('heading', { level: 1, name })).toBeVisible()
++  }
++  const currentStep = () => page.locator('.event-step.current')
++  const findEvent = async (name: string) => {
++    const events = await admin.json<Array<{ id: string; name: string; status: string }>>(admin.get('/events'))
++    const event = events.find((item) => item.name === name)
++    expect(event, `evento "${name}" não encontrado na API`).toBeDefined()
++    return event!
++  }
++
++  test.beforeAll(async ({ browser }) => {
++    admin = await ApiClient.login(e2eEnv.admin)
++    // O catálogo de serviços não faz parte do seed; é um dado de referência pré-existente na operação.
++    const services = await admin.json<Array<{ name: string }>>(admin.get('/services'))
++    if (!services.some((service) => service.name === data.service)) await admin.json(admin.post('/services', { name: data.service }), 201)
++
++    page = await browser.newPage()
++    page.on('pageerror', (error) => pageErrors.push(error.message))
++    await page.goto('/login')
++  })
++
++  test.afterEach(() => {
++    expect(pageErrors, 'erros de JavaScript não tratados na interface').toEqual([])
++  })
++
++  test.afterAll(async () => {
++    await page?.close()
++    await admin?.dispose()
++  })
++
++  test('1. administrador acessa o sistema', async () => {
++    await login(page, e2eEnv.admin.email, e2eEnv.admin.password)
++    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible()
++  })
++
++  test('2. cadastro de usuário com papel de gestor', async () => {
++    await navigateTo(page, 'Usuários', 'Usuários')
++    await page.getByRole('button', { name: 'Novo usuário' }).click()
++    const dialog = page.getByRole('dialog', { name: 'Novo usuário' })
++    await dialog.getByLabel('Nome').fill(data.manager.name)
++    await dialog.getByLabel('E-mail').fill(data.manager.email)
++    await selectWhenLoaded(dialog.getByLabel('Papel'), data.manager.role)
++    await dialog.getByLabel('Senha inicial').fill(data.manager.password)
++    await dialog.getByRole('button', { name: 'Criar usuário' }).click()
++    await expect(dialog).toBeHidden()
++    await expect(page.getByText(data.manager.email).first()).toBeVisible()
++  })
++
++  test('3. cadastro de cliente', async () => {
++    await navigateTo(page, 'Clientes', 'Clientes')
++    await page.getByRole('button', { name: 'Novo cliente' }).click()
++    const dialog = page.getByRole('dialog', { name: 'Novo cliente' })
++    await dialog.getByLabel('Nome', { exact: true }).fill(data.client.name)
++    await dialog.getByLabel('E-mail').fill(data.client.email)
++    await dialog.getByLabel('Telefone').fill(data.client.phone)
++    await dialog.getByRole('button', { name: 'Salvar' }).click()
++    await expect(dialog).toBeHidden()
++    await expect(page.getByText(data.client.name).first()).toBeVisible()
++  })
++
++  test('4. cadastro de equipe com novo colaborador', async () => {
++    const { kitchenTeam } = data
++    await navigateTo(page, 'Equipes', 'Equipes')
++    await page.getByRole('button', { name: 'Nova equipe' }).click()
++    const dialog = page.getByRole('dialog', { name: 'Nova equipe' })
++    await dialog.getByLabel('Nome da equipe').fill(kitchenTeam.name)
++    await dialog.getByLabel('Especialidade').selectOption({ label: kitchenTeam.specialty })
++
++    await dialog.getByRole('button', { name: '+ Novo colaborador' }).click()
++    const collaboratorDialog = page.getByRole('dialog', { name: 'Novo colaborador' })
++    await collaboratorDialog.getByLabel('Nome', { exact: true }).fill(kitchenTeam.collaborator.name)
++    await collaboratorDialog.getByLabel('Função').fill(kitchenTeam.collaborator.position)
++    await collaboratorDialog.getByRole('button', { name: 'Salvar' }).click()
++    await expect(collaboratorDialog).toBeHidden()
++    // O colaborador recém-criado já entra selecionado como membro.
++    await expect(dialog.getByRole('checkbox', { name: kitchenTeam.collaborator.name })).toBeChecked()
++
++    await dialog.getByRole('button', { name: 'Salvar' }).click()
++    await expect(dialog).toBeHidden()
++    await expect(page.getByText(kitchenTeam.name, { exact: true }).first()).toBeVisible()
++  })
++
++  test('5. criação de regra no motor de regras', async () => {
++    const { rule } = data
++    await navigateTo(page, 'Regras', 'Regras')
++    await page.getByRole('button', { name: 'Nova regra' }).click()
++    const dialog = page.getByRole('dialog', { name: 'Nova regra' })
++    await dialog.getByLabel('Nome da regra').fill(rule.name)
++    await dialog.getByRole('checkbox', { name: rule.eventType, exact: true }).check()
++    await dialog.getByLabel('Mínimo de convidados').fill(String(rule.minGuests))
++    for (const [index, task] of rule.tasks.entries()) {
++      await dialog.getByRole('button', { name: '+ Adicionar tarefa' }).click()
++      await dialog.getByLabel(`Título da tarefa ${index + 1}`).fill(task.title)
++      await dialog.getByLabel(`Dias antes do evento ${index + 1}`).fill(String(task.daysBefore))
++    }
++    await dialog.getByRole('button', { name: '+ Adicionar recurso' }).click()
++    await dialog.getByLabel('Especialidade 1').selectOption({ label: rule.specialty })
++    await dialog.getByRole('button', { name: 'Salvar' }).click()
++    await expect(dialog).toBeHidden()
++    await expect(page.getByText(rule.name, { exact: true }).first()).toBeVisible()
++  })
++
++  test('6. criação do evento e vínculo da equipe', async () => {
++    const { event } = data
++    await navigateTo(page, 'Eventos', 'Eventos')
++    await page.getByRole('button', { name: 'Novo Evento' }).click()
++    const dialog = page.getByRole('dialog', { name: 'Novo Evento' })
++    await selectWhenLoaded(dialog.getByLabel('Cliente'), data.client.name)
++    await dialog.getByLabel('Nome do evento').fill(event.name)
++    await dialog.getByLabel('Data do evento').fill(toDateTimeLocal(event.date))
++    await dialog.getByLabel('Local').fill(event.location)
++    await dialog.getByLabel('Tipo de serviço').selectOption({ label: event.type })
++    await dialog.getByLabel('Número de convidados').fill(String(event.guests))
++    await dialog.getByRole('checkbox', { name: data.service }).check()
++    await dialog.getByRole('button', { name: 'Salvar' }).click()
++    await expect(dialog).toBeHidden()
++    await expect(eventRow(event.name)).toBeVisible()
++
++    // Equipes só podem ser vinculadas a um evento já existente (formulário de edição).
++    await page.getByRole('button', { name: `Editar ${event.name}` }).click()
++    const editDialog = page.getByRole('dialog', { name: 'Editar evento' })
++    await selectWhenLoaded(editDialog.getByLabel('Equipe para adicionar'), data.kitchenTeam.name)
++    await editDialog.getByRole('button', { name: 'Vincular equipe' }).click()
++    await expect(editDialog.getByRole('button', { name: 'Desvincular' })).toBeVisible()
++    await editDialog.getByRole('button', { name: 'Cancelar' }).click()
++    await expect(editDialog).toBeHidden()
++
++    await openEventHub(event.name)
++    await expect(page.locator('#event-teams').getByText(data.kitchenTeam.name)).toBeVisible()
++    await expect(page.locator('.event-details-side').getByText(data.client.name)).toBeVisible()
++    // Antes da confirmação o motor apenas mostra quais regras combinam com o evento.
++    await expect(page.getByRole('heading', { name: 'Motor de regras' })).toBeVisible()
++    await expect(page.locator('.event-details-side').getByText(data.rule.name)).toBeVisible()
++  })
++
++  test('7. fluxo alternativo: conflito de agenda da equipe e cancelamento de evento', async () => {
++    const { conflictingEvent } = data
++    const clients = await admin.json<Array<{ id: string; name: string }>>(admin.get('/clients'))
++    const client = clients.find((item) => item.name === data.client.name)!
++    const created = await admin.json<{ id: string }>(admin.post('/events', {
++      name: conflictingEvent.name, eventDate: data.event.date.toISOString(), endDate: null, location: conflictingEvent.location,
++      serviceType: 'ANIVERSARIO', guestsCount: conflictingEvent.guests, observations: null, clientId: client.id,
++    }), 201)
++    const teams = await admin.json<Array<{ id: string; name: string }>>(admin.get('/teams'))
++    const team = teams.find((item) => item.name === data.kitchenTeam.name)!
++
++    // Regra de negócio: a mesma equipe não pode atender dois eventos no mesmo horário.
++    await expectStatus(await admin.post(`/teams/${team.id}/events/${created.id}`), 409)
++
++    await openEventHub(conflictingEvent.name)
++    await page.getByRole('button', { name: 'Mais ações' }).click()
++    await page.getByRole('button', { name: 'Cancelar evento' }).click()
++    await page.getByRole('button', { name: 'Confirmar cancelamento' }).click()
++    await expect(page.getByRole('button', { name: 'Confirmar', exact: true })).toBeHidden()
++    await expect.poll(async () => (await findEvent(conflictingEvent.name)).status).toBe('CANCELADO')
++  })
++
++  test('8. confirmação do evento aplica as regras e gera as tarefas', async () => {
++    await openEventHub(data.event.name)
++    await page.getByRole('button', { name: 'Confirmar', exact: true }).click()
++
++    // A Central deve continuar na tela (sem precisar sair e entrar) já refletindo o motor de regras.
++    await expect(page.getByRole('heading', { level: 1, name: data.event.name })).toBeVisible()
++    await expect(currentStep()).toContainText('Confirmado')
++    await expect(page.getByRole('heading', { name: 'Regras aplicadas' })).toBeVisible()
++    await expect(page.locator('.event-details-side').getByText(data.rule.name)).toBeVisible()
++    for (const task of data.rule.tasks) await expect(page.getByText(task.title, { exact: true })).toBeVisible()
++    // Tarefas geradas pela regra ainda não têm equipe: a Central alerta o gestor.
++    await expect(page.getByRole('alert').filter({ hasText: 'Há tarefas sem equipe alocada' })).toBeVisible()
++  })
++
++  test('9. tarefa manual e atribuição de equipe às tarefas geradas', async () => {
++    const teamName = data.kitchenTeam.name
++    await navigateTo(page, 'Tarefas', 'Tarefas')
++
++    await page.getByRole('button', { name: 'Nova tarefa' }).click()
++    const dialog = page.getByRole('dialog', { name: 'Nova tarefa' })
++    await selectWhenLoaded(dialog.getByLabel('Evento'), data.event.name)
++    await dialog.getByLabel('Título').fill(data.manualTask.title)
++    await selectWhenLoaded(dialog.getByLabel('Equipe'), teamName)
++    await dialog.getByRole('button', { name: 'Salvar' }).click()
++    await expect(dialog).toBeHidden()
++    await expect(page.getByRole('region', { name: 'Pendente' }).getByText(data.manualTask.title)).toBeVisible()
++
++    for (const task of data.rule.tasks) {
++      await page.getByRole('button', { name: `Atribuir equipe a ${task.title}` }).click()
++      const editDialog = page.getByRole('dialog', { name: 'Editar tarefa' })
++      await selectWhenLoaded(editDialog.getByLabel('Equipe'), teamName)
++      await editDialog.getByRole('button', { name: 'Salvar' }).click()
++      await expect(editDialog).toBeHidden()
++      await expect(page.getByRole('button', { name: `Atribuir equipe a ${task.title}` })).toBeHidden()
++    }
++  })
++
++  test('10. execução: evento iniciado e tarefas concluídas', async () => {
++    await openEventHub(data.event.name)
++    await page.getByRole('button', { name: 'Iniciar evento' }).click()
++    await expect(currentStep()).toContainText('Em andamento')
++
++    await navigateTo(page, 'Tarefas', 'Tarefas')
++    const titles = [...data.rule.tasks.map((task) => task.title), data.manualTask.title]
++    for (const title of titles) {
++      await page.getByLabel(`Mover ${title}`).selectOption({ label: 'Em andamento' })
++      await expect(page.getByRole('region', { name: 'Em andamento' }).getByText(title)).toBeVisible()
++      await page.getByLabel(`Mover ${title}`).selectOption({ label: 'Concluída' })
++      await expect(page.getByRole('region', { name: 'Concluída' }).getByText(title)).toBeVisible()
++    }
++  })
++
++  test('11. conclusão do evento', async () => {
++    await openEventHub(data.event.name)
++    await expect(page.getByText('3 de 3')).toBeVisible()
++    await page.getByRole('button', { name: 'Concluir', exact: true }).click()
++    await expect(currentStep()).toContainText('Concluído')
++    await expect(page.getByRole('button', { name: 'Concluir', exact: true })).toBeHidden()
++    await expect.poll(async () => (await findEvent(data.event.name)).status).toBe('CONCLUIDO')
++  })
++
++  test('12. dashboard do gestor', async () => {
++    await navigateTo(page, 'Dashboard', 'Dashboard')
++    await expect(page.getByRole('heading', { name: 'Tarefas por Status' })).toBeVisible()
++    await expect(page.getByRole('heading', { name: 'Atividades recentes' })).toBeVisible()
++    await expect(page.getByRole('alert')).toHaveCount(0)
++  })
++
++  test('13. relatórios gerenciais e exportações', async () => {
++    await navigateTo(page, 'Relatórios', 'Relatórios')
++    const period = page.getByRole('region', { name: 'Período' })
++    await period.getByLabel('Data inicial').fill(toDateInput(daysFromNow(-1)))
++    await period.getByLabel('Data final').fill(toDateInput(daysFromNow(30)))
++    const panel = page.getByRole('tabpanel')
++
++    await page.getByRole('tab', { name: 'Eventos' }).click()
++    await expect(panel.getByText(data.event.name)).toBeVisible()
++    await expect(panel.getByText(data.conflictingEvent.name)).toBeVisible()
++    for (const [label, extension] of [['Exportar CSV', '.csv'], ['Exportar PDF', '.pdf']] as const) {
++      const download = page.waitForEvent('download')
++      await panel.getByRole('button', { name: label }).click()
++      expect((await download).suggestedFilename()).toMatch(new RegExp(`\\${extension}$`))
++    }
++
++    await page.getByRole('tab', { name: 'Tarefas' }).click()
++    await expect(panel.getByText('Tarefas por status')).toBeVisible()
++    await expect(panel.getByRole('alert')).toHaveCount(0)
++
++    await page.getByRole('tab', { name: 'Desempenho das equipes' }).click()
++    await expect(panel.getByText('Tarefas por equipe')).toBeVisible()
++    await expect(panel.getByText(data.kitchenTeam.name).first()).toBeVisible()
++    await expect(panel.getByRole('alert')).toHaveCount(0)
++  })
++
++  test('14. controle de acesso: gestor vê apenas o que seu papel permite', async () => {
++    await logout(page)
++    await login(page, data.manager.email, data.manager.password)
++    const menu = page.getByRole('navigation')
++    await expect(menu.getByRole('link', { name: 'Usuários', exact: true })).toBeVisible()
++    await expect(menu.getByRole('link', { name: 'Clientes', exact: true })).toBeVisible()
++    for (const hidden of ['Eventos', 'Tarefas', 'Regras', 'Relatórios', 'Dashboard']) {
++      await expect(menu.getByRole('link', { name: hidden, exact: true })).toHaveCount(0)
++    }
++
++    // A tela esconder o menu não basta: o backend precisa recusar a operação.
++    const manager = await ApiClient.login({ email: data.manager.email, password: data.manager.password })
++    await expectStatus(await manager.get('/events'), 403)
++    await expectStatus(await manager.post('/rules', { name: 'Regra indevida' }), 403)
++    await expectStatus(await manager.get('/clients'), 200)
++    await manager.dispose()
++  })
++})
+diff --git a/apps/e2e/tsconfig.json b/apps/e2e/tsconfig.json
+new file mode 100644
+index 0000000..b0b83c4
+--- /dev/null
++++ b/apps/e2e/tsconfig.json
+@@ -0,0 +1,12 @@
++{
++  "compilerOptions": {
++    "target": "ES2022",
++    "module": "ESNext",
++    "moduleResolution": "Bundler",
++    "strict": true,
++    "noEmit": true,
++    "skipLibCheck": true,
++    "types": ["node"]
++  },
++  "include": ["playwright.config.ts", "scripts", "support", "tests"]
++}
+diff --git a/apps/frontend/vite.config.ts b/apps/frontend/vite.config.ts
+index e9d4c55..e3858a6 100644
+--- a/apps/frontend/vite.config.ts
++++ b/apps/frontend/vite.config.ts
+@@ -4,5 +4,6 @@ import react from '@vitejs/plugin-react'
+ // https://vite.dev/config/
+ export default defineConfig({
+   plugins: [react()],
+-  server: { proxy: { '/api': 'http://localhost:3000' } },
++  // VITE_PROXY_TARGET permite que os testes E2E apontem o proxy para um backend isolado (apps/e2e).
++  server: { proxy: { '/api': process.env.VITE_PROXY_TARGET ?? 'http://localhost:3000' } },
+ })
