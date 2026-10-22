@@ -1,0 +1,84 @@
+diff --git a/apps/e2e/tests/jornada-evento.spec.ts b/apps/e2e/tests/jornada-evento.spec.ts
+index 132bc98..2a217ce 100644
+--- a/apps/e2e/tests/jornada-evento.spec.ts
++++ b/apps/e2e/tests/jornada-evento.spec.ts
+@@ -142,9 +142,11 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação 
+     // Equipes só podem ser vinculadas a um evento já existente (formulário de edição).
+     await page.getByRole('button', { name: `Editar ${event.name}` }).click()
+     const editDialog = page.getByRole('dialog', { name: 'Editar evento' })
++    // A edição precisa mostrar o mesmo horário cadastrado (sem conversão para UTC).
++    await expect(editDialog.getByLabel('Data do evento')).toHaveValue(toDateTimeLocal(event.date))
+     await selectWhenLoaded(editDialog.getByLabel('Equipe para adicionar'), data.kitchenTeam.name)
+     await editDialog.getByRole('button', { name: 'Vincular equipe' }).click()
+-    await expect(editDialog.getByRole('button', { name: 'Desvincular' })).toBeVisible()
++    await expect(editDialog.getByRole('button', { name: `Desvincular ${data.kitchenTeam.name}` })).toBeVisible()
+     await editDialog.getByRole('button', { name: 'Cancelar' }).click()
+     await expect(editDialog).toBeHidden()
+ 
+diff --git a/apps/frontend/src/components/EventForm.test.tsx b/apps/frontend/src/components/EventForm.test.tsx
+index 9dd0c46..958e0a5 100644
+--- a/apps/frontend/src/components/EventForm.test.tsx
++++ b/apps/frontend/src/components/EventForm.test.tsx
+@@ -177,4 +177,34 @@ describe('EventForm', () => {
+ 
+     expect(await screen.findByText('Permissão insuficiente')).toBeInTheDocument()
+   })
+-})
+\ No newline at end of file
++
++  // Regressão encontrada pelo E2E: o campo usava toISOString() (UTC), então um evento das 18h em
++  // Brasília aparecia como 21h na edição e cada "Salvar" adiantava o evento em 3 horas.
++  it('shows the event date in local time and keeps it unchanged when saving', async () => {
++    vi.stubEnv('TZ', 'America/Sao_Paulo')
++    try {
++      vi.mocked(listServices).mockResolvedValue([])
++      vi.mocked(updateEvent).mockResolvedValue(makeEvent())
++      render(<EventForm event={makeEvent({ eventDate: '2026-11-01T21:00:00.000Z' })} onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
++
++      expect(await screen.findByLabelText('Data do evento')).toHaveValue('2026-11-01T18:00')
++      await screen.findByRole('option', { name: 'Ana Souza' })
++      fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
++
++      await waitFor(() => expect(updateEvent).toHaveBeenCalledWith('event-1', expect.objectContaining({ eventDate: '2026-11-01T21:00:00.000Z' })))
++    } finally {
++      vi.unstubAllEnvs()
++    }
++  })
++
++  // Regressão encontrada pelo E2E: o botão ficava dentro de um <label> com o nome da equipe, então
++  // leitores de tela anunciavam "Cozinha Central, botão" em vez da ação.
++  it('names the unlink action after the team it removes', async () => {
++    vi.mocked(listServices).mockResolvedValue([])
++    vi.mocked(listTeams).mockResolvedValue([{ id: 'team-1', name: 'Equipe Salao A', specialty: 'SALAO', status: 'ATIVA', observations: null, createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, members: [], events: [] }])
++    vi.mocked(listTeamsByEvent).mockResolvedValue([{ eventId: 'event-1', teamId: 'team-1', assignedAt: '', assignedById: 'actor' }])
++    render(<EventForm event={makeEvent()} onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
++
++    expect(await screen.findByRole('button', { name: 'Desvincular Equipe Salao A' })).toBeInTheDocument()
++  })
++})
+diff --git a/apps/frontend/src/components/EventForm.tsx b/apps/frontend/src/components/EventForm.tsx
+index cf729c2..c4526f4 100644
+--- a/apps/frontend/src/components/EventForm.tsx
++++ b/apps/frontend/src/components/EventForm.tsx
+@@ -12,7 +12,13 @@ import type { Client } from '../types/client'
+ 
+ type EventFormProps = { event?: Event; onClose: () => void; onCreated: (event: Event) => void; onUpdated: (event: Event) => void }
+ const eventTypes: Array<[EventType, string]> = [['CASAMENTO', 'Casamento'], ['ANIVERSARIO', 'Aniversário'], ['FORMATURA', 'Formatura'], ['CORPORATIVO', 'Corporativo'], ['CONFRATERNIZACAO', 'Confraternização'], ['BATIZADO', 'Batizado'], ['OUTRO', 'Outro']]
+-const toDateInput = (value?: string) => value ? new Date(value).toISOString().slice(0, 16) : ''
++const pad = (value: number) => String(value).padStart(2, '0')
++// <input type="datetime-local"> trabalha no horário local; toISOString() devolveria UTC e deslocaria o evento.
++const toDateInput = (value?: string) => {
++  if (!value) return ''
++  const date = new Date(value)
++  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
++}
+ export function EventForm({ event, onClose, onCreated, onUpdated }: EventFormProps) {
+   const [name, setName] = useState(event?.name ?? '')
+   const [eventDate, setEventDate] = useState(toDateInput(event?.eventDate))
+@@ -82,5 +88,5 @@ export function EventForm({ event, onClose, onCreated, onUpdated }: EventFormPro
+     } catch (cause) { setError(getApiErrorMessage(cause, 'Não foi possível salvar o evento')) } finally { setLoading(false) }
+   }
+ 
+-  return <aside className="user-form-panel event-form-panel" role="dialog" aria-modal="true" aria-labelledby="event-form-title"><div className="form-wrap"><button type="button" className="link-button" onClick={onClose}>Voltar</button><h2 id="event-form-title">{event ? 'Editar evento' : 'Novo Evento'}</h2><form onSubmit={submit}><div className="event-form-grid"><section><h3>Informações principais</h3><label>Cliente<select aria-label="Cliente" value={clientId} onChange={(e) => setClientId(e.target.value)}><option value="">Selecione o cliente</option>{linkedInactiveClient && <option value={linkedInactiveClient.id}>{linkedInactiveClient.name} (inativo)</option>}{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</select></label><label>Nome do evento<input aria-label="Nome do evento" value={name} onChange={(e) => setName(e.target.value)} /></label><label>Data do evento<input aria-label="Data do evento" type="datetime-local" value={eventDate} onChange={(e) => setEventDate(e.target.value)} /></label><label>Local<input aria-label="Local" value={location} onChange={(e) => setLocation(e.target.value)} /></label><label>Tipo de serviço<select aria-label="Tipo de serviço" value={serviceType} onChange={(e) => setServiceType(e.target.value as EventType)}><option value="">Selecione</option>{eventTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>Número de convidados<input aria-label="Número de convidados" type="number" min="1" value={guestsCount} onChange={(e) => setGuestsCount(e.target.value)} /></label><label>Observações<textarea aria-label="Observações" value={observations} onChange={(e) => setObservations(e.target.value)} /></label></section><section><h3>Serviços contratados</h3><div className="service-checks">{services.map((service) => <label key={service.id}><span><input type="checkbox" aria-label={service.name} checked={selected[service.id] !== undefined} onChange={() => toggleService(service)} /> {service.name}</span>{service.isCustom && selected[service.id] !== undefined && <input aria-label="Especifique..." placeholder="Especifique..." value={selected[service.id]} onChange={(e) => setSelected((current) => ({ ...current, [service.id]: e.target.value }))} />}</label>)}</div></section></div>{event && <section><h3>Equipes designadas</h3><div className="content-head"><select aria-label="Equipe para adicionar" value={teamToAssign} onChange={(e) => setTeamToAssign(e.target.value)}><option value="">Selecione uma equipe ativa</option>{availableTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select><Button type="button" className="secondary" onClick={() => void assignTeam()} disabled={!teamToAssign}>Vincular equipe</Button></div><div className="service-checks">{assignedTeams.map((team) => <label key={team.id}><span>{team.name}</span><Button type="button" className="ghost" onClick={() => void unassignTeam(team)}>Desvincular</Button></label>)}</div>{assignedTeams.length === 0 && <p>Nenhuma equipe designada.</p>}</section>}{error && <Notice message={error} error />}<div className="form-actions"><Button type="button" className="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" className="primary" disabled={loading}>{loading ? 'Salvando...' : 'Salvar'}</Button></div></form></div></aside>
++  return <aside className="user-form-panel event-form-panel" role="dialog" aria-modal="true" aria-labelledby="event-form-title"><div className="form-wrap"><button type="button" className="link-button" onClick={onClose}>Voltar</button><h2 id="event-form-title">{event ? 'Editar evento' : 'Novo Evento'}</h2><form onSubmit={submit}><div className="event-form-grid"><section><h3>Informações principais</h3><label>Cliente<select aria-label="Cliente" value={clientId} onChange={(e) => setClientId(e.target.value)}><option value="">Selecione o cliente</option>{linkedInactiveClient && <option value={linkedInactiveClient.id}>{linkedInactiveClient.name} (inativo)</option>}{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</select></label><label>Nome do evento<input aria-label="Nome do evento" value={name} onChange={(e) => setName(e.target.value)} /></label><label>Data do evento<input aria-label="Data do evento" type="datetime-local" value={eventDate} onChange={(e) => setEventDate(e.target.value)} /></label><label>Local<input aria-label="Local" value={location} onChange={(e) => setLocation(e.target.value)} /></label><label>Tipo de serviço<select aria-label="Tipo de serviço" value={serviceType} onChange={(e) => setServiceType(e.target.value as EventType)}><option value="">Selecione</option>{eventTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>Número de convidados<input aria-label="Número de convidados" type="number" min="1" value={guestsCount} onChange={(e) => setGuestsCount(e.target.value)} /></label><label>Observações<textarea aria-label="Observações" value={observations} onChange={(e) => setObservations(e.target.value)} /></label></section><section><h3>Serviços contratados</h3><div className="service-checks">{services.map((service) => <label key={service.id}><span><input type="checkbox" aria-label={service.name} checked={selected[service.id] !== undefined} onChange={() => toggleService(service)} /> {service.name}</span>{service.isCustom && selected[service.id] !== undefined && <input aria-label="Especifique..." placeholder="Especifique..." value={selected[service.id]} onChange={(e) => setSelected((current) => ({ ...current, [service.id]: e.target.value }))} />}</label>)}</div></section></div>{event && <section><h3>Equipes designadas</h3><div className="content-head"><select aria-label="Equipe para adicionar" value={teamToAssign} onChange={(e) => setTeamToAssign(e.target.value)}><option value="">Selecione uma equipe ativa</option>{availableTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select><Button type="button" className="secondary" onClick={() => void assignTeam()} disabled={!teamToAssign}>Vincular equipe</Button></div><div className="service-checks">{assignedTeams.map((team) => <label key={team.id}><span>{team.name}</span><Button type="button" className="ghost" aria-label={`Desvincular ${team.name}`} onClick={() => void unassignTeam(team)}>Desvincular</Button></label>)}</div>{assignedTeams.length === 0 && <p>Nenhuma equipe designada.</p>}</section>}{error && <Notice message={error} error />}<div className="form-actions"><Button type="button" className="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" className="primary" disabled={loading}>{loading ? 'Salvando...' : 'Salvar'}</Button></div></form></div></aside>
+ }

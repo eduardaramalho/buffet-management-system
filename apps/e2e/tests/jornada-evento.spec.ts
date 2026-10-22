@@ -142,9 +142,11 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     // Equipes só podem ser vinculadas a um evento já existente (formulário de edição).
     await page.getByRole('button', { name: `Editar ${event.name}` }).click()
     const editDialog = page.getByRole('dialog', { name: 'Editar evento' })
+    // A edição precisa mostrar o mesmo horário cadastrado (sem conversão para UTC).
+    await expect(editDialog.getByLabel('Data do evento')).toHaveValue(toDateTimeLocal(event.date))
     await selectWhenLoaded(editDialog.getByLabel('Equipe para adicionar'), data.kitchenTeam.name)
     await editDialog.getByRole('button', { name: 'Vincular equipe' }).click()
-    await expect(editDialog.getByRole('button', { name: 'Desvincular' })).toBeVisible()
+    await expect(editDialog.getByRole('button', { name: `Desvincular ${data.kitchenTeam.name}` })).toBeVisible()
     await editDialog.getByRole('button', { name: 'Cancelar' }).click()
     await expect(editDialog).toBeHidden()
 

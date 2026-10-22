@@ -177,4 +177,34 @@ describe('EventForm', () => {
 
     expect(await screen.findByText('Permissão insuficiente')).toBeInTheDocument()
   })
+
+  // Regressão encontrada pelo E2E: o campo usava toISOString() (UTC), então um evento das 18h em
+  // Brasília aparecia como 21h na edição e cada "Salvar" adiantava o evento em 3 horas.
+  it('shows the event date in local time and keeps it unchanged when saving', async () => {
+    vi.stubEnv('TZ', 'America/Sao_Paulo')
+    try {
+      vi.mocked(listServices).mockResolvedValue([])
+      vi.mocked(updateEvent).mockResolvedValue(makeEvent())
+      render(<EventForm event={makeEvent({ eventDate: '2026-11-01T21:00:00.000Z' })} onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
+
+      expect(await screen.findByLabelText('Data do evento')).toHaveValue('2026-11-01T18:00')
+      await screen.findByRole('option', { name: 'Ana Souza' })
+      fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+
+      await waitFor(() => expect(updateEvent).toHaveBeenCalledWith('event-1', expect.objectContaining({ eventDate: '2026-11-01T21:00:00.000Z' })))
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  // Regressão encontrada pelo E2E: o botão ficava dentro de um <label> com o nome da equipe, então
+  // leitores de tela anunciavam "Cozinha Central, botão" em vez da ação.
+  it('names the unlink action after the team it removes', async () => {
+    vi.mocked(listServices).mockResolvedValue([])
+    vi.mocked(listTeams).mockResolvedValue([{ id: 'team-1', name: 'Equipe Salao A', specialty: 'SALAO', status: 'ATIVA', observations: null, createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, members: [], events: [] }])
+    vi.mocked(listTeamsByEvent).mockResolvedValue([{ eventId: 'event-1', teamId: 'team-1', assignedAt: '', assignedById: 'actor' }])
+    render(<EventForm event={makeEvent()} onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
+
+    expect(await screen.findByRole('button', { name: 'Desvincular Equipe Salao A' })).toBeInTheDocument()
+  })
 })
