@@ -176,7 +176,7 @@ jobs:
           sed -i 's#^SF:src/#SF:apps/frontend/src/#' apps/frontend/coverage/lcov.info
 
       - name: SonarQube Cloud analysis
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
