@@ -5,8 +5,9 @@ import { EventDetailsPage } from './EventDetailsPage'
 import { getEvent, getEventHistory, updateEvent } from '../api/eventsApi'
 import { listTasks } from '../api/tasksApi'
 import { listTeams, listTeamsByEvent } from '../api/teamsApi'
-import { applyEventRules, listEventRuleApplications } from '../api/rulesApi'
+import { applyEventRules, getEventRuleMatches, listEventRuleApplications } from '../api/rulesApi'
 import type { Event } from '../types/event'
+import type { MatchedRule } from '../types/rule'
 
 vi.mock('../api/eventsApi', () => ({ getEvent: vi.fn(), getEventHistory: vi.fn(), updateEvent: vi.fn() }))
 vi.mock('../api/tasksApi', () => ({ listTasks: vi.fn() }))
@@ -19,6 +20,19 @@ const event = (status: Event['status'] = 'CONFIRMADO'): Event => ({
   observations: null, status, createdById: 'user', createdAt: '', updatedAt: '', deletedAt: null, services: [],
   clientId: 'client-1', client: { id: 'client-1', name: 'Ana Souza', email: 'ana@email.com', phone: '47999990000', deletedAt: null },
 })
+const matchedRule: MatchedRule = {
+  rule: {
+    id: 'rule-1', name: 'Casamento grande', description: null, conditionServiceTypeIn: ['CASAMENTO'], conditionMinGuests: 100, conditionMaxGuests: null,
+    conditionRequiredServiceIds: null, isActive: true, createdById: 'user', createdAt: '', updatedAt: '', deletedAt: null, resourceRequirements: [], taskTemplates: [],
+  },
+  resourceRequirements: [{ id: 'req-1', specialty: 'COZINHA', minQuantity: 1 }],
+}
+const mockOtherBlocks = () => {
+  vi.mocked(listTasks).mockResolvedValue([])
+  vi.mocked(listTeamsByEvent).mockResolvedValue([])
+  vi.mocked(listTeams).mockResolvedValue([])
+  vi.mocked(getEventHistory).mockResolvedValue([])
+}
 const renderPage = () => render(<MemoryRouter initialEntries={['/events/event-1']}><Routes><Route path="/events/:id" element={<EventDetailsPage />} /></Routes></MemoryRouter>)
 
 describe('EventDetailsPage', () => {
@@ -118,5 +132,38 @@ describe('EventDetailsPage', () => {
 
     expect(await screen.findByText('Cliente inativo')).toBeInTheDocument()
     expect(screen.getByText('Sem contato cadastrado')).toBeInTheDocument()
+  })
+
+  // Regressão encontrada pelo E2E: loadRules lia o status do evento de um estado ainda não atualizado
+  // (closure), então um evento em planejamento consultava as regras APLICADAS e mostrava "nenhuma regra".
+  it('shows the rules matching an event that is still in planning', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event('PLANEJAMENTO'))
+    mockOtherBlocks()
+    vi.mocked(getEventRuleMatches).mockResolvedValue([matchedRule])
+    vi.mocked(listEventRuleApplications).mockResolvedValue([])
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Motor de regras' })).toBeInTheDocument()
+    expect(await screen.findByText('Casamento grande')).toBeInTheDocument()
+    expect(listEventRuleApplications).not.toHaveBeenCalled()
+  })
+
+  // Regressão da "tela branca": ao confirmar, o painel passava a renderizar regras aplicadas com os
+  // dados de regras combinadas (sem appliedAt) e Intl.DateTimeFormat lançava RangeError.
+  it('confirms an event and shows the applied rules without leaving the page', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event('PLANEJAMENTO'))
+    mockOtherBlocks()
+    vi.mocked(getEventRuleMatches).mockResolvedValue([matchedRule])
+    vi.mocked(listEventRuleApplications).mockResolvedValue([{ ruleId: 'rule-1', ruleName: 'Casamento grande', appliedAt: '2026-10-22T20:00:00.000Z' }])
+    vi.mocked(updateEvent).mockResolvedValue(event('CONFIRMADO'))
+    renderPage()
+    await screen.findByText('Casamento grande')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+
+    expect(await screen.findByRole('heading', { name: 'Regras aplicadas' })).toBeInTheDocument()
+    expect(await screen.findByText(/Aplicada em/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Casamento Ana' })).toBeInTheDocument()
+    expect(updateEvent).toHaveBeenCalledWith('event-1', { status: 'CONFIRMADO' })
   })
 })

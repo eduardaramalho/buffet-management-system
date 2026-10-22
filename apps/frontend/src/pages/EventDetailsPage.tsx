@@ -12,6 +12,7 @@ import { Notice } from '../components/Notice'
 import { RefreshIndicator } from '../components/RefreshIndicator'
 import { usePolling } from '../hooks/usePolling'
 import type { Event, EventStatus } from '../types/event'
+import type { MatchedRule } from '../types/rule'
 import type { Task } from '../types/task'
 import type { Team } from '../types/team'
 
@@ -31,6 +32,9 @@ const formatShortDate = (value: string) => new Intl.DateTimeFormat('pt-BR', { da
 
 type BlockState<T> = { status: 'loading' | 'ready' | 'hidden' | 'error'; data?: T; message?: string }
 const loading = <T,>(): BlockState<T> => ({ status: 'loading' })
+// O painel de regras tem dois conteúdos: as regras que combinam (planejamento) e as aplicadas (após a
+// confirmação). O tipo carrega qual dos dois foi buscado, para a renderização nunca misturar os formatos.
+type RulesView = { kind: 'matches'; items: MatchedRule[] } | { kind: 'applications'; items: RuleApplication[] }
 const isForbidden = (cause: unknown) => (cause as { response?: { status?: number } })?.response?.status === 403
 
 function BlockError({ message, retry }: { message: string; retry: () => void }) {
@@ -45,7 +49,7 @@ export function EventDetailsPage() {
   const [eventState, setEventState] = useState<BlockState<Event>>(loading())
   const [teamsState, setTeamsState] = useState<BlockState<Array<{ team: Team; assignedAt: string }>>>(loading())
   const [tasksState, setTasksState] = useState<BlockState<Task[]>>(loading())
-  const [rulesState, setRulesState] = useState<BlockState<RuleApplication[] | Awaited<ReturnType<typeof getEventRuleMatches>>>>(loading())
+  const [rulesState, setRulesState] = useState<BlockState<RulesView>>(loading())
   const [historyState, setHistoryState] = useState<BlockState<EventHistory[]>>(loading())
   const [menuOpen, setMenuOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
@@ -56,8 +60,11 @@ export function EventDetailsPage() {
 
   const loadEvent = async (silent = false) => {
     if (!silent) setEventState(loading())
-    try { setEventState({ status: 'ready', data: await getEvent(id) }) }
-    catch (cause) { if (silent) throw cause; setEventState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar o evento') }) }
+    try {
+      const data = await getEvent(id)
+      setEventState({ status: 'ready', data })
+      return data
+    } catch (cause) { if (silent) throw cause; setEventState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar o evento') }) }
   }
   const loadTeams = async (silent = false) => {
     if (!silent) setTeamsState(loading())
@@ -72,11 +79,13 @@ export function EventDetailsPage() {
     try { setTasksState({ status: 'ready', data: await listTasks({ eventId: id }) }) }
     catch (cause) { if (silent) throw cause; setTasksState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar tarefas') }) }
   }
-  const loadRules = async (silent = false) => {
+  // Recebe o status explicitamente: ler eventState aqui pegaria o valor de um render anterior (closure).
+  const loadRules = async (eventStatus: EventStatus, silent = false) => {
     if (!silent) setRulesState(loading())
     try {
-      const event = eventState.data
-      const data = event?.status === 'PLANEJAMENTO' ? await getEventRuleMatches(id) : await listEventRuleApplications(id)
+      const data: RulesView = eventStatus === 'PLANEJAMENTO'
+        ? { kind: 'matches', items: await getEventRuleMatches(id) }
+        : { kind: 'applications', items: await listEventRuleApplications(id) }
       setRulesState({ status: 'ready', data })
     } catch (cause) { if (silent) throw cause; setRulesState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar regras') }) }
   }
@@ -86,13 +95,19 @@ export function EventDetailsPage() {
     catch (cause) { if (silent) throw cause; setHistoryState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar histórico') }) }
   }
   const loadAll = async () => {
-    await loadEvent()
-    await Promise.allSettled([loadTeams(), loadTasks(), loadRules(), loadHistory()])
+    const loaded = await loadEvent()
+    if (!loaded) return
+    await Promise.allSettled([loadTeams(), loadTasks(), loadRules(loaded.status), loadHistory()])
   }
 
   useEffect(() => { void loadAll() }, [id])
 
-  const pollAll = () => Promise.all([loadEvent(true), loadTeams(true), loadTasks(true), loadRules(true), loadHistory(true)])
+  const pollAll = async () => {
+    // Em modo silencioso loadEvent lança o erro em vez de retornar vazio, então current é sempre definido.
+    const current = await loadEvent(true)
+    if (!current) return
+    await Promise.all([loadTeams(true), loadTasks(true), loadRules(current.status, true), loadHistory(true)])
+  }
   const { lastUpdatedAt, refreshing, refresh } = usePolling(pollAll, { enabled: eventState.status === 'ready' })
 
   const event = eventState.data
@@ -109,7 +124,7 @@ export function EventDetailsPage() {
       const updated = await updateEvent(event.id, { status, ...(reason ? { reason } : {}) })
       setEventState({ status: 'ready', data: updated })
       setCancelOpen(false); setMenuOpen(false); setCancelReason('')
-      if (status === 'CONFIRMADO') await Promise.allSettled([loadTasks(), loadTeams(), loadRules()])
+      if (status === 'CONFIRMADO') await Promise.allSettled([loadTasks(), loadTeams(), loadRules(updated.status)])
     } catch (cause) { setActionError(getApiErrorMessage(cause, 'Não foi possível atualizar o evento')) }
   }
 
@@ -126,7 +141,7 @@ export function EventDetailsPage() {
     try {
       const result = await applyEventRules(id)
       setRulesResult(`${result.tasksCreated} tarefa${result.tasksCreated === 1 ? '' : 's'} criadas, ${result.tasksSkipped} ignorada${result.tasksSkipped === 1 ? '' : 's'}`)
-      await Promise.allSettled([loadTasks(), loadTeams(), loadRules()])
+      await Promise.allSettled([loadTasks(), loadTeams(), ...(event ? [loadRules(event.status)] : [])])
     } catch (cause) { setActionError(getApiErrorMessage(cause, 'Não foi possível reaplicar as regras')) }
     finally { setRulesAction(false) }
   }
@@ -149,7 +164,7 @@ export function EventDetailsPage() {
       </div>
       <div className="event-details-side">
         <ClientPanel client={event.client} />
-        {rulesState.status !== 'hidden' && <section className="event-panel"><div className="panel-heading"><h2>{event.status === 'PLANEJAMENTO' ? 'Motor de regras' : 'Regras aplicadas'}</h2>{event.status !== 'PLANEJAMENTO' && hasPermission('rules:apply') && <button type="button" className="panel-link button-link" onClick={() => void reapplyRules()} disabled={rulesAction}><Icon name="bolt" />{rulesAction ? 'Reaplicando...' : 'Reaplicar'}</button>}</div>{rulesResult && <p className="alert">{rulesResult}</p>}{rulesState.status === 'error' && <BlockError message={rulesState.message ?? 'Não foi possível carregar regras'} retry={() => void loadRules()} />}{rulesState.status === 'ready' && event.status === 'PLANEJAMENTO' && <RuleMatches data={rulesState.data as Awaited<ReturnType<typeof getEventRuleMatches>>} />}{rulesState.status === 'ready' && event.status !== 'PLANEJAMENTO' && <AppliedRules data={rulesState.data as RuleApplication[]} />}</section>}
+        {rulesState.status !== 'hidden' && <section className="event-panel"><div className="panel-heading"><h2>{event.status === 'PLANEJAMENTO' ? 'Motor de regras' : 'Regras aplicadas'}</h2>{event.status !== 'PLANEJAMENTO' && hasPermission('rules:apply') && <button type="button" className="panel-link button-link" onClick={() => void reapplyRules()} disabled={rulesAction}><Icon name="bolt" />{rulesAction ? 'Reaplicando...' : 'Reaplicar'}</button>}</div>{rulesResult && <p className="alert">{rulesResult}</p>}{rulesState.status === 'error' && <BlockError message={rulesState.message ?? 'Não foi possível carregar regras'} retry={() => void loadRules(event.status)} />}{rulesState.status === 'ready' && rulesState.data?.kind === 'matches' && <RuleMatches data={rulesState.data.items} />}{rulesState.status === 'ready' && rulesState.data?.kind === 'applications' && <AppliedRules data={rulesState.data.items} />}</section>}
         {historyState.status !== 'hidden' && <section className="event-panel"><div className="panel-heading"><h2>Histórico</h2></div>{historyState.status === 'error' && <BlockError message={historyState.message ?? 'Não foi possível carregar histórico'} retry={() => void loadHistory()} />}{historyState.status === 'ready' && (historyState.data?.length ? <ul className="event-history-list">{historyState.data.map((item) => <li key={item.id}><span /><div><strong>{item.message}</strong><small>{item.actorName ?? 'Sistema'} · {formatDate(item.createdAt)}</small></div></li>)}</ul> : <p className="empty-state">Nenhum registro no histórico.</p>)}</section>}
       </div>
     </div>
@@ -163,7 +178,7 @@ function ClientPanel({ client }: { client: Event['client'] }) {
     : <p className="empty-state">Nenhum cliente vinculado. Edite o evento para vincular um cliente.</p>}</section>
 }
 
-function RuleMatches({ data }: { data: Awaited<ReturnType<typeof getEventRuleMatches>> }) {
+function RuleMatches({ data }: { data: MatchedRule[] }) {
   return <><p className="muted">Consulta somente leitura das regras que combinam com este evento.</p>{data.length ? <ul className="rule-match-list">{data.map((match) => <li key={match.rule.id}><strong>{match.rule.name}</strong><span>{match.resourceRequirements.map((item) => `${item.specialty} ×${item.minQuantity}`).join(', ') || 'Sem recursos exigidos'}</span></li>)}</ul> : <p className="empty-state">Nenhuma regra corresponde ao evento.</p>}</>}
 
 function AppliedRules({ data }: { data: RuleApplication[] }) {

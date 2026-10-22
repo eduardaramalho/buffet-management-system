@@ -291,4 +291,14 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expectStatus(await manager.get('/clients'), 200)
     await manager.dispose()
   })
+
+  test('15. sessão: o botão Sair continua acessível em tela baixa e no celular', async () => {
+    // Regressão: a sidebar é fixa e não rolava; em telas baixas o rodapé com "Sair" ficava fora da tela,
+    // e no celular o botão era escondido por CSS (não havia como encerrar a sessão).
+    for (const viewport of [{ width: 1366, height: 600 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport)
+      await expect(page.getByRole('button', { name: 'Sair' })).toBeInViewport()
+    }
+    await logout(page)
+  })
 })
