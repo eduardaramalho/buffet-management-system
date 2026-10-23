@@ -5,6 +5,7 @@ import type { AuditService, EventSchedulingRecord, EventTeamRepository, TeamAssi
 
 const makeEvent = (overrides: Partial<EventSchedulingRecord> = {}): EventSchedulingRecord => ({
   id: "event-1",
+  name: "Casamento de Alice",
   eventDate: new Date("2026-10-10T15:00:00.000Z"),
   endDate: new Date("2026-10-10T22:00:00.000Z"),
   status: "PLANEJAMENTO",
@@ -113,5 +114,56 @@ describe("EventTeamService", () => {
     await expect(service.assignTeamToEvent("event-1", "team-1", "actor-1"))
       .rejects.toThrow("concluído");
     expect(eventTeams.assign).not.toHaveBeenCalled();
+  });
+
+  describe("checkAvailability (shared by assignment, RF11, and replication, RF25)", () => {
+    const schedule = { eventDate: new Date("2026-10-10T15:00:00.000Z"), endDate: new Date("2026-10-10T22:00:00.000Z") };
+    const repositoryWith = (team: TeamAssignmentRecord | null, events: EventSchedulingRecord[] = []) => ({
+      findTeamById: jest.fn(async () => team),
+      listEventsByTeam: jest.fn(async () => events),
+    }) as unknown as EventTeamRepository;
+
+    it("reports a missing team and an inactive team", async () => {
+      const missing = new EventTeamService(repositoryWith(null), { record: jest.fn() } as unknown as AuditService);
+      const inactive = new EventTeamService(repositoryWith(makeTeam({ status: "INATIVA" })), { record: jest.fn() } as unknown as AuditService);
+
+      await expect(missing.checkAvailability("team-1", schedule)).resolves.toEqual({ available: false, reason: "NOT_FOUND" });
+      await expect(inactive.checkAvailability("team-1", schedule)).resolves.toEqual({ available: false, reason: "INACTIVE" });
+    });
+
+    it("reports a schedule conflict with the id and name of the conflicting event", async () => {
+      const busy = makeEvent({ id: "event-9", name: "Formatura X", eventDate: new Date("2026-10-10T20:00:00.000Z"), endDate: new Date("2026-10-11T01:00:00.000Z") });
+      const service = new EventTeamService(repositoryWith(makeTeam(), [busy]), { record: jest.fn() } as unknown as AuditService);
+
+      await expect(service.checkAvailability("team-1", schedule)).resolves.toEqual({
+        available: false,
+        reason: "SCHEDULE_CONFLICT",
+        conflictingEvent: { id: "event-9", name: "Formatura X" },
+      });
+    });
+
+    it("treats an event without end date as occupying the whole day (RN09)", async () => {
+      const busy = makeEvent({ id: "event-9", eventDate: new Date("2026-10-10T08:00:00.000Z"), endDate: null });
+      const service = new EventTeamService(repositoryWith(makeTeam(), [busy]), { record: jest.fn() } as unknown as AuditService);
+
+      await expect(service.checkAvailability("team-1", { eventDate: new Date("2026-10-10T23:00:00.000Z"), endDate: null }))
+        .resolves.toEqual(expect.objectContaining({ available: false, reason: "SCHEDULE_CONFLICT" }));
+    });
+
+    it("ignores the event being scheduled itself and non-overlapping events", async () => {
+      const sameEvent = makeEvent({ id: "event-1" });
+      const otherDay = makeEvent({ id: "event-2", eventDate: new Date("2026-10-11T15:00:00.000Z"), endDate: new Date("2026-10-11T22:00:00.000Z") });
+      const service = new EventTeamService(repositoryWith(makeTeam(), [sameEvent, otherDay]), { record: jest.fn() } as unknown as AuditService);
+
+      await expect(service.checkAvailability("team-1", schedule, "event-1")).resolves.toEqual({ available: true });
+    });
+
+    it("keeps the assignment error messages built on top of it", async () => {
+      const busy = makeEvent({ id: "event-9", eventDate: new Date("2026-10-10T16:00:00.000Z"), endDate: new Date("2026-10-10T18:00:00.000Z") });
+      const eventTeams = { ...repositoryWith(makeTeam(), [busy]), findEventById: jest.fn(async () => makeEvent()), assign: jest.fn() } as unknown as EventTeamRepository;
+      const service = new EventTeamService(eventTeams, { record: jest.fn() } as unknown as AuditService);
+
+      await expect(service.assignTeamToEvent("event-1", "team-1", "actor-1")).rejects.toThrow("conflito de agenda: a equipe já está atribuída ao evento event-9");
+    });
   });
 });
