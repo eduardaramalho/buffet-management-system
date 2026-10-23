@@ -42,6 +42,10 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:coverage
 
+      - name: Publish coverage summary
+        if: always()
+        run: node ../../.github/scripts/coverage-summary.mjs backend coverage/coverage-summary.json 85
+
       - name: Build backend
         run: npx tsc -p tsconfig.build.json
 
@@ -73,7 +77,11 @@ jobs:
         run: npm ci
 
       - name: Run tests with coverage
-        run: npx vitest run --coverage
+        run: npm run test:coverage
+
+      - name: Publish coverage summary
+        if: always()
+        run: node ../../.github/scripts/coverage-summary.mjs frontend coverage/coverage-summary.json 80
 
       - name: Build frontend
         run: npm run build

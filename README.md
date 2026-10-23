@@ -87,13 +87,13 @@ cd apps/frontend && npm run test:coverage   # componentes e páginas
 cd apps/e2e      && npm test                # jornada completa no navegador (requer MySQL)
 ```
 
-| Suíte | Testes | Cobertura de linhas | Mínimo exigido |
-|---|---|---|---|
-| Backend | 476 | 97% | 75% (CI configurado em 85%) |
-| Frontend | 141 | 91,5% | 25% |
-| E2E | jornada com 14 passos | não se aplica | |
+| Suíte | Testes | Linhas | Branches | Funções | Statements | Mínimo exigido | Threshold do CI |
+|---|---|---|---|---|---|---|---|
+| Backend | 507 | 97,1% | 90,0% | 92,1% | 95,6% | 75% | 85% nas quatro métricas |
+| Frontend | 269 | 94,9% | 82,1% | 84,7% | 87,7% | 25% | 80% nas quatro métricas |
+| E2E | jornada com 14 passos | não se aplica | | | | | |
 
-Medição de 22/10/2026. Detalhes em [Qualidade e Testes](https://github.com/eduardaramalho/buffet-management-system/wiki/Qualidade-e-Testes).
+Medição de 22/10/2026. Cada execução do CI publica a cobertura de cada aplicação no resumo do job. As exclusões de cobertura e os thresholds seguem o [ADR 0007](docs/adr/0007-politica-de-qualidade-e-cobertura.md). Detalhes em [Qualidade e Testes](https://github.com/eduardaramalho/buffet-management-system/wiki/Qualidade-e-Testes).
 
 ## Estrutura do repositório
 

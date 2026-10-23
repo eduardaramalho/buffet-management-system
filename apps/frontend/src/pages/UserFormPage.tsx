@@ -6,4 +6,76 @@ import { Button } from '../components/Button'
 import { FormField } from '../components/FormField'
 import { Notice } from '../components/Notice'
 
-export function UserFormPage() { const { id } = useParams(); const navigate = useNavigate(); const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [roleId, setRoleId] = useState(''); const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]); const [error, setError] = useState(''); useEffect(() => { if (id) { void getUser(id).then((user) => { setName(user.name); setEmail(user.email) }).catch((cause) => setError(cause instanceof Error ? cause.message : 'Falha ao carregar usuário')); return } void listRoles().then((items) => setRoles(items)).catch((cause) => setError(cause instanceof Error ? cause.message : 'Falha ao carregar papéis')) }, [id]); const submit = async (event: FormEvent) => { event.preventDefault(); try { if (id) await updateUser(id, { name, email, ...(password ? { password } : {}) }); else await createUser({ name, email, password, roleId }); navigate('/users') } catch (cause) { setError(cause instanceof Error ? cause.message : 'Falha ao salvar usuário') } }; return <main className="auth-panel"><div className="form-wrap"><h2>{id ? 'Editar usuário' : 'Novo usuário'}</h2><form onSubmit={submit}><FormField label="Nome" value={name} onChange={(event) => setName(event.target.value)} required /><FormField label="E-mail" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />{!id && <label>Papel<select value={roleId} onChange={(event) => setRoleId(event.target.value)} required><option value="">Selecione um papel</option>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label>}<FormField label="Senha" type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={id ? undefined : 8} required={!id} />{error && <Notice message={error} error />}<Button>Salvar</Button></form><Link className="link-button" to="/users">Cancelar</Link></div></main> }
+const MIN_PASSWORD_LENGTH = 8
+
+export function UserFormPage() {
+  const { id } = useParams()
+  const isEditing = Boolean(id)
+  const navigate = useNavigate()
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [roleId, setRoleId] = useState('')
+  const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([])
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    // Edição carrega o usuário; criação carrega os papéis disponíveis para o vínculo inicial.
+    if (id) {
+      void getUser(id)
+        .then((user) => {
+          setName(user.name)
+          setEmail(user.email)
+        })
+        .catch((cause) => setError(cause instanceof Error ? cause.message : 'Falha ao carregar usuário'))
+      return
+    }
+    void listRoles()
+      .then((items) => setRoles(items))
+      .catch((cause) => setError(cause instanceof Error ? cause.message : 'Falha ao carregar papéis'))
+  }, [id])
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    try {
+      // Na edição, senha vazia significa "manter a atual" e não é enviada.
+      if (id) await updateUser(id, { name, email, ...(password ? { password } : {}) })
+      else await createUser({ name, email, password, roleId })
+      navigate('/users')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Falha ao salvar usuário')
+    }
+  }
+
+  return (
+    <main className="auth-panel">
+      <div className="form-wrap">
+        <h2>{isEditing ? 'Editar usuário' : 'Novo usuário'}</h2>
+        <form onSubmit={submit}>
+          <FormField label="Nome" value={name} onChange={(event) => setName(event.target.value)} required />
+          <FormField label="E-mail" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+          {!isEditing && (
+            <label>
+              Papel
+              <select value={roleId} onChange={(event) => setRoleId(event.target.value)} required>
+                <option value="">Selecione um papel</option>
+                {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
+              </select>
+            </label>
+          )}
+          <FormField
+            label="Senha"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            minLength={isEditing ? undefined : MIN_PASSWORD_LENGTH}
+            required={!isEditing}
+          />
+          {error && <Notice message={error} error />}
+          <Button>Salvar</Button>
+        </form>
+        <Link className="link-button" to="/users">Cancelar</Link>
+      </div>
+    </main>
+  )
+}

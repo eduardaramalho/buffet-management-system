@@ -8,6 +8,8 @@ import { listTeams, listTeamsByEvent } from '../api/teamsApi'
 import { applyEventRules, getEventRuleMatches, listEventRuleApplications } from '../api/rulesApi'
 import type { Event } from '../types/event'
 import type { MatchedRule } from '../types/rule'
+import type { Task } from '../types/task'
+import type { Team } from '../types/team'
 
 vi.mock('../api/eventsApi', () => ({ getEvent: vi.fn(), getEventHistory: vi.fn(), updateEvent: vi.fn() }))
 vi.mock('../api/tasksApi', () => ({ listTasks: vi.fn() }))
@@ -165,5 +167,241 @@ describe('EventDetailsPage', () => {
     expect(await screen.findByText(/Aplicada em/)).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'Casamento Ana' })).toBeInTheDocument()
     expect(updateEvent).toHaveBeenCalledWith('event-1', { status: 'CONFIRMADO' })
+  })
+})
+
+const task = (overrides: Partial<Task>): Task => ({
+  id: 'task', eventId: 'event-1', title: 'Tarefa', description: null, dueDate: null, status: 'PENDENTE', assignedTeamId: 'team-1',
+  sourceRuleId: null, createdAt: '', updatedAt: '', deletedAt: null, ...overrides,
+})
+const team = (overrides: Partial<Team>): Team => ({
+  id: 'team-1', name: 'Cozinha', specialty: 'COZINHA', status: 'ATIVA', observations: null, createdById: 'user',
+  createdAt: '', updatedAt: '', deletedAt: null, members: [], events: [], ...overrides,
+} as Team)
+const mockReadyBlocks = () => {
+  mockOtherBlocks()
+  vi.mocked(listEventRuleApplications).mockResolvedValue([])
+}
+
+describe('EventDetailsPage: estados da Central do evento', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('informa falta de acesso quando o evento retorna 403', async () => {
+    vi.mocked(getEvent).mockRejectedValue({ response: { status: 403 } })
+    renderPage()
+
+    expect(await screen.findByText('Você não tem acesso a este evento.')).toBeInTheDocument()
+  })
+
+  it('mostra o erro do evento e tenta carregar de novo', async () => {
+    vi.mocked(getEvent).mockRejectedValueOnce(new Error('Servidor indisponível')).mockResolvedValue(event())
+    mockReadyBlocks()
+    renderPage()
+
+    expect(await screen.findByText('Servidor indisponível')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Casamento Ana' })).toBeInTheDocument()
+  })
+
+  it('resume o progresso, sinaliza tarefas sem equipe e rotula cada status', async () => {
+    Element.prototype.scrollIntoView = vi.fn()
+    vi.mocked(getEvent).mockResolvedValue(event())
+    mockReadyBlocks()
+    vi.mocked(listTasks).mockResolvedValue([
+      task({ id: 't1', title: 'Montar buffet', status: 'PENDENTE', assignedTeamId: null, dueDate: '2026-11-09T12:00:00.000Z' }),
+      task({ id: 't2', title: 'Servir jantar', status: 'EM_ANDAMENTO' }),
+      task({ id: 't3', title: 'Comprar insumos', status: 'CONCLUIDA' }),
+      task({ id: 't4', title: 'Decoração extra', status: 'CANCELADA', assignedTeamId: null }),
+    ])
+    renderPage()
+
+    expect(await screen.findByText('1 de 3')).toBeInTheDocument()
+    expect(screen.getByText('1 tarefa precisam de atenção.')).toBeInTheDocument()
+    expect(screen.getByText('Pendente')).toBeInTheDocument()
+    expect(screen.getByText('Em andamento', { selector: '.badge, span' })).toBeInTheDocument()
+    expect(screen.getByText('Concluída')).toBeInTheDocument()
+    expect(screen.getByText('Cancelada')).toBeInTheDocument()
+    expect(screen.getAllByText('Sem prazo')).toHaveLength(3)
+    expect(screen.getByText(/^Prazo /)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Alocar equipe' }))
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth' })
+  })
+
+  it('pluraliza o alerta quando há várias tarefas sem equipe', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event())
+    mockReadyBlocks()
+    vi.mocked(listTasks).mockResolvedValue([
+      task({ id: 't1', assignedTeamId: null }),
+      task({ id: 't2', assignedTeamId: null, status: 'EM_ANDAMENTO' }),
+    ])
+    renderPage()
+
+    expect(await screen.findByText('2 tarefas precisam de atenção.')).toBeInTheDocument()
+    expect(screen.getByText('0 de 2')).toBeInTheDocument()
+  })
+
+  it('lista equipes ativas e inativas e ignora vínculos de equipes desconhecidas', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event())
+    mockReadyBlocks()
+    vi.mocked(listTeams).mockResolvedValue([team({ id: 'team-1', name: 'Cozinha' }), team({ id: 'team-2', name: 'Salão', status: 'INATIVA' })])
+    vi.mocked(listTeamsByEvent).mockResolvedValue([
+      { eventId: 'event-1', teamId: 'team-1', assignedAt: '2026-10-01T10:00:00.000Z', assignedById: 'user' },
+      { eventId: 'event-1', teamId: 'team-2', assignedAt: '2026-10-02T10:00:00.000Z', assignedById: 'user' },
+      { eventId: 'event-1', teamId: 'team-removida', assignedAt: '2026-10-03T10:00:00.000Z', assignedById: 'user' },
+    ])
+    renderPage()
+
+    expect(await screen.findByText('Cozinha')).toBeInTheDocument()
+    expect(screen.getByText('Salão')).toBeInTheDocument()
+    expect(screen.getByText('Ativa')).toBeInTheDocument()
+    expect(screen.getByText('Inativa')).toBeInTheDocument()
+    expect(document.querySelectorAll('.team-list .team-row')).toHaveLength(2)
+  })
+
+  it('mostra estados vazios de equipes, tarefas, histórico e regras', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event())
+    mockReadyBlocks()
+    renderPage()
+
+    expect(await screen.findByText('Nenhuma equipe designada.')).toBeInTheDocument()
+    expect(screen.getByText('0 de 0')).toBeInTheDocument()
+    expect(screen.getByText('Nenhum registro no histórico.')).toBeInTheDocument()
+    expect(screen.getByText('Nenhuma regra aplicada.')).toBeInTheDocument()
+  })
+
+  it('exibe o histórico com autor ou "Sistema" quando a ação foi automática', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event())
+    mockReadyBlocks()
+    vi.mocked(getEventHistory).mockResolvedValue([
+      { id: 'h1', action: 'CREATED', message: 'Evento criado', actorName: 'Eduarda', createdAt: '2026-10-01T10:00:00.000Z' },
+      { id: 'h2', action: 'RULES', message: 'Regras aplicadas', actorName: null, createdAt: '2026-10-02T10:00:00.000Z' },
+    ])
+    renderPage()
+
+    expect(await screen.findByText('Evento criado')).toBeInTheDocument()
+    expect(screen.getByText(/^Eduarda ·/)).toBeInTheDocument()
+    expect(screen.getByText(/^Sistema ·/)).toBeInTheDocument()
+  })
+
+  it('isola falhas de equipes, tarefas e histórico e recarrega cada bloco separadamente', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event())
+    mockReadyBlocks()
+    vi.mocked(listTeamsByEvent).mockRejectedValue(new Error('falha de equipes'))
+    vi.mocked(listTasks).mockRejectedValue(new Error('falha de tarefas'))
+    vi.mocked(getEventHistory).mockRejectedValue(new Error('falha de histórico'))
+    renderPage()
+
+    expect(await screen.findByText('falha de equipes')).toBeInTheDocument()
+    expect(screen.getByText('falha de tarefas')).toBeInTheDocument()
+    expect(screen.getByText('falha de histórico')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Casamento Ana' })).toBeInTheDocument()
+
+    for (const button of screen.getAllByRole('button', { name: 'Tentar de novo' })) fireEvent.click(button)
+
+    await waitFor(() => {
+      expect(listTeamsByEvent).toHaveBeenCalledTimes(2)
+      expect(listTasks).toHaveBeenCalledTimes(2)
+      expect(getEventHistory).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it('oferece "Concluir" para evento em andamento e nenhuma transição para evento concluído', async () => {
+    vi.mocked(getEvent).mockResolvedValueOnce(event('EM_ANDAMENTO'))
+    mockReadyBlocks()
+    const { unmount } = renderPage()
+
+    expect(await screen.findByRole('button', { name: 'Concluir' })).toBeInTheDocument()
+    unmount()
+
+    vi.mocked(getEvent).mockResolvedValueOnce(event('CONCLUIDO'))
+    renderPage()
+
+    await screen.findByRole('heading', { level: 1, name: 'Casamento Ana' })
+    expect(screen.queryByRole('button', { name: /Confirmar$|Iniciar evento|Concluir/ })).not.toBeInTheDocument()
+  })
+
+  it('mostra o erro quando a mudança de status é recusada', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event())
+    mockReadyBlocks()
+    vi.mocked(updateEvent).mockRejectedValue(new Error('Transição inválida'))
+    renderPage()
+    await screen.findByText('Casamento Ana')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar evento' }))
+
+    expect(await screen.findByText('Transição inválida')).toBeInTheDocument()
+  })
+
+  it('cancela evento em planejamento sem exigir motivo e envia o motivo quando informado', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event('PLANEJAMENTO'))
+    mockOtherBlocks()
+    vi.mocked(getEventRuleMatches).mockResolvedValue([])
+    vi.mocked(updateEvent).mockResolvedValue(event('CANCELADO'))
+    renderPage()
+    await screen.findByText('Nenhuma regra corresponde ao evento.')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mais ações' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar evento' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar cancelamento' }))
+
+    await waitFor(() => expect(updateEvent).toHaveBeenCalledWith('event-1', { status: 'CANCELADO' }))
+  })
+
+  it('envia o motivo ao cancelar um evento confirmado e permite voltar sem cancelar', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event())
+    mockReadyBlocks()
+    vi.mocked(updateEvent).mockResolvedValue(event('CANCELADO'))
+    renderPage()
+    await screen.findByText('Casamento Ana')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mais ações' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar evento' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Voltar' }))
+    expect(screen.queryByRole('heading', { name: 'Cancelar evento' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar evento' }))
+    fireEvent.change(screen.getByLabelText('Motivo do cancelamento'), { target: { value: '  Cliente desistiu  ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar cancelamento' }))
+
+    await waitFor(() => expect(updateEvent).toHaveBeenCalledWith('event-1', { status: 'CANCELADO', reason: 'Cliente desistiu' }))
+  })
+
+  it('usa o singular ao reaplicar uma única tarefa e mostra falha ao reaplicar', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event())
+    mockReadyBlocks()
+    vi.mocked(applyEventRules)
+      .mockResolvedValueOnce({ tasksCreated: 1, tasksSkipped: 2, teamsAutoAssigned: 0, alertsGenerated: 0 })
+      .mockRejectedValueOnce(new Error('Motor indisponível'))
+    renderPage()
+    await screen.findByText('Casamento Ana')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reaplicar' }))
+    expect(await screen.findByText('1 tarefa criadas, 2 ignoradas')).toBeInTheDocument()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Reaplicar' }))
+    expect(await screen.findByText('Motor indisponível')).toBeInTheDocument()
+  })
+
+  it('lista requisitos de recursos das regras combinadas ou informa quando não há', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event('PLANEJAMENTO'))
+    mockOtherBlocks()
+    vi.mocked(getEventRuleMatches).mockResolvedValue([matchedRule, { ...matchedRule, rule: { ...matchedRule.rule, id: 'rule-2', name: 'Básica' }, resourceRequirements: [] }])
+    renderPage()
+
+    expect(await screen.findByText('COZINHA ×1')).toBeInTheDocument()
+    expect(screen.getByText('Sem recursos exigidos')).toBeInTheDocument()
+  })
+
+  it('volta para a lista de eventos pelo cabeçalho', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event())
+    mockReadyBlocks()
+    render(<MemoryRouter initialEntries={['/events/event-1']}><Routes><Route path="/events/:id" element={<EventDetailsPage />} /><Route path="/events" element={<p>Lista de eventos</p>} /></Routes></MemoryRouter>)
+    await screen.findByText('Casamento Ana')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Eventos' }))
+
+    expect(await screen.findByText('Lista de eventos')).toBeInTheDocument()
   })
 })
