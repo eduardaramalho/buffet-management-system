@@ -11,6 +11,7 @@ import type {
   UpdateEventInput,
 } from "../domain/event.types.js";
 import type { Logger } from "../../../shared/domain/logger.types.js";
+import { normalizeServiceLabel } from "../domain/eventServiceLabel.js";
 
 const MAX_GUESTS_COUNT = 5000;
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -39,6 +40,22 @@ export class EventManagementService {
   ) {}
 
   async create(input: CreateEventInput): Promise<EventRecord> {
+    await this.assertCanCreate(input);
+
+    const event = await this.events.create({ ...input, status: "PLANEJAMENTO" });
+    await this.audit.record({
+      userId: input.createdById,
+      action: "EVENT_CREATED",
+      entity: "Event",
+      entityId: event.id,
+      changes: { before: null, after: event },
+    });
+    return event;
+  }
+
+  // Creation rules shared with RF25 (EventReplicationService) so a replica is held to exactly the
+  // same constraints as a brand-new event: future date, guest limits (RN03) and an active client.
+  async assertCanCreate(input: CreateEventInput): Promise<void> {
     if (input.eventDate.getTime() < Date.now()) {
       throw new EventManagementError("A data do evento não pode estar no passado");
     }
@@ -53,16 +70,6 @@ export class EventManagementService {
 
     if (!input.clientId?.trim()) throw new EventManagementError("O cliente do evento é obrigatório");
     await this.assertClientAvailable(input.clientId);
-
-    const event = await this.events.create({ ...input, status: "PLANEJAMENTO" });
-    await this.audit.record({
-      userId: input.createdById,
-      action: "EVENT_CREATED",
-      entity: "Event",
-      entityId: event.id,
-      changes: { before: null, after: event },
-    });
-    return event;
   }
 
   list(filter: EventListFilter) {
@@ -70,7 +77,7 @@ export class EventManagementService {
   }
 
   get(id: string) {
-    return this.events.findById(id).then((event) => {
+    return this.events.findDetailById(id).then((event) => {
       if (!event) throw new EventManagementError("Evento não encontrado");
       return event;
     });
@@ -159,13 +166,9 @@ export class EventManagementService {
     const service = await this.services.findById(input.serviceId);
     if (!service) throw new EventManagementError("Serviço não encontrado");
 
-    const customLabel = input.customLabel?.trim() || null;
-    if (service.isCustom && !customLabel) {
-      throw new EventManagementError("customLabel é obrigatório para o serviço Outro");
-    }
-    if (!service.isCustom && customLabel) {
-      throw new EventManagementError("customLabel só pode ser usado para o serviço Outro");
-    }
+    const label = normalizeServiceLabel(service, input.customLabel);
+    if (!label.ok) throw new EventManagementError(label.message);
+    const { customLabel } = label;
 
     const event = await this.events.attachService({ ...input, customLabel });
     await this.audit.record({

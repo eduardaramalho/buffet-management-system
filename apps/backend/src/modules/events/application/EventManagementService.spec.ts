@@ -83,9 +83,9 @@ describe("EventManagementService", () => {
     expect(events.create).not.toHaveBeenCalled();
   });
 
-  it("gets an existing event and rejects a missing event", async () => {
-    const event = makeEvent();
-    const events = { findById: jest.fn(async (id: string) => id === "event-1" ? event : null) } as unknown as EventRepository;
+  it("gets an existing event with its lineage (detail read) and rejects a missing event", async () => {
+    const event = makeEvent({ sourceEventId: "source-1", replicas: [] });
+    const events = { findDetailById: jest.fn(async (id: string) => id === "event-1" ? event : null) } as unknown as EventRepository;
     const service = new EventManagementService(events, { record: jest.fn() } as unknown as EventAuditService);
 
     await expect(service.get("event-1")).resolves.toEqual(event);

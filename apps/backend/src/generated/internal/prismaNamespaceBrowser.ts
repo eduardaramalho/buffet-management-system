@@ -131,6 +131,7 @@ export const EventScalarFieldEnum = {
   observations: 'observations',
   status: 'status',
   clientId: 'clientId',
+  sourceEventId: 'sourceEventId',
   createdById: 'createdById',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
@@ -322,6 +323,7 @@ export const TaskScalarFieldEnum = {
   assignedTeamId: 'assignedTeamId',
   assignedAt: 'assignedAt',
   sourceRuleId: 'sourceRuleId',
+  sourceTaskId: 'sourceTaskId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   deletedAt: 'deletedAt'
@@ -405,6 +407,7 @@ export const EventOrderByRelevanceFieldEnum = {
   location: 'location',
   observations: 'observations',
   clientId: 'clientId',
+  sourceEventId: 'sourceEventId',
   createdById: 'createdById'
 } as const
 
@@ -570,7 +573,8 @@ export const TaskOrderByRelevanceFieldEnum = {
   title: 'title',
   description: 'description',
   assignedTeamId: 'assignedTeamId',
-  sourceRuleId: 'sourceRuleId'
+  sourceRuleId: 'sourceRuleId',
+  sourceTaskId: 'sourceTaskId'
 } as const
 
 export type TaskOrderByRelevanceFieldEnum = (typeof TaskOrderByRelevanceFieldEnum)[keyof typeof TaskOrderByRelevanceFieldEnum]

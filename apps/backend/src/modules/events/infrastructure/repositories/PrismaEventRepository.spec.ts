@@ -27,9 +27,6 @@ describe("PrismaEventRepository", () => {
       include: {
         services: { include: { service: true } },
         client: { select: { id: true, name: true, email: true, phone: true, deletedAt: true } },
-        // RF25 lineage, only on the detail read (the list keeps the lighter include).
-        sourceEvent: { select: { id: true, name: true, eventDate: true, deletedAt: true } },
-        replicas: { where: { deletedAt: null }, select: { id: true, name: true, eventDate: true, status: true }, orderBy: { createdAt: "asc" } },
       },
     });
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: "PLANEJAMENTO" }) }));
@@ -83,7 +80,7 @@ describe("PrismaEventRepository", () => {
   it("creates a replica with its services and the source link inside the caller's transaction (RF25)", async () => {
     const replica = { id: "replica-1" };
     const outsideCreate = jest.fn();
-    const txCreate = jest.fn(async () => replica);
+    const txCreate = jest.fn(async (_args: unknown) => replica);
     const repository = new PrismaEventRepository({ event: { create: outsideCreate } } as never);
     const tx = { event: { create: txCreate } };
 
@@ -120,6 +117,23 @@ describe("PrismaEventRepository", () => {
       include: {
         services: { include: { service: true } },
         client: { select: { id: true, name: true, email: true, phone: true, deletedAt: true } },
+      },
+    });
+  });
+
+  it("reads the event detail with its lineage: source event and non-deleted replicas (RF25)", async () => {
+    const findFirst = jest.fn(async (_args: unknown) => ({ id: "event-1" }));
+    const repository = new PrismaEventRepository({ event: { findFirst } } as never);
+
+    await repository.findDetailById("event-1");
+
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { id: "event-1", deletedAt: null },
+      include: {
+        services: { include: { service: true } },
+        client: { select: { id: true, name: true, email: true, phone: true, deletedAt: true } },
+        sourceEvent: { select: { id: true, name: true, eventDate: true, deletedAt: true } },
+        replicas: { where: { deletedAt: null }, select: { id: true, name: true, eventDate: true, status: true }, orderBy: { createdAt: "asc" } },
       },
     });
   });

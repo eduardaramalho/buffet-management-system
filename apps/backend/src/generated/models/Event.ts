@@ -45,6 +45,7 @@ export type EventMinAggregateOutputType = {
   observations: string | null
   status: $Enums.EventStatus | null
   clientId: string | null
+  sourceEventId: string | null
   createdById: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -62,6 +63,7 @@ export type EventMaxAggregateOutputType = {
   observations: string | null
   status: $Enums.EventStatus | null
   clientId: string | null
+  sourceEventId: string | null
   createdById: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -79,6 +81,7 @@ export type EventCountAggregateOutputType = {
   observations: number
   status: number
   clientId: number
+  sourceEventId: number
   createdById: number
   createdAt: number
   updatedAt: number
@@ -106,6 +109,7 @@ export type EventMinAggregateInputType = {
   observations?: true
   status?: true
   clientId?: true
+  sourceEventId?: true
   createdById?: true
   createdAt?: true
   updatedAt?: true
@@ -123,6 +127,7 @@ export type EventMaxAggregateInputType = {
   observations?: true
   status?: true
   clientId?: true
+  sourceEventId?: true
   createdById?: true
   createdAt?: true
   updatedAt?: true
@@ -140,6 +145,7 @@ export type EventCountAggregateInputType = {
   observations?: true
   status?: true
   clientId?: true
+  sourceEventId?: true
   createdById?: true
   createdAt?: true
   updatedAt?: true
@@ -244,6 +250,7 @@ export type EventGroupByOutputType = {
   observations: string | null
   status: $Enums.EventStatus
   clientId: string | null
+  sourceEventId: string | null
   createdById: string
   createdAt: Date
   updatedAt: Date
@@ -284,12 +291,15 @@ export type EventWhereInput = {
   observations?: Prisma.StringNullableFilter<"Event"> | string | null
   status?: Prisma.EnumEventStatusFilter<"Event"> | $Enums.EventStatus
   clientId?: Prisma.StringNullableFilter<"Event"> | string | null
+  sourceEventId?: Prisma.StringNullableFilter<"Event"> | string | null
   createdById?: Prisma.StringFilter<"Event"> | string
   createdAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   deletedAt?: Prisma.DateTimeNullableFilter<"Event"> | Date | string | null
   createdBy?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   client?: Prisma.XOR<Prisma.ClientNullableScalarRelationFilter, Prisma.ClientWhereInput> | null
+  sourceEvent?: Prisma.XOR<Prisma.EventNullableScalarRelationFilter, Prisma.EventWhereInput> | null
+  replicas?: Prisma.EventListRelationFilter
   services?: Prisma.EventServiceListRelationFilter
   teams?: Prisma.EventTeamListRelationFilter
   tasks?: Prisma.TaskListRelationFilter
@@ -307,12 +317,15 @@ export type EventOrderByWithRelationInput = {
   observations?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   clientId?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceEventId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdById?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdBy?: Prisma.UserOrderByWithRelationInput
   client?: Prisma.ClientOrderByWithRelationInput
+  sourceEvent?: Prisma.EventOrderByWithRelationInput
+  replicas?: Prisma.EventOrderByRelationAggregateInput
   services?: Prisma.EventServiceOrderByRelationAggregateInput
   teams?: Prisma.EventTeamOrderByRelationAggregateInput
   tasks?: Prisma.TaskOrderByRelationAggregateInput
@@ -334,12 +347,15 @@ export type EventWhereUniqueInput = Prisma.AtLeast<{
   observations?: Prisma.StringNullableFilter<"Event"> | string | null
   status?: Prisma.EnumEventStatusFilter<"Event"> | $Enums.EventStatus
   clientId?: Prisma.StringNullableFilter<"Event"> | string | null
+  sourceEventId?: Prisma.StringNullableFilter<"Event"> | string | null
   createdById?: Prisma.StringFilter<"Event"> | string
   createdAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   deletedAt?: Prisma.DateTimeNullableFilter<"Event"> | Date | string | null
   createdBy?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   client?: Prisma.XOR<Prisma.ClientNullableScalarRelationFilter, Prisma.ClientWhereInput> | null
+  sourceEvent?: Prisma.XOR<Prisma.EventNullableScalarRelationFilter, Prisma.EventWhereInput> | null
+  replicas?: Prisma.EventListRelationFilter
   services?: Prisma.EventServiceListRelationFilter
   teams?: Prisma.EventTeamListRelationFilter
   tasks?: Prisma.TaskListRelationFilter
@@ -357,6 +373,7 @@ export type EventOrderByWithAggregationInput = {
   observations?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   clientId?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceEventId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdById?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -382,6 +399,7 @@ export type EventScalarWhereWithAggregatesInput = {
   observations?: Prisma.StringNullableWithAggregatesFilter<"Event"> | string | null
   status?: Prisma.EnumEventStatusWithAggregatesFilter<"Event"> | $Enums.EventStatus
   clientId?: Prisma.StringNullableWithAggregatesFilter<"Event"> | string | null
+  sourceEventId?: Prisma.StringNullableWithAggregatesFilter<"Event"> | string | null
   createdById?: Prisma.StringWithAggregatesFilter<"Event"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Event"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Event"> | Date | string
@@ -403,6 +421,8 @@ export type EventCreateInput = {
   deletedAt?: Date | string | null
   createdBy: Prisma.UserCreateNestedOneWithoutCreatedEventsInput
   client?: Prisma.ClientCreateNestedOneWithoutEventsInput
+  sourceEvent?: Prisma.EventCreateNestedOneWithoutReplicasInput
+  replicas?: Prisma.EventCreateNestedManyWithoutSourceEventInput
   services?: Prisma.EventServiceCreateNestedManyWithoutEventInput
   teams?: Prisma.EventTeamCreateNestedManyWithoutEventInput
   tasks?: Prisma.TaskCreateNestedManyWithoutEventInput
@@ -420,10 +440,12 @@ export type EventUncheckedCreateInput = {
   observations?: string | null
   status?: $Enums.EventStatus
   clientId?: string | null
+  sourceEventId?: string | null
   createdById: string
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
+  replicas?: Prisma.EventUncheckedCreateNestedManyWithoutSourceEventInput
   services?: Prisma.EventServiceUncheckedCreateNestedManyWithoutEventInput
   teams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutEventInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutEventInput
@@ -445,6 +467,8 @@ export type EventUpdateInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedEventsNestedInput
   client?: Prisma.ClientUpdateOneWithoutEventsNestedInput
+  sourceEvent?: Prisma.EventUpdateOneWithoutReplicasNestedInput
+  replicas?: Prisma.EventUpdateManyWithoutSourceEventNestedInput
   services?: Prisma.EventServiceUpdateManyWithoutEventNestedInput
   teams?: Prisma.EventTeamUpdateManyWithoutEventNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutEventNestedInput
@@ -462,10 +486,12 @@ export type EventUncheckedUpdateInput = {
   observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  replicas?: Prisma.EventUncheckedUpdateManyWithoutSourceEventNestedInput
   services?: Prisma.EventServiceUncheckedUpdateManyWithoutEventNestedInput
   teams?: Prisma.EventTeamUncheckedUpdateManyWithoutEventNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutEventNestedInput
@@ -483,6 +509,7 @@ export type EventCreateManyInput = {
   observations?: string | null
   status?: $Enums.EventStatus
   clientId?: string | null
+  sourceEventId?: string | null
   createdById: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -515,6 +542,7 @@ export type EventUncheckedUpdateManyInput = {
   observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -529,6 +557,11 @@ export type EventListRelationFilter = {
 
 export type EventOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type EventNullableScalarRelationFilter = {
+  is?: Prisma.EventWhereInput | null
+  isNot?: Prisma.EventWhereInput | null
 }
 
 export type EventOrderByRelevanceInput = {
@@ -548,6 +581,7 @@ export type EventCountOrderByAggregateInput = {
   observations?: Prisma.SortOrder
   status?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
+  sourceEventId?: Prisma.SortOrder
   createdById?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -569,6 +603,7 @@ export type EventMaxOrderByAggregateInput = {
   observations?: Prisma.SortOrder
   status?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
+  sourceEventId?: Prisma.SortOrder
   createdById?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -586,6 +621,7 @@ export type EventMinOrderByAggregateInput = {
   observations?: Prisma.SortOrder
   status?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
+  sourceEventId?: Prisma.SortOrder
   createdById?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -685,6 +721,26 @@ export type EventUncheckedUpdateManyWithoutClientNestedInput = {
   deleteMany?: Prisma.EventScalarWhereInput | Prisma.EventScalarWhereInput[]
 }
 
+export type EventCreateNestedOneWithoutReplicasInput = {
+  create?: Prisma.XOR<Prisma.EventCreateWithoutReplicasInput, Prisma.EventUncheckedCreateWithoutReplicasInput>
+  connectOrCreate?: Prisma.EventCreateOrConnectWithoutReplicasInput
+  connect?: Prisma.EventWhereUniqueInput
+}
+
+export type EventCreateNestedManyWithoutSourceEventInput = {
+  create?: Prisma.XOR<Prisma.EventCreateWithoutSourceEventInput, Prisma.EventUncheckedCreateWithoutSourceEventInput> | Prisma.EventCreateWithoutSourceEventInput[] | Prisma.EventUncheckedCreateWithoutSourceEventInput[]
+  connectOrCreate?: Prisma.EventCreateOrConnectWithoutSourceEventInput | Prisma.EventCreateOrConnectWithoutSourceEventInput[]
+  createMany?: Prisma.EventCreateManySourceEventInputEnvelope
+  connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
+}
+
+export type EventUncheckedCreateNestedManyWithoutSourceEventInput = {
+  create?: Prisma.XOR<Prisma.EventCreateWithoutSourceEventInput, Prisma.EventUncheckedCreateWithoutSourceEventInput> | Prisma.EventCreateWithoutSourceEventInput[] | Prisma.EventUncheckedCreateWithoutSourceEventInput[]
+  connectOrCreate?: Prisma.EventCreateOrConnectWithoutSourceEventInput | Prisma.EventCreateOrConnectWithoutSourceEventInput[]
+  createMany?: Prisma.EventCreateManySourceEventInputEnvelope
+  connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
+}
+
 export type EnumEventTypeFieldUpdateOperationsInput = {
   set?: $Enums.EventType
 }
@@ -699,6 +755,44 @@ export type IntFieldUpdateOperationsInput = {
 
 export type EnumEventStatusFieldUpdateOperationsInput = {
   set?: $Enums.EventStatus
+}
+
+export type EventUpdateOneWithoutReplicasNestedInput = {
+  create?: Prisma.XOR<Prisma.EventCreateWithoutReplicasInput, Prisma.EventUncheckedCreateWithoutReplicasInput>
+  connectOrCreate?: Prisma.EventCreateOrConnectWithoutReplicasInput
+  upsert?: Prisma.EventUpsertWithoutReplicasInput
+  disconnect?: Prisma.EventWhereInput | boolean
+  delete?: Prisma.EventWhereInput | boolean
+  connect?: Prisma.EventWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.EventUpdateToOneWithWhereWithoutReplicasInput, Prisma.EventUpdateWithoutReplicasInput>, Prisma.EventUncheckedUpdateWithoutReplicasInput>
+}
+
+export type EventUpdateManyWithoutSourceEventNestedInput = {
+  create?: Prisma.XOR<Prisma.EventCreateWithoutSourceEventInput, Prisma.EventUncheckedCreateWithoutSourceEventInput> | Prisma.EventCreateWithoutSourceEventInput[] | Prisma.EventUncheckedCreateWithoutSourceEventInput[]
+  connectOrCreate?: Prisma.EventCreateOrConnectWithoutSourceEventInput | Prisma.EventCreateOrConnectWithoutSourceEventInput[]
+  upsert?: Prisma.EventUpsertWithWhereUniqueWithoutSourceEventInput | Prisma.EventUpsertWithWhereUniqueWithoutSourceEventInput[]
+  createMany?: Prisma.EventCreateManySourceEventInputEnvelope
+  set?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
+  disconnect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
+  delete?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
+  connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
+  update?: Prisma.EventUpdateWithWhereUniqueWithoutSourceEventInput | Prisma.EventUpdateWithWhereUniqueWithoutSourceEventInput[]
+  updateMany?: Prisma.EventUpdateManyWithWhereWithoutSourceEventInput | Prisma.EventUpdateManyWithWhereWithoutSourceEventInput[]
+  deleteMany?: Prisma.EventScalarWhereInput | Prisma.EventScalarWhereInput[]
+}
+
+export type EventUncheckedUpdateManyWithoutSourceEventNestedInput = {
+  create?: Prisma.XOR<Prisma.EventCreateWithoutSourceEventInput, Prisma.EventUncheckedCreateWithoutSourceEventInput> | Prisma.EventCreateWithoutSourceEventInput[] | Prisma.EventUncheckedCreateWithoutSourceEventInput[]
+  connectOrCreate?: Prisma.EventCreateOrConnectWithoutSourceEventInput | Prisma.EventCreateOrConnectWithoutSourceEventInput[]
+  upsert?: Prisma.EventUpsertWithWhereUniqueWithoutSourceEventInput | Prisma.EventUpsertWithWhereUniqueWithoutSourceEventInput[]
+  createMany?: Prisma.EventCreateManySourceEventInputEnvelope
+  set?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
+  disconnect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
+  delete?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
+  connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
+  update?: Prisma.EventUpdateWithWhereUniqueWithoutSourceEventInput | Prisma.EventUpdateWithWhereUniqueWithoutSourceEventInput[]
+  updateMany?: Prisma.EventUpdateManyWithWhereWithoutSourceEventInput | Prisma.EventUpdateManyWithWhereWithoutSourceEventInput[]
+  deleteMany?: Prisma.EventScalarWhereInput | Prisma.EventScalarWhereInput[]
 }
 
 export type EventCreateNestedOneWithoutServicesInput = {
@@ -771,6 +865,8 @@ export type EventCreateWithoutCreatedByInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   client?: Prisma.ClientCreateNestedOneWithoutEventsInput
+  sourceEvent?: Prisma.EventCreateNestedOneWithoutReplicasInput
+  replicas?: Prisma.EventCreateNestedManyWithoutSourceEventInput
   services?: Prisma.EventServiceCreateNestedManyWithoutEventInput
   teams?: Prisma.EventTeamCreateNestedManyWithoutEventInput
   tasks?: Prisma.TaskCreateNestedManyWithoutEventInput
@@ -788,9 +884,11 @@ export type EventUncheckedCreateWithoutCreatedByInput = {
   observations?: string | null
   status?: $Enums.EventStatus
   clientId?: string | null
+  sourceEventId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
+  replicas?: Prisma.EventUncheckedCreateNestedManyWithoutSourceEventInput
   services?: Prisma.EventServiceUncheckedCreateNestedManyWithoutEventInput
   teams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutEventInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutEventInput
@@ -837,6 +935,7 @@ export type EventScalarWhereInput = {
   observations?: Prisma.StringNullableFilter<"Event"> | string | null
   status?: Prisma.EnumEventStatusFilter<"Event"> | $Enums.EventStatus
   clientId?: Prisma.StringNullableFilter<"Event"> | string | null
+  sourceEventId?: Prisma.StringNullableFilter<"Event"> | string | null
   createdById?: Prisma.StringFilter<"Event"> | string
   createdAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Event"> | Date | string
@@ -857,6 +956,8 @@ export type EventCreateWithoutClientInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   createdBy: Prisma.UserCreateNestedOneWithoutCreatedEventsInput
+  sourceEvent?: Prisma.EventCreateNestedOneWithoutReplicasInput
+  replicas?: Prisma.EventCreateNestedManyWithoutSourceEventInput
   services?: Prisma.EventServiceCreateNestedManyWithoutEventInput
   teams?: Prisma.EventTeamCreateNestedManyWithoutEventInput
   tasks?: Prisma.TaskCreateNestedManyWithoutEventInput
@@ -873,10 +974,12 @@ export type EventUncheckedCreateWithoutClientInput = {
   guestsCount: number
   observations?: string | null
   status?: $Enums.EventStatus
+  sourceEventId?: string | null
   createdById: string
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
+  replicas?: Prisma.EventUncheckedCreateNestedManyWithoutSourceEventInput
   services?: Prisma.EventServiceUncheckedCreateNestedManyWithoutEventInput
   teams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutEventInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutEventInput
@@ -909,6 +1012,180 @@ export type EventUpdateManyWithWhereWithoutClientInput = {
   data: Prisma.XOR<Prisma.EventUpdateManyMutationInput, Prisma.EventUncheckedUpdateManyWithoutClientInput>
 }
 
+export type EventCreateWithoutReplicasInput = {
+  id?: string
+  name: string
+  eventDate: Date | string
+  endDate?: Date | string | null
+  location: string
+  serviceType: $Enums.EventType
+  guestsCount: number
+  observations?: string | null
+  status?: $Enums.EventStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  createdBy: Prisma.UserCreateNestedOneWithoutCreatedEventsInput
+  client?: Prisma.ClientCreateNestedOneWithoutEventsInput
+  sourceEvent?: Prisma.EventCreateNestedOneWithoutReplicasInput
+  services?: Prisma.EventServiceCreateNestedManyWithoutEventInput
+  teams?: Prisma.EventTeamCreateNestedManyWithoutEventInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutEventInput
+  ruleApplications?: Prisma.RuleApplicationCreateNestedManyWithoutEventInput
+}
+
+export type EventUncheckedCreateWithoutReplicasInput = {
+  id?: string
+  name: string
+  eventDate: Date | string
+  endDate?: Date | string | null
+  location: string
+  serviceType: $Enums.EventType
+  guestsCount: number
+  observations?: string | null
+  status?: $Enums.EventStatus
+  clientId?: string | null
+  sourceEventId?: string | null
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  services?: Prisma.EventServiceUncheckedCreateNestedManyWithoutEventInput
+  teams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutEventInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutEventInput
+  ruleApplications?: Prisma.RuleApplicationUncheckedCreateNestedManyWithoutEventInput
+}
+
+export type EventCreateOrConnectWithoutReplicasInput = {
+  where: Prisma.EventWhereUniqueInput
+  create: Prisma.XOR<Prisma.EventCreateWithoutReplicasInput, Prisma.EventUncheckedCreateWithoutReplicasInput>
+}
+
+export type EventCreateWithoutSourceEventInput = {
+  id?: string
+  name: string
+  eventDate: Date | string
+  endDate?: Date | string | null
+  location: string
+  serviceType: $Enums.EventType
+  guestsCount: number
+  observations?: string | null
+  status?: $Enums.EventStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  createdBy: Prisma.UserCreateNestedOneWithoutCreatedEventsInput
+  client?: Prisma.ClientCreateNestedOneWithoutEventsInput
+  replicas?: Prisma.EventCreateNestedManyWithoutSourceEventInput
+  services?: Prisma.EventServiceCreateNestedManyWithoutEventInput
+  teams?: Prisma.EventTeamCreateNestedManyWithoutEventInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutEventInput
+  ruleApplications?: Prisma.RuleApplicationCreateNestedManyWithoutEventInput
+}
+
+export type EventUncheckedCreateWithoutSourceEventInput = {
+  id?: string
+  name: string
+  eventDate: Date | string
+  endDate?: Date | string | null
+  location: string
+  serviceType: $Enums.EventType
+  guestsCount: number
+  observations?: string | null
+  status?: $Enums.EventStatus
+  clientId?: string | null
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  replicas?: Prisma.EventUncheckedCreateNestedManyWithoutSourceEventInput
+  services?: Prisma.EventServiceUncheckedCreateNestedManyWithoutEventInput
+  teams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutEventInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutEventInput
+  ruleApplications?: Prisma.RuleApplicationUncheckedCreateNestedManyWithoutEventInput
+}
+
+export type EventCreateOrConnectWithoutSourceEventInput = {
+  where: Prisma.EventWhereUniqueInput
+  create: Prisma.XOR<Prisma.EventCreateWithoutSourceEventInput, Prisma.EventUncheckedCreateWithoutSourceEventInput>
+}
+
+export type EventCreateManySourceEventInputEnvelope = {
+  data: Prisma.EventCreateManySourceEventInput | Prisma.EventCreateManySourceEventInput[]
+  skipDuplicates?: boolean
+}
+
+export type EventUpsertWithoutReplicasInput = {
+  update: Prisma.XOR<Prisma.EventUpdateWithoutReplicasInput, Prisma.EventUncheckedUpdateWithoutReplicasInput>
+  create: Prisma.XOR<Prisma.EventCreateWithoutReplicasInput, Prisma.EventUncheckedCreateWithoutReplicasInput>
+  where?: Prisma.EventWhereInput
+}
+
+export type EventUpdateToOneWithWhereWithoutReplicasInput = {
+  where?: Prisma.EventWhereInput
+  data: Prisma.XOR<Prisma.EventUpdateWithoutReplicasInput, Prisma.EventUncheckedUpdateWithoutReplicasInput>
+}
+
+export type EventUpdateWithoutReplicasInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  location?: Prisma.StringFieldUpdateOperationsInput | string
+  serviceType?: Prisma.EnumEventTypeFieldUpdateOperationsInput | $Enums.EventType
+  guestsCount?: Prisma.IntFieldUpdateOperationsInput | number
+  observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedEventsNestedInput
+  client?: Prisma.ClientUpdateOneWithoutEventsNestedInput
+  sourceEvent?: Prisma.EventUpdateOneWithoutReplicasNestedInput
+  services?: Prisma.EventServiceUpdateManyWithoutEventNestedInput
+  teams?: Prisma.EventTeamUpdateManyWithoutEventNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutEventNestedInput
+  ruleApplications?: Prisma.RuleApplicationUpdateManyWithoutEventNestedInput
+}
+
+export type EventUncheckedUpdateWithoutReplicasInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  location?: Prisma.StringFieldUpdateOperationsInput | string
+  serviceType?: Prisma.EnumEventTypeFieldUpdateOperationsInput | $Enums.EventType
+  guestsCount?: Prisma.IntFieldUpdateOperationsInput | number
+  observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  services?: Prisma.EventServiceUncheckedUpdateManyWithoutEventNestedInput
+  teams?: Prisma.EventTeamUncheckedUpdateManyWithoutEventNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutEventNestedInput
+  ruleApplications?: Prisma.RuleApplicationUncheckedUpdateManyWithoutEventNestedInput
+}
+
+export type EventUpsertWithWhereUniqueWithoutSourceEventInput = {
+  where: Prisma.EventWhereUniqueInput
+  update: Prisma.XOR<Prisma.EventUpdateWithoutSourceEventInput, Prisma.EventUncheckedUpdateWithoutSourceEventInput>
+  create: Prisma.XOR<Prisma.EventCreateWithoutSourceEventInput, Prisma.EventUncheckedCreateWithoutSourceEventInput>
+}
+
+export type EventUpdateWithWhereUniqueWithoutSourceEventInput = {
+  where: Prisma.EventWhereUniqueInput
+  data: Prisma.XOR<Prisma.EventUpdateWithoutSourceEventInput, Prisma.EventUncheckedUpdateWithoutSourceEventInput>
+}
+
+export type EventUpdateManyWithWhereWithoutSourceEventInput = {
+  where: Prisma.EventScalarWhereInput
+  data: Prisma.XOR<Prisma.EventUpdateManyMutationInput, Prisma.EventUncheckedUpdateManyWithoutSourceEventInput>
+}
+
 export type EventCreateWithoutServicesInput = {
   id?: string
   name: string
@@ -924,6 +1201,8 @@ export type EventCreateWithoutServicesInput = {
   deletedAt?: Date | string | null
   createdBy: Prisma.UserCreateNestedOneWithoutCreatedEventsInput
   client?: Prisma.ClientCreateNestedOneWithoutEventsInput
+  sourceEvent?: Prisma.EventCreateNestedOneWithoutReplicasInput
+  replicas?: Prisma.EventCreateNestedManyWithoutSourceEventInput
   teams?: Prisma.EventTeamCreateNestedManyWithoutEventInput
   tasks?: Prisma.TaskCreateNestedManyWithoutEventInput
   ruleApplications?: Prisma.RuleApplicationCreateNestedManyWithoutEventInput
@@ -940,10 +1219,12 @@ export type EventUncheckedCreateWithoutServicesInput = {
   observations?: string | null
   status?: $Enums.EventStatus
   clientId?: string | null
+  sourceEventId?: string | null
   createdById: string
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
+  replicas?: Prisma.EventUncheckedCreateNestedManyWithoutSourceEventInput
   teams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutEventInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutEventInput
   ruleApplications?: Prisma.RuleApplicationUncheckedCreateNestedManyWithoutEventInput
@@ -980,6 +1261,8 @@ export type EventUpdateWithoutServicesInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedEventsNestedInput
   client?: Prisma.ClientUpdateOneWithoutEventsNestedInput
+  sourceEvent?: Prisma.EventUpdateOneWithoutReplicasNestedInput
+  replicas?: Prisma.EventUpdateManyWithoutSourceEventNestedInput
   teams?: Prisma.EventTeamUpdateManyWithoutEventNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutEventNestedInput
   ruleApplications?: Prisma.RuleApplicationUpdateManyWithoutEventNestedInput
@@ -996,10 +1279,12 @@ export type EventUncheckedUpdateWithoutServicesInput = {
   observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  replicas?: Prisma.EventUncheckedUpdateManyWithoutSourceEventNestedInput
   teams?: Prisma.EventTeamUncheckedUpdateManyWithoutEventNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutEventNestedInput
   ruleApplications?: Prisma.RuleApplicationUncheckedUpdateManyWithoutEventNestedInput
@@ -1020,6 +1305,8 @@ export type EventCreateWithoutTeamsInput = {
   deletedAt?: Date | string | null
   createdBy: Prisma.UserCreateNestedOneWithoutCreatedEventsInput
   client?: Prisma.ClientCreateNestedOneWithoutEventsInput
+  sourceEvent?: Prisma.EventCreateNestedOneWithoutReplicasInput
+  replicas?: Prisma.EventCreateNestedManyWithoutSourceEventInput
   services?: Prisma.EventServiceCreateNestedManyWithoutEventInput
   tasks?: Prisma.TaskCreateNestedManyWithoutEventInput
   ruleApplications?: Prisma.RuleApplicationCreateNestedManyWithoutEventInput
@@ -1036,10 +1323,12 @@ export type EventUncheckedCreateWithoutTeamsInput = {
   observations?: string | null
   status?: $Enums.EventStatus
   clientId?: string | null
+  sourceEventId?: string | null
   createdById: string
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
+  replicas?: Prisma.EventUncheckedCreateNestedManyWithoutSourceEventInput
   services?: Prisma.EventServiceUncheckedCreateNestedManyWithoutEventInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutEventInput
   ruleApplications?: Prisma.RuleApplicationUncheckedCreateNestedManyWithoutEventInput
@@ -1076,6 +1365,8 @@ export type EventUpdateWithoutTeamsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedEventsNestedInput
   client?: Prisma.ClientUpdateOneWithoutEventsNestedInput
+  sourceEvent?: Prisma.EventUpdateOneWithoutReplicasNestedInput
+  replicas?: Prisma.EventUpdateManyWithoutSourceEventNestedInput
   services?: Prisma.EventServiceUpdateManyWithoutEventNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutEventNestedInput
   ruleApplications?: Prisma.RuleApplicationUpdateManyWithoutEventNestedInput
@@ -1092,10 +1383,12 @@ export type EventUncheckedUpdateWithoutTeamsInput = {
   observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  replicas?: Prisma.EventUncheckedUpdateManyWithoutSourceEventNestedInput
   services?: Prisma.EventServiceUncheckedUpdateManyWithoutEventNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutEventNestedInput
   ruleApplications?: Prisma.RuleApplicationUncheckedUpdateManyWithoutEventNestedInput
@@ -1116,6 +1409,8 @@ export type EventCreateWithoutTasksInput = {
   deletedAt?: Date | string | null
   createdBy: Prisma.UserCreateNestedOneWithoutCreatedEventsInput
   client?: Prisma.ClientCreateNestedOneWithoutEventsInput
+  sourceEvent?: Prisma.EventCreateNestedOneWithoutReplicasInput
+  replicas?: Prisma.EventCreateNestedManyWithoutSourceEventInput
   services?: Prisma.EventServiceCreateNestedManyWithoutEventInput
   teams?: Prisma.EventTeamCreateNestedManyWithoutEventInput
   ruleApplications?: Prisma.RuleApplicationCreateNestedManyWithoutEventInput
@@ -1132,10 +1427,12 @@ export type EventUncheckedCreateWithoutTasksInput = {
   observations?: string | null
   status?: $Enums.EventStatus
   clientId?: string | null
+  sourceEventId?: string | null
   createdById: string
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
+  replicas?: Prisma.EventUncheckedCreateNestedManyWithoutSourceEventInput
   services?: Prisma.EventServiceUncheckedCreateNestedManyWithoutEventInput
   teams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutEventInput
   ruleApplications?: Prisma.RuleApplicationUncheckedCreateNestedManyWithoutEventInput
@@ -1172,6 +1469,8 @@ export type EventUpdateWithoutTasksInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedEventsNestedInput
   client?: Prisma.ClientUpdateOneWithoutEventsNestedInput
+  sourceEvent?: Prisma.EventUpdateOneWithoutReplicasNestedInput
+  replicas?: Prisma.EventUpdateManyWithoutSourceEventNestedInput
   services?: Prisma.EventServiceUpdateManyWithoutEventNestedInput
   teams?: Prisma.EventTeamUpdateManyWithoutEventNestedInput
   ruleApplications?: Prisma.RuleApplicationUpdateManyWithoutEventNestedInput
@@ -1188,10 +1487,12 @@ export type EventUncheckedUpdateWithoutTasksInput = {
   observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  replicas?: Prisma.EventUncheckedUpdateManyWithoutSourceEventNestedInput
   services?: Prisma.EventServiceUncheckedUpdateManyWithoutEventNestedInput
   teams?: Prisma.EventTeamUncheckedUpdateManyWithoutEventNestedInput
   ruleApplications?: Prisma.RuleApplicationUncheckedUpdateManyWithoutEventNestedInput
@@ -1212,6 +1513,8 @@ export type EventCreateWithoutRuleApplicationsInput = {
   deletedAt?: Date | string | null
   createdBy: Prisma.UserCreateNestedOneWithoutCreatedEventsInput
   client?: Prisma.ClientCreateNestedOneWithoutEventsInput
+  sourceEvent?: Prisma.EventCreateNestedOneWithoutReplicasInput
+  replicas?: Prisma.EventCreateNestedManyWithoutSourceEventInput
   services?: Prisma.EventServiceCreateNestedManyWithoutEventInput
   teams?: Prisma.EventTeamCreateNestedManyWithoutEventInput
   tasks?: Prisma.TaskCreateNestedManyWithoutEventInput
@@ -1228,10 +1531,12 @@ export type EventUncheckedCreateWithoutRuleApplicationsInput = {
   observations?: string | null
   status?: $Enums.EventStatus
   clientId?: string | null
+  sourceEventId?: string | null
   createdById: string
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
+  replicas?: Prisma.EventUncheckedCreateNestedManyWithoutSourceEventInput
   services?: Prisma.EventServiceUncheckedCreateNestedManyWithoutEventInput
   teams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutEventInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutEventInput
@@ -1268,6 +1573,8 @@ export type EventUpdateWithoutRuleApplicationsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedEventsNestedInput
   client?: Prisma.ClientUpdateOneWithoutEventsNestedInput
+  sourceEvent?: Prisma.EventUpdateOneWithoutReplicasNestedInput
+  replicas?: Prisma.EventUpdateManyWithoutSourceEventNestedInput
   services?: Prisma.EventServiceUpdateManyWithoutEventNestedInput
   teams?: Prisma.EventTeamUpdateManyWithoutEventNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutEventNestedInput
@@ -1284,10 +1591,12 @@ export type EventUncheckedUpdateWithoutRuleApplicationsInput = {
   observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  replicas?: Prisma.EventUncheckedUpdateManyWithoutSourceEventNestedInput
   services?: Prisma.EventServiceUncheckedUpdateManyWithoutEventNestedInput
   teams?: Prisma.EventTeamUncheckedUpdateManyWithoutEventNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutEventNestedInput
@@ -1304,6 +1613,7 @@ export type EventCreateManyCreatedByInput = {
   observations?: string | null
   status?: $Enums.EventStatus
   clientId?: string | null
+  sourceEventId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
@@ -1323,6 +1633,8 @@ export type EventUpdateWithoutCreatedByInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   client?: Prisma.ClientUpdateOneWithoutEventsNestedInput
+  sourceEvent?: Prisma.EventUpdateOneWithoutReplicasNestedInput
+  replicas?: Prisma.EventUpdateManyWithoutSourceEventNestedInput
   services?: Prisma.EventServiceUpdateManyWithoutEventNestedInput
   teams?: Prisma.EventTeamUpdateManyWithoutEventNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutEventNestedInput
@@ -1340,9 +1652,11 @@ export type EventUncheckedUpdateWithoutCreatedByInput = {
   observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  replicas?: Prisma.EventUncheckedUpdateManyWithoutSourceEventNestedInput
   services?: Prisma.EventServiceUncheckedUpdateManyWithoutEventNestedInput
   teams?: Prisma.EventTeamUncheckedUpdateManyWithoutEventNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutEventNestedInput
@@ -1360,6 +1674,7 @@ export type EventUncheckedUpdateManyWithoutCreatedByInput = {
   observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1375,6 +1690,7 @@ export type EventCreateManyClientInput = {
   guestsCount: number
   observations?: string | null
   status?: $Enums.EventStatus
+  sourceEventId?: string | null
   createdById: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1395,6 +1711,8 @@ export type EventUpdateWithoutClientInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedEventsNestedInput
+  sourceEvent?: Prisma.EventUpdateOneWithoutReplicasNestedInput
+  replicas?: Prisma.EventUpdateManyWithoutSourceEventNestedInput
   services?: Prisma.EventServiceUpdateManyWithoutEventNestedInput
   teams?: Prisma.EventTeamUpdateManyWithoutEventNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutEventNestedInput
@@ -1411,10 +1729,12 @@ export type EventUncheckedUpdateWithoutClientInput = {
   guestsCount?: Prisma.IntFieldUpdateOperationsInput | number
   observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+  sourceEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  replicas?: Prisma.EventUncheckedUpdateManyWithoutSourceEventNestedInput
   services?: Prisma.EventServiceUncheckedUpdateManyWithoutEventNestedInput
   teams?: Prisma.EventTeamUncheckedUpdateManyWithoutEventNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutEventNestedInput
@@ -1431,6 +1751,85 @@ export type EventUncheckedUpdateManyWithoutClientInput = {
   guestsCount?: Prisma.IntFieldUpdateOperationsInput | number
   observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+  sourceEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type EventCreateManySourceEventInput = {
+  id?: string
+  name: string
+  eventDate: Date | string
+  endDate?: Date | string | null
+  location: string
+  serviceType: $Enums.EventType
+  guestsCount: number
+  observations?: string | null
+  status?: $Enums.EventStatus
+  clientId?: string | null
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+}
+
+export type EventUpdateWithoutSourceEventInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  location?: Prisma.StringFieldUpdateOperationsInput | string
+  serviceType?: Prisma.EnumEventTypeFieldUpdateOperationsInput | $Enums.EventType
+  guestsCount?: Prisma.IntFieldUpdateOperationsInput | number
+  observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedEventsNestedInput
+  client?: Prisma.ClientUpdateOneWithoutEventsNestedInput
+  replicas?: Prisma.EventUpdateManyWithoutSourceEventNestedInput
+  services?: Prisma.EventServiceUpdateManyWithoutEventNestedInput
+  teams?: Prisma.EventTeamUpdateManyWithoutEventNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutEventNestedInput
+  ruleApplications?: Prisma.RuleApplicationUpdateManyWithoutEventNestedInput
+}
+
+export type EventUncheckedUpdateWithoutSourceEventInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  location?: Prisma.StringFieldUpdateOperationsInput | string
+  serviceType?: Prisma.EnumEventTypeFieldUpdateOperationsInput | $Enums.EventType
+  guestsCount?: Prisma.IntFieldUpdateOperationsInput | number
+  observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  replicas?: Prisma.EventUncheckedUpdateManyWithoutSourceEventNestedInput
+  services?: Prisma.EventServiceUncheckedUpdateManyWithoutEventNestedInput
+  teams?: Prisma.EventTeamUncheckedUpdateManyWithoutEventNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutEventNestedInput
+  ruleApplications?: Prisma.RuleApplicationUncheckedUpdateManyWithoutEventNestedInput
+}
+
+export type EventUncheckedUpdateManyWithoutSourceEventInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  location?: Prisma.StringFieldUpdateOperationsInput | string
+  serviceType?: Prisma.EnumEventTypeFieldUpdateOperationsInput | $Enums.EventType
+  guestsCount?: Prisma.IntFieldUpdateOperationsInput | number
+  observations?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1443,6 +1842,7 @@ export type EventUncheckedUpdateManyWithoutClientInput = {
  */
 
 export type EventCountOutputType = {
+  replicas: number
   services: number
   teams: number
   tasks: number
@@ -1450,6 +1850,7 @@ export type EventCountOutputType = {
 }
 
 export type EventCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  replicas?: boolean | EventCountOutputTypeCountReplicasArgs
   services?: boolean | EventCountOutputTypeCountServicesArgs
   teams?: boolean | EventCountOutputTypeCountTeamsArgs
   tasks?: boolean | EventCountOutputTypeCountTasksArgs
@@ -1464,6 +1865,13 @@ export type EventCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extens
    * Select specific fields to fetch from the EventCountOutputType
    */
   select?: Prisma.EventCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * EventCountOutputType without action
+ */
+export type EventCountOutputTypeCountReplicasArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.EventWhereInput
 }
 
 /**
@@ -1506,12 +1914,15 @@ export type EventSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   observations?: boolean
   status?: boolean
   clientId?: boolean
+  sourceEventId?: boolean
   createdById?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   deletedAt?: boolean
   createdBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   client?: boolean | Prisma.Event$clientArgs<ExtArgs>
+  sourceEvent?: boolean | Prisma.Event$sourceEventArgs<ExtArgs>
+  replicas?: boolean | Prisma.Event$replicasArgs<ExtArgs>
   services?: boolean | Prisma.Event$servicesArgs<ExtArgs>
   teams?: boolean | Prisma.Event$teamsArgs<ExtArgs>
   tasks?: boolean | Prisma.Event$tasksArgs<ExtArgs>
@@ -1532,16 +1943,19 @@ export type EventSelectScalar = {
   observations?: boolean
   status?: boolean
   clientId?: boolean
+  sourceEventId?: boolean
   createdById?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   deletedAt?: boolean
 }
 
-export type EventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "eventDate" | "endDate" | "location" | "serviceType" | "guestsCount" | "observations" | "status" | "clientId" | "createdById" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["event"]>
+export type EventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "eventDate" | "endDate" | "location" | "serviceType" | "guestsCount" | "observations" | "status" | "clientId" | "sourceEventId" | "createdById" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["event"]>
 export type EventInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   createdBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   client?: boolean | Prisma.Event$clientArgs<ExtArgs>
+  sourceEvent?: boolean | Prisma.Event$sourceEventArgs<ExtArgs>
+  replicas?: boolean | Prisma.Event$replicasArgs<ExtArgs>
   services?: boolean | Prisma.Event$servicesArgs<ExtArgs>
   teams?: boolean | Prisma.Event$teamsArgs<ExtArgs>
   tasks?: boolean | Prisma.Event$tasksArgs<ExtArgs>
@@ -1554,6 +1968,8 @@ export type $EventPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   objects: {
     createdBy: Prisma.$UserPayload<ExtArgs>
     client: Prisma.$ClientPayload<ExtArgs> | null
+    sourceEvent: Prisma.$EventPayload<ExtArgs> | null
+    replicas: Prisma.$EventPayload<ExtArgs>[]
     services: Prisma.$EventServicePayload<ExtArgs>[]
     teams: Prisma.$EventTeamPayload<ExtArgs>[]
     tasks: Prisma.$TaskPayload<ExtArgs>[]
@@ -1570,6 +1986,7 @@ export type $EventPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     observations: string | null
     status: $Enums.EventStatus
     clientId: string | null
+    sourceEventId: string | null
     createdById: string
     createdAt: Date
     updatedAt: Date
@@ -1916,6 +2333,8 @@ export interface Prisma__EventClient<T, Null = never, ExtArgs extends runtime.Ty
   readonly [Symbol.toStringTag]: "PrismaPromise"
   createdBy<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   client<T extends Prisma.Event$clientArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$clientArgs<ExtArgs>>): Prisma.Prisma__ClientClient<runtime.Types.Result.GetResult<Prisma.$ClientPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  sourceEvent<T extends Prisma.Event$sourceEventArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$sourceEventArgs<ExtArgs>>): Prisma.Prisma__EventClient<runtime.Types.Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  replicas<T extends Prisma.Event$replicasArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$replicasArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   services<T extends Prisma.Event$servicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$servicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EventServicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   teams<T extends Prisma.Event$teamsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$teamsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EventTeamPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   tasks<T extends Prisma.Event$tasksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$tasksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -1959,6 +2378,7 @@ export interface EventFieldRefs {
   readonly observations: Prisma.FieldRef<"Event", 'String'>
   readonly status: Prisma.FieldRef<"Event", 'EventStatus'>
   readonly clientId: Prisma.FieldRef<"Event", 'String'>
+  readonly sourceEventId: Prisma.FieldRef<"Event", 'String'>
   readonly createdById: Prisma.FieldRef<"Event", 'String'>
   readonly createdAt: Prisma.FieldRef<"Event", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Event", 'DateTime'>
@@ -2327,6 +2747,49 @@ export type Event$clientArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    */
   include?: Prisma.ClientInclude<ExtArgs> | null
   where?: Prisma.ClientWhereInput
+}
+
+/**
+ * Event.sourceEvent
+ */
+export type Event$sourceEventArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Event
+   */
+  select?: Prisma.EventSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Event
+   */
+  omit?: Prisma.EventOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.EventInclude<ExtArgs> | null
+  where?: Prisma.EventWhereInput
+}
+
+/**
+ * Event.replicas
+ */
+export type Event$replicasArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Event
+   */
+  select?: Prisma.EventSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Event
+   */
+  omit?: Prisma.EventOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.EventInclude<ExtArgs> | null
+  where?: Prisma.EventWhereInput
+  orderBy?: Prisma.EventOrderByWithRelationInput | Prisma.EventOrderByWithRelationInput[]
+  cursor?: Prisma.EventWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.EventScalarFieldEnum | Prisma.EventScalarFieldEnum[]
 }
 
 /**

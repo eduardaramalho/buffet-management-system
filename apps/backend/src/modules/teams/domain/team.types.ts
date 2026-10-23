@@ -92,6 +92,7 @@ export interface CollaboratorRepository {
 
 export type EventSchedulingRecord = {
   id: string;
+  name: string;
   eventDate: Date;
   endDate: Date | null;
   status: "PLANEJAMENTO" | "CONFIRMADO" | "EM_ANDAMENTO" | "CONCLUIDO" | "CANCELADO";
@@ -110,6 +111,12 @@ export type EventTeamAssignment = {
   assignedAt: Date;
   assignedById: string;
 };
+
+export type ScheduleWindow = { eventDate: Date; endDate: Date | null };
+
+export type TeamAvailability =
+  | { available: true }
+  | { available: false; reason: "NOT_FOUND" | "INACTIVE" | "SCHEDULE_CONFLICT"; conflictingEvent?: { id: string; name: string } };
 
 export interface EventTeamRepository {
   findEventById(id: string): Promise<EventSchedulingRecord | null>;

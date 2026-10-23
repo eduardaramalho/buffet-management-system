@@ -1,4 +1,11 @@
-export type AuditChanges = { name?: string; title?: string; after?: string | { name?: string; title?: string }; eventName?: string } | null;
+export type AuditChanges = {
+  name?: string;
+  title?: string;
+  after?: string | { name?: string; title?: string };
+  eventName?: string;
+  sourceEventName?: string;
+  replicaEventName?: string;
+} | null;
 
 /**
  * Converte o JSON persistido em audit_logs.changes (Prisma.JsonValue) para o formato lido
@@ -31,6 +38,10 @@ export function formatAuditActivityMessage({ action, entity, changes, subject }:
     ? `Evento '${fallbackSubject}' criado`
     : action === "TASK_STATUS_CHANGED"
       ? `Tarefa '${fallbackSubject}' marcada como ${typeof changes?.after === "string" ? changes.after : "atualizada"}`
+      : action === "EVENT_REPLICATED"
+        ? `Evento '${fallbackSubject}' criado a partir de '${changes?.sourceEventName ?? "outro evento"}'`
+      : action === "EVENT_USED_AS_TEMPLATE"
+        ? `Evento '${fallbackSubject}' usado como base para '${changes?.replicaEventName ?? "novo evento"}'`
       : action === "TEAM_AUTO_ASSIGNED"
         ? `Equipe atribuída automaticamente ao evento '${fallbackSubject}'`
         : action in CLIENT_ACTION_VERBS

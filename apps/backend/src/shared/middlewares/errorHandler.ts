@@ -4,6 +4,7 @@ import { AuthError } from "../../modules/auth/application/AuthService.js";
 import { UserManagementError } from "../../modules/auth/application/UserService.js";
 import { EventManagementError } from "../../modules/events/application/EventManagementService.js";
 import { ServiceCatalogError } from "../../modules/events/application/ServiceCatalogService.js";
+import { EventReplicationConflictError, EventReplicationError } from "../../modules/events/application/EventReplicationService.js";
 import { CollaboratorManagementError } from "../../modules/teams/application/CollaboratorService.js";
 import { EventTeamManagementError } from "../../modules/teams/application/EventTeamService.js";
 import { TeamManagementError } from "../../modules/teams/application/TeamService.js";
@@ -19,6 +20,10 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
   if (error instanceof AuthError) return response.status(400).json({ message: error.message });
   if (error instanceof UserManagementError) return response.status(403).json({ message: error.message });
   if (error instanceof EventManagementError || error instanceof ServiceCatalogError) return response.status(400).json({ message: error.message });
+  if (error instanceof EventReplicationConflictError) {
+    return response.status(409).json({ message: error.message, conflicts: error.conflicts });
+  }
+  if (error instanceof EventReplicationError) return response.status(400).json({ message: error.message });
   if (error instanceof EventTeamManagementError) {
     return response.status(error.message.startsWith("conflito") ? 409 : 400).json({ message: error.message });
   }

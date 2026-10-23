@@ -69,7 +69,7 @@ type Harness = {
   assign: jest.Mock<(eventId: string, teamId: string, actorId: string, tx: unknown) => Promise<unknown>>;
   audit: jest.Mock<(input: { action: string; entityId?: string; changes?: Record<string, unknown> }) => Promise<void>>;
   assertCanCreate: jest.Mock<(input: unknown) => Promise<void>>;
-  runInTransaction: jest.Mock;
+  runInTransaction: jest.Mock<(work: (tx: unknown) => Promise<unknown>) => Promise<unknown>>;
 };
 
 const buildHarness = (options: {
@@ -233,6 +233,15 @@ describe("EventReplicationService.preview", () => {
     expect(preview.draft.clientId).toBeNull();
     expect(preview.draft.services).toEqual([]);
     expect(preview.warnings).toEqual([{ code: "CLIENT_UNAVAILABLE" }, { code: "SERVICE_UNAVAILABLE", serviceId: "service-bar", name: "Bar" }]);
+  });
+
+  it("shows a team that no longer exists as unavailable instead of failing the preview", async () => {
+    const { service, deps } = buildHarness({ availability: { "team-bar": { available: false, reason: "NOT_FOUND" } } });
+    (deps.teams.findTeam as jest.Mock<(teamId: string) => Promise<unknown>>).mockImplementation(async (teamId: string) => (teamId === "team-bar" ? null : teams[teamId]));
+
+    const { teams: previewTeams } = await service.preview("source-1", { eventDate: NEW_DATE, endDate: null });
+
+    expect(previewTeams[1]).toEqual({ teamId: "team-bar", name: "Equipe removida", specialty: "", available: false, reason: "NOT_FOUND", conflictingEvent: null });
   });
 
   it("treats a legacy event without client as a client warning", async () => {

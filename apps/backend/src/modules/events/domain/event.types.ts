@@ -45,7 +45,15 @@ export type EventRecord = {
   // Null only for events created before the clients module (expand/contract migration, ADR 0005).
   clientId: string | null;
   client: EventClientSummary | null;
+  // RF25 lineage. sourceEventId comes with every read; sourceEvent and replicas only with the detail
+  // read (findDetailById), so lists and audit snapshots stay light.
+  sourceEventId?: string | null;
+  sourceEvent?: EventLineageSource | null;
+  replicas?: EventReplicaSummary[];
 };
+
+export type EventLineageSource = { id: string; name: string; eventDate: Date; deletedAt: Date | null };
+export type EventReplicaSummary = { id: string; name: string; eventDate: Date; status: EventStatus };
 
 export type CreateEventInput = {
   name: string;
@@ -80,6 +88,8 @@ export type AttachServiceInput = {
 export interface EventRepository {
   create(input: CreateEventInput & { status: "PLANEJAMENTO" }): Promise<EventRecord>;
   findById(id: string): Promise<EventRecord | null>;
+  // Same as findById plus the RF25 lineage (source event and replicas), for the Event Hub.
+  findDetailById(id: string): Promise<EventRecord | null>;
   list(filter: EventListFilter): Promise<EventRecord[]>;
   update(id: string, input: UpdateEventInput): Promise<EventRecord>;
   softDelete(id: string): Promise<EventRecord>;

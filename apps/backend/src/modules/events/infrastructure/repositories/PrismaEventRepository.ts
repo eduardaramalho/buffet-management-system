@@ -1,4 +1,6 @@
 import type { PrismaClient } from "../../../../generated/client.js";
+import type { TransactionClient } from "../../../../shared/domain/transaction.types.js";
+import type { CreateReplicaInput, ReplicationEventStore } from "../../domain/eventReplication.types.js";
 import type {
   AttachServiceInput,
   CreateEventInput,
@@ -13,7 +15,14 @@ const eventInclude = {
   client: { select: { id: true, name: true, email: true, phone: true, deletedAt: true } },
 } as const;
 
-export class PrismaEventRepository implements EventRepository {
+// Detail read only: the lineage (RF25) would add two joins per row to the list query.
+const eventDetailInclude = {
+  ...eventInclude,
+  sourceEvent: { select: { id: true, name: true, eventDate: true, deletedAt: true } },
+  replicas: { where: { deletedAt: null }, select: { id: true, name: true, eventDate: true, status: true }, orderBy: { createdAt: "asc" } },
+} as const;
+
+export class PrismaEventRepository implements EventRepository, ReplicationEventStore {
   constructor(private readonly prisma: PrismaClient) {}
 
   create(input: CreateEventInput & { status: "PLANEJAMENTO" }) {
@@ -22,6 +31,20 @@ export class PrismaEventRepository implements EventRepository {
 
   findById(id: string) {
     return this.prisma.event.findFirst({ where: { id, deletedAt: null }, include: eventInclude }) as Promise<EventRecord | null>;
+  }
+
+  findDetailById(id: string) {
+    return this.prisma.event.findFirst({ where: { id, deletedAt: null }, include: eventDetailInclude }) as Promise<EventRecord | null>;
+  }
+
+  // Event and contracted services in a single nested insert, inside the replication transaction.
+  createReplica(input: CreateReplicaInput, tx: TransactionClient) {
+    const client = tx as PrismaClient;
+    const { services, ...event } = input;
+    return client.event.create({
+      data: { ...event, status: "PLANEJAMENTO", services: { create: services } },
+      include: eventInclude,
+    }) as Promise<EventRecord>;
   }
 
   list(filter: EventListFilter) {

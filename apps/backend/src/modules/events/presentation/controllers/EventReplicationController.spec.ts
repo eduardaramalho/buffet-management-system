@@ -26,7 +26,7 @@ const replicateBody = {
 };
 
 describe("EventReplicationController (RF25)", () => {
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => { jest.restoreAllMocks(); });
 
   it("protects both routes with the events:replicate permission (decision P3)", async () => {
     const hasPermission = jest.spyOn(authService, "hasPermission").mockResolvedValue(false);
