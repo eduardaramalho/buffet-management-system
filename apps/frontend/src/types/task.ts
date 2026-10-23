@@ -16,6 +16,8 @@ export type Task = {
   assignedTeamId: string | null
   assignedAt?: string | null
   sourceRuleId: string | null
+  // RF25: manual task of the source event this one was copied from.
+  sourceTaskId?: string | null
   createdAt: string
   updatedAt: string
   deletedAt: string | null

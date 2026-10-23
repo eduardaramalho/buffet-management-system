@@ -15,7 +15,16 @@ vi.mock('../api/eventsApi', () => ({ getEvent: vi.fn(), getEventHistory: vi.fn()
 vi.mock('../api/tasksApi', () => ({ listTasks: vi.fn() }))
 vi.mock('../api/teamsApi', () => ({ listTeams: vi.fn(), listTeamsByEvent: vi.fn() }))
 vi.mock('../api/rulesApi', () => ({ applyEventRules: vi.fn(), getEventRuleMatches: vi.fn(), listEventRuleApplications: vi.fn() }))
-vi.mock('../contexts/useAuth', () => ({ useAuth: () => ({ user: { roles: [{ permissions: ['events:read', 'events:update', 'rules:apply'] }] } }) }))
+const auth = vi.hoisted(() => ({ permissions: ['events:read', 'events:update', 'rules:apply'] }))
+vi.mock('../contexts/useAuth', () => ({ useAuth: () => ({ user: { roles: [{ permissions: auth.permissions }] } }) }))
+// The dialog has its own tests; here only its contract with the page matters (open, close, hand over the replica).
+vi.mock('../components/ReplicateEventDialog', () => ({
+  ReplicateEventDialog: ({ source, onClose, onReplicated }: { source: Event; onClose: () => void; onReplicated: (replica: Event) => void }) => <div role="dialog" aria-label="Replicar evento">
+    <span>Base: {source.name}</span>
+    <button type="button" onClick={onClose}>Fechar diálogo</button>
+    <button type="button" onClick={() => onReplicated({ ...source, id: 'replica-1', name: 'Casamento Bruna' })}>Simular réplica</button>
+  </div>,
+}))
 
 const event = (status: Event['status'] = 'CONFIRMADO'): Event => ({
   id: 'event-1', name: 'Casamento Ana', eventDate: '2026-11-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO', guestsCount: 100,
@@ -38,7 +47,10 @@ const mockOtherBlocks = () => {
 const renderPage = () => render(<MemoryRouter initialEntries={['/events/event-1']}><Routes><Route path="/events/:id" element={<EventDetailsPage />} /></Routes></MemoryRouter>)
 
 describe('EventDetailsPage', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    auth.permissions = ['events:read', 'events:update', 'rules:apply']
+  })
 
   it('renders independent event blocks and the next status action', async () => {
     vi.mocked(getEvent).mockResolvedValue(event())
@@ -403,5 +415,115 @@ describe('EventDetailsPage: estados da Central do evento', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Eventos' }))
 
     expect(await screen.findByText('Lista de eventos')).toBeInTheDocument()
+  })
+
+  describe('replicação (RF25)', () => {
+    beforeEach(() => { auth.permissions = ['events:read', 'events:update', 'rules:apply'] })
+    const task = (overrides: Partial<Task> = {}): Task => ({
+      id: 'task-1', eventId: 'event-1', title: 'Confirmar flores', description: null, dueDate: null, status: 'PENDENTE', assignedTeamId: 'team-1',
+      sourceRuleId: null, createdAt: '', updatedAt: '', deletedAt: null, ...overrides,
+    })
+
+    it('oferece "Replicar evento" só com a permissão events:replicate', async () => {
+      vi.mocked(getEvent).mockResolvedValue(event('CONCLUIDO'))
+      vi.mocked(listEventRuleApplications).mockResolvedValue([])
+      mockOtherBlocks()
+      renderPage()
+
+      expect(await screen.findByText('Casamento Ana')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Replicar evento' })).not.toBeInTheDocument()
+    })
+
+    it('abre o diálogo com o evento atual como base e fecha sem criar nada', async () => {
+      auth.permissions = [...auth.permissions, 'events:replicate']
+      vi.mocked(getEvent).mockResolvedValue(event('CONCLUIDO'))
+      vi.mocked(listEventRuleApplications).mockResolvedValue([])
+      mockOtherBlocks()
+      renderPage()
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Replicar evento' }))
+      expect(screen.getByRole('dialog', { name: 'Replicar evento' })).toHaveTextContent('Base: Casamento Ana')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Fechar diálogo' }))
+      expect(screen.queryByRole('dialog', { name: 'Replicar evento' })).not.toBeInTheDocument()
+    })
+
+    it('leva para a Central do novo evento depois de replicar', async () => {
+      auth.permissions = [...auth.permissions, 'events:replicate']
+      vi.mocked(getEvent).mockResolvedValue(event('CONCLUIDO'))
+      vi.mocked(listEventRuleApplications).mockResolvedValue([])
+      mockOtherBlocks()
+      render(<MemoryRouter initialEntries={['/events/event-1']}><Routes><Route path="/events/event-1" element={<EventDetailsPage />} /><Route path="/events/replica-1" element={<p>Central da réplica</p>} /></Routes></MemoryRouter>)
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Replicar evento' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Simular réplica' }))
+
+      expect(await screen.findByText('Central da réplica')).toBeInTheDocument()
+    })
+
+    it('mostra de qual evento este foi replicado, com link, e os eventos criados a partir dele', async () => {
+      vi.mocked(getEvent).mockResolvedValue({
+        ...event('PLANEJAMENTO'),
+        sourceEventId: 'source-1',
+        sourceEvent: { id: 'source-1', name: 'Casamento Alice', eventDate: '2026-06-20T18:00:00.000Z', deletedAt: null },
+        replicas: [{ id: 'replica-2', name: 'Casamento Clara', eventDate: '2027-02-10T18:00:00.000Z', status: 'PLANEJAMENTO' }],
+      })
+      vi.mocked(getEventRuleMatches).mockResolvedValue([])
+      mockOtherBlocks()
+      renderPage()
+
+      const sourceLink = await screen.findByRole('link', { name: 'Casamento Alice' })
+      expect(sourceLink).toHaveAttribute('href', '/events/source-1')
+      expect(screen.getByText(/Replicado de/)).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Eventos criados a partir deste' })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Casamento Clara' })).toHaveAttribute('href', '/events/replica-2')
+    })
+
+    it('indica a origem excluída sem link e omite o painel quando não há réplicas', async () => {
+      vi.mocked(getEvent).mockResolvedValue({
+        ...event('PLANEJAMENTO'),
+        sourceEventId: 'source-1',
+        sourceEvent: { id: 'source-1', name: 'Casamento Alice', eventDate: '2026-06-20T18:00:00.000Z', deletedAt: '2026-09-01T00:00:00.000Z' },
+        replicas: [],
+      })
+      vi.mocked(getEventRuleMatches).mockResolvedValue([])
+      mockOtherBlocks()
+      renderPage()
+
+      expect(await screen.findByText('Casamento Alice (excluído)')).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'Casamento Alice' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Eventos criados a partir deste' })).not.toBeInTheDocument()
+    })
+
+    it('mantém a origem visível depois de confirmar o evento (o PUT não devolve a linhagem)', async () => {
+      const replica = {
+        ...event('PLANEJAMENTO'),
+        sourceEventId: 'source-1',
+        sourceEvent: { id: 'source-1', name: 'Casamento Alice', eventDate: '2026-06-20T18:00:00.000Z', deletedAt: null },
+        replicas: [],
+      }
+      vi.mocked(getEvent).mockResolvedValue(replica)
+      vi.mocked(getEventRuleMatches).mockResolvedValue([])
+      vi.mocked(listEventRuleApplications).mockResolvedValue([])
+      vi.mocked(updateEvent).mockResolvedValue(event('CONFIRMADO'))
+      mockOtherBlocks()
+      renderPage()
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirmar' }))
+
+      expect(await screen.findByRole('button', { name: 'Iniciar evento' })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Casamento Alice' })).toBeInTheDocument()
+    })
+
+    it('marca as tarefas copiadas do evento de origem', async () => {
+      vi.mocked(getEvent).mockResolvedValue(event('PLANEJAMENTO'))
+      vi.mocked(getEventRuleMatches).mockResolvedValue([])
+      mockOtherBlocks()
+      vi.mocked(listTasks).mockResolvedValue([task({ sourceTaskId: 'task-0' }), task({ id: 'task-2', title: 'Nova tarefa' })])
+      renderPage()
+
+      expect(await screen.findByText('Confirmar flores')).toBeInTheDocument()
+      expect(screen.getAllByText('Copiada do evento de origem')).toHaveLength(1)
+    })
   })
 })

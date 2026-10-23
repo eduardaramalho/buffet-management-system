@@ -10,11 +10,13 @@ import { Badge } from '../components/Badge'
 import { Icon } from '../components/Icon'
 import { Notice } from '../components/Notice'
 import { RefreshIndicator } from '../components/RefreshIndicator'
+import { ReplicateEventDialog } from '../components/ReplicateEventDialog'
 import { usePolling } from '../hooks/usePolling'
 import type { Event, EventStatus } from '../types/event'
 import type { MatchedRule } from '../types/rule'
 import type { Task } from '../types/task'
 import type { Team } from '../types/team'
+import { EVENT_STATUS_LABELS } from '../utils/labels'
 
 const STATUS_STEPS: Array<{ status: Exclude<EventStatus, 'CANCELADO'>; label: string }> = [
   { status: 'PLANEJAMENTO', label: 'Planejamento' },
@@ -57,6 +59,7 @@ export function EventDetailsPage() {
   const [actionError, setActionError] = useState('')
   const [rulesAction, setRulesAction] = useState(false)
   const [rulesResult, setRulesResult] = useState('')
+  const [replicateOpen, setReplicateOpen] = useState(false)
 
   const loadEvent = async (silent = false) => {
     if (!silent) setEventState(loading())
@@ -122,7 +125,8 @@ export function EventDetailsPage() {
     setActionError('')
     try {
       const updated = await updateEvent(event.id, { status, ...(reason ? { reason } : {}) })
-      setEventState({ status: 'ready', data: updated })
+      // The PUT answer has no RF25 lineage (only the detail read has it) and a status change never alters it.
+      setEventState({ status: 'ready', data: { ...updated, sourceEvent: event.sourceEvent, replicas: event.replicas } })
       setCancelOpen(false); setMenuOpen(false); setCancelReason('')
       if (status === 'CONFIRMADO') await Promise.allSettled([loadTasks(), loadTeams(), loadRules(updated.status)])
     } catch (cause) { setActionError(getApiErrorMessage(cause, 'Não foi possível atualizar o evento')) }
@@ -152,18 +156,20 @@ export function EventDetailsPage() {
   if (!event) return null
 
   return <main className="app-shell event-details-page">
-    <header className="event-details-header"><div><button type="button" className="link-button back-link" onClick={() => navigate('/events')}><Icon name="chevron-left" />Eventos</button><span className="eyebrow">CENTRAL DO EVENTO</span><h1>{event.name}</h1><p className="event-meta">{formatDate(event.eventDate)} · {event.location} · {event.guestsCount} convidados</p></div><div className="event-header-actions"><RefreshIndicator lastUpdatedAt={lastUpdatedAt} refreshing={refreshing} onRefresh={() => void refresh()} />{hasPermission('events:update') && next && <button type="button" className="secondary" onClick={() => void changeStatus(next.status)}>{next.label}</button>}<div className="more-actions"><button type="button" className="secondary outline" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>Mais ações <Icon name="chevron-down" /></button>{menuOpen && <div className="action-menu"><button type="button" onClick={() => setCancelOpen(true)}>Cancelar evento</button></div>}</div></div></header>
+    <header className="event-details-header"><div><button type="button" className="link-button back-link" onClick={() => navigate('/events')}><Icon name="chevron-left" />Eventos</button><span className="eyebrow">CENTRAL DO EVENTO</span><h1>{event.name}</h1><p className="event-meta">{formatDate(event.eventDate)} · {event.location} · {event.guestsCount} convidados</p>{event.sourceEvent && <p className="event-lineage"><Icon name="copy" />Replicado de {event.sourceEvent.deletedAt ? <span>{event.sourceEvent.name} (excluído)</span> : <Link to={`/events/${event.sourceEvent.id}`}>{event.sourceEvent.name}</Link>}</p>}</div><div className="event-header-actions"><RefreshIndicator lastUpdatedAt={lastUpdatedAt} refreshing={refreshing} onRefresh={() => void refresh()} />{hasPermission('events:update') && next && <button type="button" className="secondary" onClick={() => void changeStatus(next.status)}>{next.label}</button>}{hasPermission('events:replicate') && <button type="button" className="secondary outline" onClick={() => setReplicateOpen(true)}><Icon name="copy" /> Replicar evento</button>}<div className="more-actions"><button type="button" className="secondary outline" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>Mais ações <Icon name="chevron-down" /></button>{menuOpen && <div className="action-menu"><button type="button" onClick={() => setCancelOpen(true)}>Cancelar evento</button></div>}</div></div></header>
     <div className="event-status-steps" aria-label="Etapas do evento">{STATUS_STEPS.map((step, index) => <div key={step.status} className={`event-step ${step.status === event.status ? 'current' : ''} ${STATUS_STEPS.findIndex((item) => item.status === event.status) > index ? 'complete' : ''}`}><span>{index + 1}</span>{step.label}</div>)}</div>
     {actionError && <Notice message={actionError} error />}
+    {replicateOpen && <ReplicateEventDialog source={event} onClose={() => setReplicateOpen(false)} onReplicated={(replica) => { setReplicateOpen(false); navigate(`/events/${replica.id}`) }} />}
     {cancelOpen && <section className="cancel-panel"><h2>Cancelar evento</h2><label>Motivo do cancelamento<textarea aria-label="Motivo do cancelamento" value={cancelReason} onChange={(changeEvent) => setCancelReason(changeEvent.target.value)} /></label><div className="form-actions"><button type="button" className="link-button" onClick={() => setCancelOpen(false)}>Voltar</button><button type="button" className="danger-button" onClick={cancel}>Confirmar cancelamento</button></div></section>}
     {openUnassigned.length > 0 && <section className="event-alert" role="alert"><Icon name="alert" /><div><strong>Há tarefas sem equipe alocada</strong><span>{openUnassigned.length} tarefa{openUnassigned.length === 1 ? '' : 's'} precisam de atenção.</span></div><button type="button" onClick={() => document.getElementById('event-teams')?.scrollIntoView({ behavior: 'smooth' })}>Alocar equipe</button></section>}
     <div className="event-details-grid">
       <div className="event-details-main">
         {teamsState.status !== 'hidden' && <section className="event-panel" id="event-teams"><div className="panel-heading"><h2>Equipes designadas</h2><Link className="panel-link" to="/teams">Alocar equipe</Link></div>{teamsState.status === 'error' && <BlockError message={teamsState.message ?? 'Não foi possível carregar equipes'} retry={() => void loadTeams()} />}{teamsState.status === 'ready' && (teamsState.data?.length ? <div className="team-list">{teamsState.data.map(({ team, assignedAt }) => <div className="team-row" key={team.id}><span className="team-avatar"><Icon name="users" /></span><div><strong>{team.name}</strong><small>{team.specialty} · atribuída em {formatShortDate(assignedAt)}</small></div><Badge tone={team.status === 'ATIVA' ? 'active' : 'inactive'}>{team.status === 'ATIVA' ? 'Ativa' : 'Inativa'}</Badge></div>)}</div> : <p className="empty-state">Nenhuma equipe designada.</p>)}</section>}
-        {tasksState.status !== 'hidden' && <section className="event-panel"><div className="panel-heading"><h2>Tarefas do evento</h2><Link className="panel-link" to="/tasks">Ver no quadro</Link></div>{tasksState.status === 'error' && <BlockError message={tasksState.message ?? 'Não foi possível carregar tarefas'} retry={() => void loadTasks()} />}{tasksState.status === 'ready' && <><div className="progress-summary"><strong>{completedTasks} de {progressTasks.length}</strong><span>tarefas concluídas</span><div className="progress-track"><span style={{ width: `${progressTasks.length ? completedTasks / progressTasks.length * 100 : 0}%` }} /></div></div><div className="task-list">{tasks.map((task) => <div className="event-task-row" key={task.id}><span className={`task-status-dot ${task.status.toLowerCase()}`}><Icon name={task.status === 'CONCLUIDA' ? 'check' : 'tasks'} /></span><div><strong>{task.title}</strong><small>{task.dueDate ? `Prazo ${formatShortDate(task.dueDate)}` : 'Sem prazo'}</small></div><Badge tone={task.status === 'CONCLUIDA' ? 'active' : task.status === 'CANCELADA' ? 'inactive' : 'viewer'}>{task.status === 'CONCLUIDA' ? 'Concluída' : task.status === 'EM_ANDAMENTO' ? 'Em andamento' : task.status === 'CANCELADA' ? 'Cancelada' : 'Pendente'}</Badge></div>)}</div></>}</section>}
+        {tasksState.status !== 'hidden' && <section className="event-panel"><div className="panel-heading"><h2>Tarefas do evento</h2><Link className="panel-link" to="/tasks">Ver no quadro</Link></div>{tasksState.status === 'error' && <BlockError message={tasksState.message ?? 'Não foi possível carregar tarefas'} retry={() => void loadTasks()} />}{tasksState.status === 'ready' && <><div className="progress-summary"><strong>{completedTasks} de {progressTasks.length}</strong><span>tarefas concluídas</span><div className="progress-track"><span style={{ width: `${progressTasks.length ? completedTasks / progressTasks.length * 100 : 0}%` }} /></div></div><div className="task-list">{tasks.map((task) => <div className="event-task-row" key={task.id}><span className={`task-status-dot ${task.status.toLowerCase()}`}><Icon name={task.status === 'CONCLUIDA' ? 'check' : 'tasks'} /></span><div><strong>{task.title}</strong><small>{task.dueDate ? `Prazo ${formatShortDate(task.dueDate)}` : 'Sem prazo'}</small>{task.sourceTaskId && <small className="copied-task">Copiada do evento de origem</small>}</div><Badge tone={task.status === 'CONCLUIDA' ? 'active' : task.status === 'CANCELADA' ? 'inactive' : 'viewer'}>{task.status === 'CONCLUIDA' ? 'Concluída' : task.status === 'EM_ANDAMENTO' ? 'Em andamento' : task.status === 'CANCELADA' ? 'Cancelada' : 'Pendente'}</Badge></div>)}</div></>}</section>}
       </div>
       <div className="event-details-side">
         <ClientPanel client={event.client} />
+        {event.replicas && event.replicas.length > 0 && <ReplicasPanel replicas={event.replicas} />}
         {rulesState.status !== 'hidden' && <section className="event-panel"><div className="panel-heading"><h2>{event.status === 'PLANEJAMENTO' ? 'Motor de regras' : 'Regras aplicadas'}</h2>{event.status !== 'PLANEJAMENTO' && hasPermission('rules:apply') && <button type="button" className="panel-link button-link" onClick={() => void reapplyRules()} disabled={rulesAction}><Icon name="bolt" />{rulesAction ? 'Reaplicando...' : 'Reaplicar'}</button>}</div>{rulesResult && <p className="alert">{rulesResult}</p>}{rulesState.status === 'error' && <BlockError message={rulesState.message ?? 'Não foi possível carregar regras'} retry={() => void loadRules(event.status)} />}{rulesState.status === 'ready' && rulesState.data?.kind === 'matches' && <RuleMatches data={rulesState.data.items} />}{rulesState.status === 'ready' && rulesState.data?.kind === 'applications' && <AppliedRules data={rulesState.data.items} />}</section>}
         {historyState.status !== 'hidden' && <section className="event-panel"><div className="panel-heading"><h2>Histórico</h2></div>{historyState.status === 'error' && <BlockError message={historyState.message ?? 'Não foi possível carregar histórico'} retry={() => void loadHistory()} />}{historyState.status === 'ready' && (historyState.data?.length ? <ul className="event-history-list">{historyState.data.map((item) => <li key={item.id}><span /><div><strong>{item.message}</strong><small>{item.actorName ?? 'Sistema'} · {formatDate(item.createdAt)}</small></div></li>)}</ul> : <p className="empty-state">Nenhum registro no histórico.</p>)}</section>}
       </div>
@@ -176,6 +182,11 @@ function ClientPanel({ client }: { client: Event['client'] }) {
   return <section className="event-panel"><div className="panel-heading"><h2>Cliente</h2></div>{client
     ? <div className="team-row"><span className="team-avatar"><Icon name="contact" /></span><div><strong>{client.name}</strong>{client.email && <small>{client.email}</small>}{client.phone && <small>{client.phone}</small>}{!client.email && !client.phone && <small>Sem contato cadastrado</small>}</div>{client.deletedAt && <Badge tone="inactive">Cliente inativo</Badge>}</div>
     : <p className="empty-state">Nenhum cliente vinculado. Edite o evento para vincular um cliente.</p>}</section>
+}
+
+// RF25: events created using this one as the base (lineage kept by Event.sourceEventId).
+function ReplicasPanel({ replicas }: { replicas: NonNullable<Event['replicas']> }) {
+  return <section className="event-panel"><div className="panel-heading"><h2>Eventos criados a partir deste</h2></div><ul className="applied-rule-list">{replicas.map((replica) => <li key={replica.id}><Icon name="copy" /><div><Link to={`/events/${replica.id}`}>{replica.name}</Link><small>{formatShortDate(replica.eventDate)} · {EVENT_STATUS_LABELS[replica.status]}</small></div></li>)}</ul></section>
 }
 
 function RuleMatches({ data }: { data: MatchedRule[] }) {

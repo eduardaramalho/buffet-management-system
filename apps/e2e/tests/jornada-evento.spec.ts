@@ -12,7 +12,7 @@ import { login, logout, navigateTo, selectWhenLoaded } from '../support/ui'
  * Erros de JavaScript não tratados (a "tela branca") são coletados durante toda a jornada e
  * verificados ao final de cada passo: o backend pode ter respondido certo e a interface ter quebrado.
  */
-test.describe.serial('Jornada do evento: cadastro → regras → confirmação → execução → conclusão → relatórios', () => {
+test.describe.serial('Jornada do evento: cadastro → regras → confirmação → execução → conclusão → replicação → relatórios', () => {
   let page: Page
   let admin: ApiClient
   const pageErrors: string[] = []
@@ -241,14 +241,63 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect.poll(async () => (await findEvent(data.event.name)).status).toBe('CONCLUIDO')
   })
 
-  test('12. dashboard do gestor', async () => {
+  test('12. replicação do evento concluído como base de um novo evento (RF25)', async () => {
+    const { replica } = data
+    await openEventHub(data.event.name)
+    await page.getByRole('button', { name: 'Replicar evento' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Replicar evento' })
+
+    // Passo 1: dados copiados e editáveis; nome e data sempre informados de novo.
+    await expect(dialog.getByLabel('Local')).toHaveValue(data.event.location)
+    await expect(dialog.getByLabel('Nome do evento')).toHaveValue('')
+    await expect(dialog.getByLabel('Data do evento')).toHaveValue('')
+    await expect(dialog.getByRole('checkbox', { name: data.service })).toBeChecked()
+    await selectWhenLoaded(dialog.getByLabel('Cliente'), data.client.name)
+    await dialog.getByLabel('Nome do evento').fill(replica.name)
+    await dialog.getByLabel('Data do evento').fill(toDateTimeLocal(replica.date))
+    await dialog.getByLabel('Número de convidados').fill(String(replica.guests))
+    await dialog.getByRole('button', { name: 'Revisar itens copiados' }).click()
+
+    // Passo 2: atenção ao que foi copiado. Só a tarefa manual aparece; as da regra voltam na confirmação.
+    await expect(dialog.getByRole('note')).toContainText(`Confira os itens copiados de '${data.event.name}'`)
+    await expect(dialog.getByLabel(`Copiar tarefa ${data.manualTask.title}`)).toBeChecked()
+    for (const task of data.rule.tasks) await expect(dialog.getByLabel(`Copiar tarefa ${task.title}`)).toHaveCount(0)
+    await expect(dialog.getByLabel(`Copiar equipe ${data.kitchenTeam.name}`)).toBeChecked()
+    await dialog.getByRole('button', { name: 'Criar evento' }).click()
+    await expect(dialog).toBeHidden()
+
+    // A Central do novo evento abre já mostrando a origem e o que veio dela.
+    await expect(page.getByRole('heading', { level: 1, name: replica.name })).toBeVisible()
+    await expect(currentStep()).toContainText('Planejamento')
+    await expect(page.locator('.event-lineage').getByRole('link', { name: data.event.name })).toBeVisible()
+    await expect(page.locator('#event-teams').getByText(data.kitchenTeam.name)).toBeVisible()
+    await expect(page.getByText(data.manualTask.title, { exact: true })).toBeVisible()
+    await expect(page.getByText('Copiada do evento de origem')).toBeVisible()
+
+    const created = await findEvent(replica.name)
+    const copiedTasks = await admin.json<Array<{ title: string; status: string; sourceTaskId: string | null }>>(admin.get(`/tasks?eventId=${created.id}`))
+    expect(copiedTasks).toEqual([expect.objectContaining({ title: data.manualTask.title, status: 'PENDENTE', sourceTaskId: expect.any(String) })])
+
+    // Confirmar a réplica roda o motor de regras normalmente e gera as tarefas da regra.
+    await page.getByRole('button', { name: 'Confirmar', exact: true }).click()
+    await expect(currentStep()).toContainText('Confirmado')
+    for (const task of data.rule.tasks) await expect(page.getByText(task.title, { exact: true })).toBeVisible()
+
+    // A origem passa a listar o evento criado a partir dela.
+    await page.locator('.event-lineage').getByRole('link', { name: data.event.name }).click()
+    await expect(page.getByRole('heading', { level: 1, name: data.event.name })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Eventos criados a partir deste' })).toBeVisible()
+    await expect(page.getByRole('link', { name: replica.name })).toBeVisible()
+  })
+
+  test('13. dashboard do gestor', async () => {
     await navigateTo(page, 'Dashboard', 'Dashboard')
     await expect(page.getByRole('heading', { name: 'Tarefas por Status' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Atividades recentes' })).toBeVisible()
     await expect(page.getByRole('alert')).toHaveCount(0)
   })
 
-  test('13. relatórios gerenciais e exportações', async () => {
+  test('14. relatórios gerenciais e exportações', async () => {
     await navigateTo(page, 'Relatórios', 'Relatórios')
     const period = page.getByRole('region', { name: 'Período' })
     await period.getByLabel('Data inicial').fill(toDateInput(daysFromNow(-1)))
@@ -274,7 +323,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(panel.getByRole('alert')).toHaveCount(0)
   })
 
-  test('14. controle de acesso: gestor vê apenas o que seu papel permite', async () => {
+  test('15. controle de acesso: gestor vê apenas o que seu papel permite', async () => {
     await logout(page)
     await login(page, data.manager.email, data.manager.password)
     const menu = page.getByRole('navigation')
@@ -289,10 +338,12 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expectStatus(await manager.get('/events'), 403)
     await expectStatus(await manager.post('/rules', { name: 'Regra indevida' }), 403)
     await expectStatus(await manager.get('/clients'), 200)
+    const source = await findEvent(data.event.name)
+    await expectStatus(await manager.post(`/events/${source.id}/replicate`, { name: 'Réplica indevida' }), 403)
     await manager.dispose()
   })
 
-  test('15. sessão: o botão Sair continua acessível em tela baixa e no celular', async () => {
+  test('16. sessão: o botão Sair continua acessível em tela baixa e no celular', async () => {
     // Regressão: a sidebar é fixa e não rolava; em telas baixas o rodapé com "Sair" ficava fora da tela,
     // e no celular o botão era escondido por CSS (não havia como encerrar a sessão).
     for (const viewport of [{ width: 1366, height: 600 }, { width: 390, height: 844 }]) {
