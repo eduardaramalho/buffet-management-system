@@ -13,19 +13,23 @@ module.exports = {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   testMatch: ['**/?(*.)+(spec|test).ts'],
-  // These files only assemble existing dependencies and register routes; they contain no business logic to exercise.
+  // Mesma política de exclusão do sonar-project.properties (ADR 0007): fica de fora apenas
+  // código gerado (Prisma) e o ponto de entrada que sobe o servidor HTTP. Rotas e factories
+  // são cobertas pelos testes de permissão de cada módulo.
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
     '!src/generated/**',
     '!src/server.ts',
-    '!src/modules/auth/infrastructure/factories/role.factory.ts',
-    '!src/modules/auth/presentation/routes/role.routes.ts',
   ],
+  // lcov alimenta o Sonar; json-summary alimenta o resumo de cobertura do GitHub Actions.
+  coverageReporters: ['text', 'text-summary', 'lcov', 'json-summary'],
   coverageThreshold: {
     global: {
       lines: 85,
       branches: 85,
+      functions: 85,
+      statements: 85,
     },
   },
 };

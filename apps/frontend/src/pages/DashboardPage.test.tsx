@@ -62,3 +62,52 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Eventos este mês').previousElementSibling).toHaveTextContent('2')
   })
 })
+
+describe('DashboardPage: falhas e formatação', () => {
+  const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60000).toISOString()
+
+  it('isola a falha de cada bloco com mensagem padrão e recarrega cada um separadamente', async () => {
+    vi.mocked(getDashboardSummary).mockRejectedValueOnce('x').mockResolvedValue(summary)
+    vi.mocked(getUpcomingEvents).mockRejectedValueOnce('x').mockResolvedValue([])
+    vi.mocked(getTasksByStatus).mockRejectedValueOnce('x').mockResolvedValue(statuses)
+    vi.mocked(getRecentActivity).mockRejectedValueOnce('x').mockRejectedValueOnce('x').mockResolvedValue([])
+
+    render(<DashboardPage />)
+
+    expect(await screen.findByText('Não foi possível carregar o resumo.')).toBeInTheDocument()
+    expect(screen.getByText('Não foi possível carregar os próximos eventos.')).toBeInTheDocument()
+    expect(screen.getByText('Não foi possível carregar as tarefas por status.')).toBeInTheDocument()
+    expect(screen.getByText('Não foi possível carregar as atividades recentes.')).toBeInTheDocument()
+
+    for (const button of screen.getAllByRole('button', { name: 'Tentar de novo' })) await userEvent.click(button)
+
+    await waitFor(() => expect(screen.queryByText('Não foi possível carregar o resumo.')).not.toBeInTheDocument())
+    expect(screen.queryByText('Não foi possível carregar os próximos eventos.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Não foi possível carregar as tarefas por status.')).not.toBeInTheDocument()
+    // A atividade falha de novo no retry: o erro continua visível, sem afetar os outros blocos.
+    expect(screen.getByText('Não foi possível carregar as atividades recentes.')).toBeInTheDocument()
+  })
+
+  it('rotula cada status de evento e formata o tempo relativo das atividades', async () => {
+    vi.mocked(getDashboardSummary).mockResolvedValue(summary)
+    vi.mocked(getUpcomingEvents).mockResolvedValue((['PLANEJAMENTO', 'CONFIRMADO', 'EM_ANDAMENTO', 'CONCLUIDO', 'CANCELADO'] as const)
+      .map((status, index) => ({ id: `e${index}`, name: `Evento ${index}`, eventDate: '2026-11-10T15:00:00.000Z', location: 'Salão', status })))
+    vi.mocked(getTasksByStatus).mockResolvedValue(statuses)
+    vi.mocked(getRecentActivity).mockResolvedValue([
+      { id: 'a1', message: 'agora', action: 'X', entity: 'Event', createdAt: minutesAgo(0) },
+      { id: 'a2', message: 'minutos', action: 'X', entity: 'Event', createdAt: minutesAgo(15) },
+      { id: 'a3', message: 'horas', action: 'X', entity: 'Event', createdAt: minutesAgo(180) },
+      { id: 'a4', message: 'dias', action: 'X', entity: 'Event', createdAt: minutesAgo(60 * 24 * 2) },
+      { id: 'a5', message: 'relógio adiantado', action: 'X', entity: 'Event', createdAt: minutesAgo(-5) },
+    ])
+
+    render(<DashboardPage />)
+
+    expect(await screen.findByText('Evento 0')).toBeInTheDocument()
+    for (const label of ['Planejamento', 'Confirmado', 'Concluído', 'Cancelado']) expect(screen.getByText(label)).toBeInTheDocument()
+    expect(screen.getAllByText('Agora')).toHaveLength(2)
+    expect(screen.getByText('Há 15 min')).toBeInTheDocument()
+    expect(screen.getByText('Há 3h')).toBeInTheDocument()
+    expect(screen.getByText('Há 2d')).toBeInTheDocument()
+  })
+})
