@@ -27,6 +27,9 @@ describe("PrismaEventRepository", () => {
       include: {
         services: { include: { service: true } },
         client: { select: { id: true, name: true, email: true, phone: true, deletedAt: true } },
+        // RF25 lineage, only on the detail read (the list keeps the lighter include).
+        sourceEvent: { select: { id: true, name: true, eventDate: true, deletedAt: true } },
+        replicas: { where: { deletedAt: null }, select: { id: true, name: true, eventDate: true, status: true }, orderBy: { createdAt: "asc" } },
       },
     });
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: "PLANEJAMENTO" }) }));
@@ -75,5 +78,49 @@ describe("PrismaEventRepository", () => {
     expect(update).toHaveBeenNthCalledWith(2, expect.objectContaining({ where: { id: "event-1" }, data: { deletedAt: null } }));
     expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ where: { eventId_serviceId: { eventId: "event-1", serviceId: "service-1" } } }));
     expect(remove).toHaveBeenCalledWith({ where: { eventId_serviceId: { eventId: "event-1", serviceId: "service-1" } } });
+  });
+
+  it("creates a replica with its services and the source link inside the caller's transaction (RF25)", async () => {
+    const replica = { id: "replica-1" };
+    const outsideCreate = jest.fn();
+    const txCreate = jest.fn(async () => replica);
+    const repository = new PrismaEventRepository({ event: { create: outsideCreate } } as never);
+    const tx = { event: { create: txCreate } };
+
+    await expect(repository.createReplica({
+      name: "Casamento de Bruna",
+      eventDate: new Date("2026-12-12T18:00:00.000Z"),
+      endDate: null,
+      location: "Salao",
+      serviceType: "CASAMENTO",
+      guestsCount: 180,
+      observations: null,
+      createdById: "actor-1",
+      clientId: "client-1",
+      sourceEventId: "source-1",
+      services: [{ serviceId: "service-bar", customLabel: null }, { serviceId: "service-outro", customLabel: "Fotógrafo" }],
+    }, tx)).resolves.toEqual(replica);
+
+    expect(outsideCreate).not.toHaveBeenCalled();
+    expect(txCreate).toHaveBeenCalledWith({
+      data: {
+        name: "Casamento de Bruna",
+        eventDate: new Date("2026-12-12T18:00:00.000Z"),
+        endDate: null,
+        location: "Salao",
+        serviceType: "CASAMENTO",
+        guestsCount: 180,
+        observations: null,
+        createdById: "actor-1",
+        clientId: "client-1",
+        sourceEventId: "source-1",
+        status: "PLANEJAMENTO",
+        services: { create: [{ serviceId: "service-bar", customLabel: null }, { serviceId: "service-outro", customLabel: "Fotógrafo" }] },
+      },
+      include: {
+        services: { include: { service: true } },
+        client: { select: { id: true, name: true, email: true, phone: true, deletedAt: true } },
+      },
+    });
   });
 });
