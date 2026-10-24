@@ -260,7 +260,7 @@ function assertNoDuplicates(ids: string[], message: string) {
 }
 
 const servicesKey = (services: { serviceId: string; customLabel: string | null }[]) =>
-  services.map((service) => `${service.serviceId}:${service.customLabel ?? ""}`).sort().join("|");
+  services.map((service) => `${service.serviceId}:${service.customLabel ?? ""}`).sort((left, right) => left.localeCompare(right)).join("|");
 
 const snapshotOf = (event: EventRecord): CopiedFieldsSnapshot => ({
   location: event.location,

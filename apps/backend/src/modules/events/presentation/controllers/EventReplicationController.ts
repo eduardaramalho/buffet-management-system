@@ -33,7 +33,10 @@ export class EventReplicationController {
 
   replicate = async (request: Request, response: Response) => {
     const actorId = request.user?.sub;
-    if (!actorId) return response.status(401).json({ message: "Não autenticado" });
+    if (!actorId) {
+      response.status(401).json({ message: "Não autenticado" });
+      return;
+    }
     response.status(201).json(await this.service.replicate(routeId(request), replicateSchema.parse(request.body), actorId));
   };
 }

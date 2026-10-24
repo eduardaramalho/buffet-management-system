@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type SubmitEvent } from 'react'
 import axios from 'axios'
 import { getApiErrorMessage } from '../api/apiError'
 import { getReplicationPreview, replicateEvent } from '../api/eventsApi'
@@ -21,9 +21,10 @@ const warningMessage = (warning: ReplicationWarning) => warning.code === 'CLIENT
   ? 'O cliente do evento de origem não está mais disponível.'
   : `O serviço ${warning.name} não está mais disponível e não será copiado.`
 
-const unavailableReason = (team: ReplicationPreviewTeam) => team.reason === 'SCHEDULE_CONFLICT'
-  ? `Conflito com ${team.conflictingEvent?.name ?? 'outro evento'}`
-  : team.reason === 'INACTIVE' ? 'Equipe inativa' : 'Equipe removida'
+const unavailableReason = (team: ReplicationPreviewTeam) => {
+  if (team.reason === 'SCHEDULE_CONFLICT') return `Conflito com ${team.conflictingEvent?.name ?? 'outro evento'}`
+  return team.reason === 'INACTIVE' ? 'Equipe inativa' : 'Equipe removida'
+}
 
 // Used only after the user edits a deadline; until then the API flag (dueDateInPast) is the reference.
 const isPast = (value: string) => Boolean(value) && new Date(value).getTime() < Date.now()
@@ -65,14 +66,21 @@ export function ReplicateEventDialog({ source, onClose, onReplicated }: Replicat
 
   const loadPreview = async () => (await getReplicationPreview(source.id, { eventDate: fromDateInput(eventDate) as string, endDate: null }))
 
-  const goToReview = async (formEvent: FormEvent) => {
-    formEvent.preventDefault(); setError('')
-    if (!name.trim()) return setError('Informe o nome do novo evento.')
-    if (!eventDate) return setError('Informe a data do novo evento.')
-    if (!location.trim()) return setError('Informe o local do evento.')
-    if (!guestsCount || Number(guestsCount) < 1) return setError('Informe o número de convidados.')
-    if (!clientId) return setError('Selecione o cliente do evento.')
-    if (activeSelectedServices.some((service) => service.isCustom && !selectedServices[service.id].trim())) return setError('Especifique o serviço Outro.')
+  const validateEventData = (): string | null => {
+    if (!name.trim()) return 'Informe o nome do novo evento.'
+    if (!eventDate) return 'Informe a data do novo evento.'
+    if (!location.trim()) return 'Informe o local do evento.'
+    if (!guestsCount || Number(guestsCount) < 1) return 'Informe o número de convidados.'
+    if (!clientId) return 'Selecione o cliente do evento.'
+    if (activeSelectedServices.some((service) => service.isCustom && !selectedServices[service.id].trim())) return 'Especifique o serviço Outro.'
+    return null
+  }
+
+  const goToReview = async (formEvent: SubmitEvent<HTMLFormElement>) => {
+    formEvent.preventDefault()
+    const invalid = validateEventData()
+    setError(invalid ?? '')
+    if (invalid) return
     setLoading(true)
     try {
       const data = await loadPreview()
@@ -96,7 +104,10 @@ export function ReplicateEventDialog({ source, onClose, onReplicated }: Replicat
     if (!preview) return
     setError('')
     const chosenTasks = preview.tasks.filter((task) => taskDrafts[task.sourceTaskId]?.selected)
-    if (chosenTasks.some((task) => !taskDrafts[task.sourceTaskId].title.trim())) return setError('Informe o título de todas as tarefas copiadas.')
+    if (chosenTasks.some((task) => !taskDrafts[task.sourceTaskId].title.trim())) {
+      setError('Informe o título de todas as tarefas copiadas.')
+      return
+    }
 
     // Only what the user changed is sent: an omitted deadline is recalculated by the API from the source.
     const tasks: ReplicatedTaskInput[] = chosenTasks.map((task) => {
