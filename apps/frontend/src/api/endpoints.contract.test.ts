@@ -92,6 +92,9 @@ const cases: ContractCase[] = [
   { name: 'eventsApi.replicateEvent', call: () => eventsApi.replicateEvent('e1', { name: 'Festa' } as never), verb: 'post', args: ['/api/v1/events/e1/replicate', { name: 'Festa' }] },
   // services
   { name: 'servicesApi.listServices', call: () => servicesApi.listServices(), verb: 'get', args: ['/api/v1/services'] },
+  { name: 'servicesApi.createService', call: () => servicesApi.createService('Bar'), verb: 'post', args: ['/api/v1/services', { name: 'Bar' }] },
+  { name: 'servicesApi.updateService', call: () => servicesApi.updateService('s1', 'Bar 2'), verb: 'put', args: ['/api/v1/services/s1', { name: 'Bar 2' }] },
+  { name: 'servicesApi.removeService', call: () => servicesApi.removeService('s1'), verb: 'delete', args: ['/api/v1/services/s1'], returnsData: false },
   // rules
   { name: 'rulesApi.listRules', call: () => rulesApi.listRules(filters as never), verb: 'get', args: ['/api/v1/rules', { params: filters }] },
   { name: 'rulesApi.listRules (sem filtros)', call: () => rulesApi.listRules(), verb: 'get', args: ['/api/v1/rules', { params: {} }] },

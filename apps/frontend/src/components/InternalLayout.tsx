@@ -11,6 +11,7 @@ const breadcrumbLabels: Record<string, string> = {
   '/users': 'Usuários',
   '/collaborators': 'Colaboradores',
   '/clients': 'Clientes',
+  '/services': 'Serviços',
   '/roles': 'Papéis e permissões',
   '/reports': 'Relatórios',
 }
@@ -37,6 +38,7 @@ export function InternalLayout({ children, onLogout }: { children: ReactNode; on
         <span className="side-section">OPERAÇÃO</span>
         {hasPermission('events:list') && <Link aria-label="Eventos" to="/events" className={`side-link${location.pathname.startsWith('/events') ? ' active' : ''}`}><Icon name="calendar" /><span>Eventos</span></Link>}
         {hasPermission('clients:list') && <Link aria-label="Clientes" to="/clients" className={`side-link${location.pathname.startsWith('/clients') ? ' active' : ''}`}><Icon name="contact" /><span>Clientes</span></Link>}
+        {hasPermission('services:list') && <Link aria-label="Serviços" to="/services" className={`side-link${location.pathname.startsWith('/services') ? ' active' : ''}`}><Icon name="tag" /><span>Serviços</span></Link>}
         {hasPermission('tasks:list') && <Link aria-label="Tarefas" to="/tasks" className={`side-link${location.pathname.startsWith('/tasks') ? ' active' : ''}`}><Icon name="tasks" /><span>Tarefas</span>{unassignedTaskCount > 0 && <i className="task-alert-badge">{unassignedTaskCount}</i>}</Link>}
         {hasPermission('teams:list') && <Link aria-label="Equipes" to="/teams" className={`side-link${location.pathname.startsWith('/teams') ? ' active' : ''}`}><Icon name="users" /><span>Equipes</span></Link>}
         {hasPermission('collaborators:manage') && <Link aria-label="Colaboradores" to="/collaborators" className={`side-link${location.pathname.startsWith('/collaborators') ? ' active' : ''}`}><Icon name="user" /><span>Colaboradores</span></Link>}
