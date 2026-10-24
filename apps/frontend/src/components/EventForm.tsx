@@ -9,16 +9,10 @@ import { Notice } from './Notice'
 import type { Event, EventType, Service } from '../types/event'
 import type { Team } from '../types/team'
 import type { Client } from '../types/client'
+import { toDateInput } from '../utils/dateInput'
 
 type EventFormProps = { event?: Event; onClose: () => void; onCreated: (event: Event) => void; onUpdated: (event: Event) => void }
 const eventTypes: Array<[EventType, string]> = [['CASAMENTO', 'Casamento'], ['ANIVERSARIO', 'Aniversário'], ['FORMATURA', 'Formatura'], ['CORPORATIVO', 'Corporativo'], ['CONFRATERNIZACAO', 'Confraternização'], ['BATIZADO', 'Batizado'], ['OUTRO', 'Outro']]
-const pad = (value: number) => String(value).padStart(2, '0')
-// <input type="datetime-local"> trabalha no horário local; toISOString() devolveria UTC e deslocaria o evento.
-const toDateInput = (value?: string) => {
-  if (!value) return ''
-  const date = new Date(value)
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
 export function EventForm({ event, onClose, onCreated, onUpdated }: EventFormProps) {
   const [name, setName] = useState(event?.name ?? '')
   const [eventDate, setEventDate] = useState(toDateInput(event?.eventDate))

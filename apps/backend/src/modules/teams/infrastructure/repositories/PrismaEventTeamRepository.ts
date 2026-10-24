@@ -13,7 +13,7 @@ export class PrismaEventTeamRepository implements EventTeamRepository {
   findEventById(id: string) {
     return this.prisma.event.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true, eventDate: true, endDate: true, status: true, deletedAt: true },
+      select: { id: true, name: true, eventDate: true, endDate: true, status: true, deletedAt: true },
     }) as Promise<EventSchedulingRecord | null>;
   }
 
@@ -27,7 +27,7 @@ export class PrismaEventTeamRepository implements EventTeamRepository {
   listEventsByTeam(teamId: string) {
     return this.prisma.event.findMany({
       where: { deletedAt: null, teams: { some: { teamId } } },
-      select: { id: true, eventDate: true, endDate: true, status: true, deletedAt: true },
+      select: { id: true, name: true, eventDate: true, endDate: true, status: true, deletedAt: true },
       orderBy: { eventDate: "asc" },
     }) as Promise<EventSchedulingRecord[]>;
   }

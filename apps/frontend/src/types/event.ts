@@ -13,7 +13,11 @@ export type Event = {
   updatedAt: string; deletedAt: string | null; services: EventService[]
   // Null only for events created before the clients module (they must be linked when edited).
   clientId: string | null; client: EventClient | null
+  // RF25 lineage: sourceEvent and replicas come only with GET /events/:id.
+  sourceEventId?: string | null
+  sourceEvent?: { id: string; name: string; eventDate: string; deletedAt: string | null } | null
+  replicas?: Array<{ id: string; name: string; eventDate: string; status: EventStatus }>
 }
-export type CreateEventInput = Omit<Event, 'id' | 'status' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'services' | 'createdById' | 'client' | 'clientId'> & { clientId: string }
+export type CreateEventInput = Omit<Event, 'id' | 'status' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'services' | 'createdById' | 'client' | 'clientId' | 'sourceEventId' | 'sourceEvent' | 'replicas'> & { clientId: string }
 export type UpdateEventInput = Partial<Omit<CreateEventInput, 'createdById'>> & { status?: EventStatus; reason?: string }
 export type EventFilters = { status?: EventStatus; from?: string; to?: string; search?: string }

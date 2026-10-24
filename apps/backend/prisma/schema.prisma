@@ -92,12 +92,17 @@ model Event {
   // Nullable on purpose (expand/contract, ADR 0005): required by the application for new events;
   // a later migration makes it NOT NULL once legacy events are linked to a client.
   clientId         String?           @map("client_id") @db.Char(36)
+  // RF25 (ADR 0008): event used as the base of this one. Restrict keeps the lineage forever;
+  // business data is never physically deleted (soft delete, RNF07).
+  sourceEventId    String?           @map("source_event_id") @db.Char(36)
   createdById      String            @map("created_by_id") @db.Char(36)
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
   deletedAt        DateTime?         @map("deleted_at")
   createdBy        User              @relation("EventCreator", fields: [createdById], references: [id], onDelete: Restrict)
   client           Client?           @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  sourceEvent      Event?            @relation("EventReplication", fields: [sourceEventId], references: [id], onDelete: Restrict)
+  replicas         Event[]           @relation("EventReplication")
   services         EventService[]
   teams            EventTeam[]
   tasks            Task[]
@@ -105,6 +110,7 @@ model Event {
 
   @@index([createdById])
   @@index([clientId])
+  @@index([sourceEventId])
   @@index([status])
   @@index([eventDate])
   @@index([deletedAt])
@@ -377,16 +383,21 @@ model Task {
   // Set when the team is assigned or changed, cleared when unassigned (average assignment time report).
   assignedAt     DateTime?  @map("assigned_at")
   sourceRuleId   String?    @map("source_rule_id") @db.Char(36)
+  // RF25 (ADR 0008): manual task this one was copied from when its event was replicated.
+  sourceTaskId   String?    @map("source_task_id") @db.Char(36)
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
   deletedAt      DateTime?  @map("deleted_at")
   event          Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
   assignedTeam   Team?      @relation(fields: [assignedTeamId], references: [id], onDelete: SetNull)
   sourceRule     Rule?      @relation(fields: [sourceRuleId], references: [id], onDelete: SetNull)
+  sourceTask     Task?      @relation("TaskReplication", fields: [sourceTaskId], references: [id], onDelete: Restrict)
+  replicas       Task[]     @relation("TaskReplication")
 
   @@index([eventId])
   @@index([assignedTeamId])
   @@index([sourceRuleId])
+  @@index([sourceTaskId])
   @@index([status])
   @@index([deletedAt])
   @@map("tasks")

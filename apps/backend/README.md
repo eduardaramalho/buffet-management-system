@@ -16,6 +16,8 @@ Todos os endpoints abaixo exigem `Authorization: Bearer <access-token>`. As resp
 | `PATCH` | `/api/v1/events/:id/restore` | `events:restore` |
 | `POST` | `/api/v1/events/:id/services` | `events:update` |
 | `DELETE` | `/api/v1/events/:id/services/:serviceId` | `events:update` |
+| `GET` | `/api/v1/events/:id/replication-preview` | `events:replicate` |
+| `POST` | `/api/v1/events/:id/replicate` | `events:replicate` |
 
 `GET /api/v1/events` aceita os filtros opcionais `search`, `status`, `from` e `to`.
 
@@ -55,6 +57,51 @@ Exemplo de vínculo de serviço:
 ```
 
 `customLabel` é obrigatório somente para o serviço de catálogo marcado como `isCustom`. Para os demais serviços, deve ser omitido ou enviado como `null`.
+
+### Replicação de evento (RF25)
+
+Reutiliza um evento anterior (qualquer status, não excluído) como base de um novo. Decisões em [ADR 0008](../../docs/adr/0008-replicacao-de-eventos.md). As duas rotas exigem a permissão `events:replicate`, concedida só ao papel `admin` pelo seed. Em bancos já existentes, rode `npm run db:seed` de novo para criá-la.
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/api/v1/events/:id/replication-preview?eventDate=...&endDate=...` | Rascunho somente leitura para a nova data: dados copiáveis, tarefas manuais com prazo recalculado, disponibilidade das equipes e avisos |
+| POST | `/api/v1/events/:id/replicate` | Cria a réplica em `PLANEJAMENTO`, em uma transação |
+
+Exemplo de replicação:
+
+```json
+{
+  "name": "Casamento de Bruna",
+  "eventDate": "2026-12-12T18:00:00.000Z",
+  "endDate": null,
+  "location": "Salao Jardim",
+  "serviceType": "CASAMENTO",
+  "guestsCount": 150,
+  "observations": null,
+  "clientId": "client-uuid",
+  "services": [{ "serviceId": "service-uuid", "customLabel": null }],
+  "tasks": [
+    { "sourceTaskId": "task-uuid-1" },
+    { "sourceTaskId": "task-uuid-2", "title": "Novo titulo", "dueDate": null }
+  ],
+  "teamIds": ["team-uuid"]
+}
+```
+
+- Os dados do evento seguem as mesmas validações da criação. `services`, `tasks` e `teamIds` são opcionais (padrão: lista vazia).
+- Só tarefas **manuais** do evento de origem podem ser copiadas; as geradas por regra são criadas de novo pelo motor quando a réplica for confirmada.
+- Na tarefa, `dueDate` omitido recalcula o prazo mantendo a distância até o evento; `null` deixa a tarefa sem prazo. Tarefas copiadas nascem `PENDENTE` e guardam `sourceTaskId`.
+- Só equipes alocadas ao evento de origem podem ser copiadas. Uma tarefa cuja equipe não foi copiada fica sem equipe.
+- O evento criado guarda `sourceEventId`. `GET /api/v1/events/:id` traz `sourceEvent` e `replicas` (eventos criados a partir dele).
+
+Respostas de erro:
+
+| Status | Quando |
+|---|---|
+| 400 | Regra de negócio (serviço inexistente ou repetido, tarefa que não é manual da origem, equipe que não pertence à origem, data no passado, cliente inativo) |
+| 404 | Evento de origem inexistente ou excluído |
+| 409 | Equipe indisponível na nova data. O corpo traz `conflicts: [{ teamId, reason: "SCHEDULE_CONFLICT" \| "INACTIVE" \| "NOT_FOUND", conflictingEvent }]` |
+| 422 | Payload inválido (Zod) |
 
 ### Serviços do catálogo
 

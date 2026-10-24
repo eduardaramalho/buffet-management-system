@@ -15,6 +15,8 @@ export type TaskRecord = {
   // Moment the current team was assigned; null while unassigned. Feeds the average-assignment-time report.
   assignedAt?: Date | null;
   sourceRuleId: string | null;
+  // RF25: manual task of the source event this task was copied from (null when not a copy).
+  sourceTaskId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -28,6 +30,7 @@ export type CreateTaskInput = {
   assignedTeamId: string | null;
   assignedAt?: Date | null;
   sourceRuleId: string | null;
+  sourceTaskId?: string | null;
 };
 
 // Manual task = sourceRuleId null (no dedicated column). Title is optional-by-omission, never null.

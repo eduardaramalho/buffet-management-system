@@ -16,4 +16,6 @@ export const data = {
   event: { name: 'Casamento Mariana e João', location: 'Salão Jardim', type: 'Casamento', guests: 150, date: daysFromNow(10) },
   conflictingEvent: { name: 'Aniversário no mesmo dia', location: 'Salão Azul', guests: 60 },
   manualTask: { title: 'Confirmar fornecedor de flores' },
+  // RF25: new event built from the concluded one (same couple's buffet, another date and guest count).
+  replica: { name: 'Casamento Beatriz e Pedro', guests: 120, date: daysFromNow(20) },
 }

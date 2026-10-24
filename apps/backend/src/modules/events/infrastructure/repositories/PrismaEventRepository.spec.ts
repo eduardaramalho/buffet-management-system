@@ -76,4 +76,65 @@ describe("PrismaEventRepository", () => {
     expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ where: { eventId_serviceId: { eventId: "event-1", serviceId: "service-1" } } }));
     expect(remove).toHaveBeenCalledWith({ where: { eventId_serviceId: { eventId: "event-1", serviceId: "service-1" } } });
   });
+
+  it("creates a replica with its services and the source link inside the caller's transaction (RF25)", async () => {
+    const replica = { id: "replica-1" };
+    const outsideCreate = jest.fn();
+    const txCreate = jest.fn(async (_args: unknown) => replica);
+    const repository = new PrismaEventRepository({ event: { create: outsideCreate } } as never);
+    const tx = { event: { create: txCreate } };
+
+    await expect(repository.createReplica({
+      name: "Casamento de Bruna",
+      eventDate: new Date("2026-12-12T18:00:00.000Z"),
+      endDate: null,
+      location: "Salao",
+      serviceType: "CASAMENTO",
+      guestsCount: 180,
+      observations: null,
+      createdById: "actor-1",
+      clientId: "client-1",
+      sourceEventId: "source-1",
+      services: [{ serviceId: "service-bar", customLabel: null }, { serviceId: "service-outro", customLabel: "Fotógrafo" }],
+    }, tx)).resolves.toEqual(replica);
+
+    expect(outsideCreate).not.toHaveBeenCalled();
+    expect(txCreate).toHaveBeenCalledWith({
+      data: {
+        name: "Casamento de Bruna",
+        eventDate: new Date("2026-12-12T18:00:00.000Z"),
+        endDate: null,
+        location: "Salao",
+        serviceType: "CASAMENTO",
+        guestsCount: 180,
+        observations: null,
+        createdById: "actor-1",
+        clientId: "client-1",
+        sourceEventId: "source-1",
+        status: "PLANEJAMENTO",
+        services: { create: [{ serviceId: "service-bar", customLabel: null }, { serviceId: "service-outro", customLabel: "Fotógrafo" }] },
+      },
+      include: {
+        services: { include: { service: true } },
+        client: { select: { id: true, name: true, email: true, phone: true, deletedAt: true } },
+      },
+    });
+  });
+
+  it("reads the event detail with its lineage: source event and non-deleted replicas (RF25)", async () => {
+    const findFirst = jest.fn(async (_args: unknown) => ({ id: "event-1" }));
+    const repository = new PrismaEventRepository({ event: { findFirst } } as never);
+
+    await repository.findDetailById("event-1");
+
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { id: "event-1", deletedAt: null },
+      include: {
+        services: { include: { service: true } },
+        client: { select: { id: true, name: true, email: true, phone: true, deletedAt: true } },
+        sourceEvent: { select: { id: true, name: true, eventDate: true, deletedAt: true } },
+        replicas: { where: { deletedAt: null }, select: { id: true, name: true, eventDate: true, status: true }, orderBy: { createdAt: "asc" } },
+      },
+    });
+  });
 });

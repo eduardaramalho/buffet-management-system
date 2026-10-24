@@ -24,4 +24,19 @@ describe("toAuditChanges", () => {
   it.each([null, undefined, "texto", 42, true, ["a", "b"]])("returns null for non-object JSON (%p)", (value) => {
     expect(toAuditChanges(value)).toBeNull();
   });
+
+  it("formats replication activity in Portuguese (RF25)", () => {
+    expect(formatAuditActivityMessage({
+      action: "EVENT_REPLICATED",
+      entity: "Event",
+      changes: { name: "Casamento de Bruna", sourceEventName: "Casamento de Alice" } as never,
+    })).toBe("Evento 'Casamento de Bruna' criado a partir de 'Casamento de Alice'");
+    expect(formatAuditActivityMessage({
+      action: "EVENT_USED_AS_TEMPLATE",
+      entity: "Event",
+      changes: { name: "Casamento de Alice", replicaEventName: "Casamento de Bruna" } as never,
+    })).toBe("Evento 'Casamento de Alice' usado como base para 'Casamento de Bruna'");
+    expect(formatAuditActivityMessage({ action: "EVENT_REPLICATED", entity: "Event", changes: { name: "X" } })).toBe("Evento 'X' criado a partir de 'outro evento'");
+    expect(formatAuditActivityMessage({ action: "EVENT_USED_AS_TEMPLATE", entity: "Event", changes: { name: "X" } })).toBe("Evento 'X' usado como base para 'novo evento'");
+  });
 });

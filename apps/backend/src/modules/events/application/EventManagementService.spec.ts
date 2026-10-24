@@ -83,9 +83,9 @@ describe("EventManagementService", () => {
     expect(events.create).not.toHaveBeenCalled();
   });
 
-  it("gets an existing event and rejects a missing event", async () => {
-    const event = makeEvent();
-    const events = { findById: jest.fn(async (id: string) => id === "event-1" ? event : null) } as unknown as EventRepository;
+  it("gets an existing event with its lineage (detail read) and rejects a missing event", async () => {
+    const event = makeEvent({ sourceEventId: "source-1", replicas: [] });
+    const events = { findDetailById: jest.fn(async (id: string) => id === "event-1" ? event : null) } as unknown as EventRepository;
     const service = new EventManagementService(events, { record: jest.fn() } as unknown as EventAuditService);
 
     await expect(service.get("event-1")).resolves.toEqual(event);
@@ -505,6 +505,42 @@ describe("EventManagementService", () => {
 
       expect(clients.findById).not.toHaveBeenCalled();
       expect(events.update).toHaveBeenCalledWith("event-1", { observations: "Atualizado" });
+    });
+  });
+
+  describe("assertCanCreate (creation rules reused by replication, RF25)", () => {
+    const validInput = (overrides: Partial<CreateEventInput> = {}): CreateEventInput => ({
+      name: "Casamento de Bruna",
+      eventDate: FUTURE_DATE,
+      endDate: null,
+      location: "Salao Principal",
+      serviceType: "CASAMENTO",
+      guestsCount: 100,
+      observations: null,
+      createdById: "actor-1",
+      clientId: "client-1",
+      ...overrides,
+    });
+
+    it("validates without persisting or auditing", async () => {
+      const events = { create: jest.fn() } as unknown as EventRepository;
+      const audit = { record: jest.fn() } as unknown as EventAuditService;
+      const service = new EventManagementService(events, audit, undefined, undefined, undefined, activeClients());
+
+      await expect(service.assertCanCreate(validInput())).resolves.toBeUndefined();
+      expect(events.create).not.toHaveBeenCalled();
+      expect(audit.record).not.toHaveBeenCalled();
+    });
+
+    it("rejects past dates, invalid guest counts and unavailable clients", async () => {
+      const service = new EventManagementService({ create: jest.fn() } as unknown as EventRepository, { record: jest.fn() } as unknown as EventAuditService, undefined, undefined, undefined, activeClients(false));
+      const withClient = new EventManagementService({ create: jest.fn() } as unknown as EventRepository, { record: jest.fn() } as unknown as EventAuditService, undefined, undefined, undefined, activeClients());
+
+      await expect(withClient.assertCanCreate(validInput({ eventDate: new Date(Date.now() - 60_000) }))).rejects.toThrow("passado");
+      await expect(withClient.assertCanCreate(validInput({ guestsCount: 0 }))).rejects.toThrow("maior ou igual a 1");
+      await expect(withClient.assertCanCreate(validInput({ guestsCount: 5001 }))).rejects.toThrow("exceder");
+      await expect(withClient.assertCanCreate(validInput({ clientId: "  " }))).rejects.toThrow("obrigatório");
+      await expect(service.assertCanCreate(validInput())).rejects.toThrow("Cliente não encontrado");
     });
   });
 });

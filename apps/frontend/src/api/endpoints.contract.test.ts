@@ -87,6 +87,9 @@ const cases: ContractCase[] = [
   { name: 'eventsApi.attachEventService', call: () => eventsApi.attachEventService('e1', 's1', 'Mesa extra'), verb: 'post', args: ['/api/v1/events/e1/services', { serviceId: 's1', customLabel: 'Mesa extra' }] },
   { name: 'eventsApi.detachEventService', call: () => eventsApi.detachEventService('e1', 's1'), verb: 'delete', args: ['/api/v1/events/e1/services/s1'], returnsData: false },
   { name: 'eventsApi.getEventHistory', call: () => eventsApi.getEventHistory('e1'), verb: 'get', args: ['/api/v1/events/e1/history'] },
+  { name: 'eventsApi.getReplicationPreview', call: () => eventsApi.getReplicationPreview('e1', { eventDate: '2026-12-12T18:00:00.000Z', endDate: null }), verb: 'get', args: ['/api/v1/events/e1/replication-preview', { params: { eventDate: '2026-12-12T18:00:00.000Z' } }] },
+  { name: 'eventsApi.getReplicationPreview (com término)', call: () => eventsApi.getReplicationPreview('e1', { eventDate: '2026-12-12T18:00:00.000Z', endDate: '2026-12-13T02:00:00.000Z' }), verb: 'get', args: ['/api/v1/events/e1/replication-preview', { params: { eventDate: '2026-12-12T18:00:00.000Z', endDate: '2026-12-13T02:00:00.000Z' } }] },
+  { name: 'eventsApi.replicateEvent', call: () => eventsApi.replicateEvent('e1', { name: 'Festa' } as never), verb: 'post', args: ['/api/v1/events/e1/replicate', { name: 'Festa' }] },
   // services
   { name: 'servicesApi.listServices', call: () => servicesApi.listServices(), verb: 'get', args: ['/api/v1/services'] },
   // rules
