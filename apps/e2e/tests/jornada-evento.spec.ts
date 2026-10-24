@@ -33,9 +33,6 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
 
   test.beforeAll(async ({ browser }) => {
     admin = await ApiClient.login(e2eEnv.admin)
-    // O catálogo de serviços não faz parte do seed; é um dado de referência pré-existente na operação.
-    const services = await admin.json<Array<{ name: string }>>(admin.get('/services'))
-    if (!services.some((service) => service.name === data.service)) await admin.json(admin.post('/services', { name: data.service }), 201)
 
     page = await browser.newPage()
     page.on('pageerror', (error) => pageErrors.push(error.message))
@@ -81,7 +78,29 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.getByText(data.client.name).first()).toBeVisible()
   })
 
-  test('4. cadastro de equipe com novo colaborador', async () => {
+  test('4. catálogo de serviços: cadastro, nome duplicado recusado e "Outro" protegido (RF06)', async () => {
+    await navigateTo(page, 'Serviços', 'Serviços')
+    // O seed traz o serviço genérico "Outro", que pode ser editado mas nunca excluído.
+    await expect(page.getByRole('button', { name: 'Editar Outro' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Excluir Outro' })).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Novo serviço' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Novo serviço' })
+    await dialog.getByLabel('Nome do serviço').fill(data.service)
+    await dialog.getByRole('button', { name: 'Salvar' }).click()
+    await expect(dialog).toBeHidden()
+    await expect(page.getByText(data.service, { exact: true })).toBeVisible()
+
+    // Mesmo nome com outra caixa: recusado pelo backend (409) e a mensagem aparece no formulário.
+    await page.getByRole('button', { name: 'Novo serviço' }).click()
+    await dialog.getByLabel('Nome do serviço').fill(data.service.toUpperCase())
+    await dialog.getByRole('button', { name: 'Salvar' }).click()
+    await expect(dialog.getByRole('alert')).toContainText('Já existe um serviço com este nome')
+    await dialog.getByRole('button', { name: 'Cancelar' }).click()
+    await expect(dialog).toBeHidden()
+  })
+
+  test('5. cadastro de equipe com novo colaborador', async () => {
     const { kitchenTeam } = data
     await navigateTo(page, 'Equipes', 'Equipes')
     await page.getByRole('button', { name: 'Nova equipe' }).click()
@@ -103,7 +122,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.getByText(kitchenTeam.name, { exact: true }).first()).toBeVisible()
   })
 
-  test('5. criação de regra no motor de regras', async () => {
+  test('6. criação de regra no motor de regras', async () => {
     const { rule } = data
     await navigateTo(page, 'Regras', 'Regras')
     await page.getByRole('button', { name: 'Nova regra' }).click()
@@ -123,7 +142,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.getByText(rule.name, { exact: true }).first()).toBeVisible()
   })
 
-  test('6. criação do evento e vínculo da equipe', async () => {
+  test('7. criação do evento e vínculo da equipe', async () => {
     const { event } = data
     await navigateTo(page, 'Eventos', 'Eventos')
     await page.getByRole('button', { name: 'Novo Evento' }).click()
@@ -158,7 +177,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.locator('.event-details-side').getByText(data.rule.name)).toBeVisible()
   })
 
-  test('7. fluxo alternativo: conflito de agenda da equipe e cancelamento de evento', async () => {
+  test('8. fluxo alternativo: conflito de agenda da equipe e cancelamento de evento', async () => {
     const { conflictingEvent } = data
     const clients = await admin.json<Array<{ id: string; name: string }>>(admin.get('/clients'))
     const client = clients.find((item) => item.name === data.client.name)!
@@ -180,7 +199,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect.poll(async () => (await findEvent(conflictingEvent.name)).status).toBe('CANCELADO')
   })
 
-  test('8. confirmação do evento aplica as regras e gera as tarefas', async () => {
+  test('9. confirmação do evento aplica as regras e gera as tarefas', async () => {
     await openEventHub(data.event.name)
     await page.getByRole('button', { name: 'Confirmar', exact: true }).click()
 
@@ -194,7 +213,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.getByRole('alert').filter({ hasText: 'Há tarefas sem equipe alocada' })).toBeVisible()
   })
 
-  test('9. tarefa manual e atribuição de equipe às tarefas geradas', async () => {
+  test('10. tarefa manual e atribuição de equipe às tarefas geradas', async () => {
     const teamName = data.kitchenTeam.name
     await navigateTo(page, 'Tarefas', 'Tarefas')
 
@@ -217,7 +236,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     }
   })
 
-  test('10. execução: evento iniciado e tarefas concluídas', async () => {
+  test('11. execução: evento iniciado e tarefas concluídas', async () => {
     await openEventHub(data.event.name)
     await page.getByRole('button', { name: 'Iniciar evento' }).click()
     await expect(currentStep()).toContainText('Em andamento')
@@ -232,7 +251,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     }
   })
 
-  test('11. conclusão do evento', async () => {
+  test('12. conclusão do evento', async () => {
     await openEventHub(data.event.name)
     await expect(page.getByText('3 de 3')).toBeVisible()
     await page.getByRole('button', { name: 'Concluir', exact: true }).click()
@@ -241,7 +260,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect.poll(async () => (await findEvent(data.event.name)).status).toBe('CONCLUIDO')
   })
 
-  test('12. replicação do evento concluído como base de um novo evento (RF25)', async () => {
+  test('13. replicação do evento concluído como base de um novo evento (RF25)', async () => {
     const { replica } = data
     await openEventHub(data.event.name)
     await page.getByRole('button', { name: 'Replicar evento' }).click()
@@ -290,14 +309,14 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.getByRole('link', { name: replica.name })).toBeVisible()
   })
 
-  test('13. dashboard do gestor', async () => {
+  test('14. dashboard do gestor', async () => {
     await navigateTo(page, 'Dashboard', 'Dashboard')
     await expect(page.getByRole('heading', { name: 'Tarefas por Status' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Atividades recentes' })).toBeVisible()
     await expect(page.getByRole('alert')).toHaveCount(0)
   })
 
-  test('14. relatórios gerenciais e exportações', async () => {
+  test('15. relatórios gerenciais e exportações', async () => {
     await navigateTo(page, 'Relatórios', 'Relatórios')
     const period = page.getByRole('region', { name: 'Período' })
     await period.getByLabel('Data inicial').fill(toDateInput(daysFromNow(-1)))
@@ -323,13 +342,13 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(panel.getByRole('alert')).toHaveCount(0)
   })
 
-  test('15. controle de acesso: gestor vê apenas o que seu papel permite', async () => {
+  test('16. controle de acesso: gestor vê apenas o que seu papel permite', async () => {
     await logout(page)
     await login(page, data.manager.email, data.manager.password)
     const menu = page.getByRole('navigation')
     await expect(menu.getByRole('link', { name: 'Usuários', exact: true })).toBeVisible()
     await expect(menu.getByRole('link', { name: 'Clientes', exact: true })).toBeVisible()
-    for (const hidden of ['Eventos', 'Tarefas', 'Regras', 'Relatórios', 'Dashboard']) {
+    for (const hidden of ['Eventos', 'Tarefas', 'Regras', 'Serviços', 'Relatórios', 'Dashboard']) {
       await expect(menu.getByRole('link', { name: hidden, exact: true })).toHaveCount(0)
     }
 
@@ -343,7 +362,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await manager.dispose()
   })
 
-  test('16. sessão: o botão Sair continua acessível em tela baixa e no celular', async () => {
+  test('17. sessão: o botão Sair continua acessível em tela baixa e no celular', async () => {
     // Regressão: a sidebar é fixa e não rolava; em telas baixas o rodapé com "Sair" ficava fora da tela,
     // e no celular o botão era escondido por CSS (não havia como encerrar a sessão).
     for (const viewport of [{ width: 1366, height: 600 }, { width: 390, height: 844 }]) {

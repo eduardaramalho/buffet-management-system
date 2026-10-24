@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/useAuth'
 vi.mock('../contexts/useAuth', () => ({ useAuth: vi.fn() }))
 vi.mock('../api/tasksApi', () => ({ listTasks: vi.fn().mockResolvedValue([]) }))
 
-const permissions = ['dashboard:view', 'users:list', 'events:list', 'teams:list', 'collaborators:manage', 'clients:list', 'rules:list', 'tasks:list', 'roles:list', 'reports:view']
+const permissions = ['dashboard:view', 'users:list', 'events:list', 'teams:list', 'collaborators:manage', 'clients:list', 'rules:list', 'tasks:list', 'roles:list', 'reports:view', 'services:list']
 const makeUser = (roleNames: string[]) => ({ id: 'user-1', name: 'Alice', email: 'alice@example.com', roles: roleNames.map((name) => ({ name, permissions })) })
 
 beforeEach(() => {
@@ -20,6 +20,7 @@ describe('InternalLayout', () => {
     ['/users', 'Usuários'],
     ['/collaborators', 'Colaboradores'],
     ['/clients', 'Clientes'],
+    ['/services', 'Serviços'],
     ['/roles', 'Papéis e permissões'],
   ])('shows the breadcrumb for %s', (path, label) => {
     render(<MemoryRouter initialEntries={[path]}><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
@@ -30,6 +31,15 @@ describe('InternalLayout', () => {
     vi.mocked(useAuth).mockReturnValue({ user: makeUser([roleName]), loading: false, login: vi.fn(), logout: vi.fn() })
     render(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
     expect(screen.getAllByText(roleName)).toHaveLength(2)
+  })
+
+  it('shows the services catalog entry only with services:list (RF06)', () => {
+    render(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
+    expect(screen.getByRole('link', { name: 'Serviços' })).toHaveAttribute('href', '/services')
+
+    vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), roles: [{ name: 'Gestor', permissions: ['events:list'] }] }, loading: false, login: vi.fn(), logout: vi.fn() })
+    render(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
+    expect(screen.getAllByRole('link', { name: 'Serviços' })).toHaveLength(1)
   })
 
   it('shows the clients menu entry only with clients:list', () => {

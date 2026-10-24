@@ -23,6 +23,7 @@ O EventosPro centraliza clientes, eventos, serviços contratados, equipes e tare
 ## Funcionalidades
 
 - **Clientes:** pessoa física ou jurídica, com validação de CPF e CNPJ (inclusive o CNPJ alfanumérico).
+- **Catálogo de serviços:** cadastro dos serviços contratáveis com nome único e o item genérico "Outro" com rótulo livre.
 - **Eventos:** serviços contratados, ciclo de vida com transições validadas (Planejamento, Confirmado, Em andamento, Concluído, Cancelado) e replicação de um evento anterior como base de um novo, com revisão dos itens copiados e rastreabilidade da origem.
 - **Equipes e colaboradores:** equipes por especialidade, líder, alocação em eventos com detecção de conflito de agenda.
 - **Motor de regras:** condições por tipo de evento, número de convidados e serviços; geração idempotente de tarefas; alocação automática de equipes; alertas de falta de equipe.

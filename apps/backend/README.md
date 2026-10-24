@@ -124,6 +124,20 @@ Exemplo de criação:
 
 A exclusão de serviços e eventos é lógica (`deletedAt`); os registros permanecem armazenados para preservar histórico.
 
+Regras do catálogo (RF06, [ADR 0009](../../docs/adr/0009-gestao-do-catalogo-de-servicos.md)):
+
+- O nome é obrigatório e único entre os serviços ativos, sem diferenciar maiúsculas, minúsculas e acentos (collation do MySQL). Espaços nas pontas são removidos.
+- O serviço genérico `Outro` (`isCustom: true`) é entrada única do catálogo e é criado pelo seed. Ele pode ser renomeado, mas não excluído.
+- O tipo de um serviço (`isCustom`) não muda depois de criado, para não invalidar os rótulos já gravados nos eventos.
+- Excluir um serviço já contratado é permitido: os eventos mantêm o serviço no histórico, e ele deixa de ser oferecido em novos eventos.
+
+| Status | Quando |
+|---|---|
+| 400 | Nome vazio, tentativa de mudar o tipo ou de excluir o `Outro` |
+| 404 | Serviço inexistente ou excluído |
+| 409 | Nome já usado por outro serviço ativo, ou um segundo serviço genérico |
+| 422 | Payload inválido (Zod) |
+
 ## Clientes
 
 Cadastro de clientes (pessoa física ou jurídica) vinculados aos eventos. Exclusão sempre lógica (soft delete).

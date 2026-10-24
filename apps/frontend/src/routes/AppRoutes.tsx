@@ -13,6 +13,7 @@ import { EventsListPage } from '../pages/EventsListPage'
 import { TeamsListPage } from '../pages/TeamsListPage'
 import { CollaboratorsListPage } from '../pages/CollaboratorsListPage'
 import { ClientsListPage } from '../pages/ClientsListPage'
+import { ServicesListPage } from '../pages/ServicesListPage'
 import { RulesListPage } from '../pages/RulesListPage'
 import { TasksBoardPage } from '../pages/TasksBoardPage'
 import { EventDetailsPage } from '../pages/EventDetailsPage'
@@ -40,6 +41,7 @@ export function AppRoutes() {
 			<Route path="/events/:id" element={<ProtectedRoute permission="events:read">{withNavigation(<EventDetailsPage />)}</ProtectedRoute>} />
 			<Route path="/teams" element={<ProtectedRoute permission="teams:list">{withNavigation(<TeamsListPage />)}</ProtectedRoute>} />
 			<Route path="/clients" element={<ProtectedRoute permission="clients:list">{withNavigation(<ClientsListPage />)}</ProtectedRoute>} />
+			<Route path="/services" element={<ProtectedRoute permission="services:list">{withNavigation(<ServicesListPage />)}</ProtectedRoute>} />
 			<Route path="/collaborators" element={<ProtectedRoute permission="collaborators:manage">{withNavigation(<CollaboratorsListPage />)}</ProtectedRoute>} />
 			<Route path="/rules" element={<ProtectedRoute permission="rules:list">{withNavigation(<RulesListPage />)}</ProtectedRoute>} />
 			<Route path="/tasks" element={<ProtectedRoute permission="tasks:list">{withNavigation(<TasksBoardPage />)}</ProtectedRoute>} />
@@ -51,4 +53,3 @@ export function AppRoutes() {
 		<Route path="*" element={<Navigate to={user ? '/users' : '/login'} replace />} />
 	</Routes>
 }
-
