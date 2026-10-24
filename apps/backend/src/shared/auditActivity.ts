@@ -23,6 +23,12 @@ export type AuditActivityInput = {
   subject?: string;
 };
 
+const SERVICE_ACTION_VERBS: Record<string, string> = {
+  SERVICE_CREATED: "cadastrado",
+  SERVICE_UPDATED: "atualizado",
+  SERVICE_DELETED: "excluído",
+};
+
 const CLIENT_ACTION_VERBS: Record<string, string> = {
   CLIENT_CREATED: "cadastrado",
   CLIENT_UPDATED: "atualizado",
@@ -39,6 +45,7 @@ const ACTIVITY_MESSAGES: Record<string, ActivityMessage> = {
   EVENT_USED_AS_TEMPLATE: (subject, changes) => `Evento '${subject}' usado como base para '${changes?.replicaEventName ?? "novo evento"}'`,
   TEAM_AUTO_ASSIGNED: (subject) => `Equipe atribuída automaticamente ao evento '${subject}'`,
   ...Object.fromEntries(Object.entries(CLIENT_ACTION_VERBS).map(([action, verb]): [string, ActivityMessage] => [action, (subject) => `Cliente '${subject}' ${verb}`])),
+  ...Object.fromEntries(Object.entries(SERVICE_ACTION_VERBS).map(([action, verb]): [string, ActivityMessage] => [action, (subject) => `Serviço '${subject}' ${verb}`])),
 };
 
 export function formatAuditActivityMessage({ action, entity, changes, subject }: AuditActivityInput) {

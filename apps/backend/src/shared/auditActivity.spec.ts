@@ -39,4 +39,10 @@ describe("toAuditChanges", () => {
     expect(formatAuditActivityMessage({ action: "EVENT_REPLICATED", entity: "Event", changes: { name: "X" } })).toBe("Evento 'X' criado a partir de 'outro evento'");
     expect(formatAuditActivityMessage({ action: "EVENT_USED_AS_TEMPLATE", entity: "Event", changes: { name: "X" } })).toBe("Evento 'X' usado como base para 'novo evento'");
   });
+
+  it("formats service catalog activity in Portuguese (RF06)", () => {
+    expect(formatAuditActivityMessage({ action: "SERVICE_CREATED", entity: "Service", changes: { name: "Bar" } })).toBe("Serviço 'Bar' cadastrado");
+    expect(formatAuditActivityMessage({ action: "SERVICE_UPDATED", entity: "Service", changes: { name: "Bar 2" } })).toBe("Serviço 'Bar 2' atualizado");
+    expect(formatAuditActivityMessage({ action: "SERVICE_DELETED", entity: "Service", changes: { name: "Bar" } })).toBe("Serviço 'Bar' excluído");
+  });
 });

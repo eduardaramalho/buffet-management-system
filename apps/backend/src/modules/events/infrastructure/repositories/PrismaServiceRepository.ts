@@ -8,6 +8,14 @@ export class PrismaServiceRepository implements ServiceRepository {
     return this.prisma.service.findFirst({ where: { id, deletedAt: null } });
   }
 
+  findActiveByName(name: string, excludeId?: string) {
+    return this.prisma.service.findFirst({ where: { name, deletedAt: null, ...(excludeId ? { NOT: { id: excludeId } } : {}) } });
+  }
+
+  findActiveCustom() {
+    return this.prisma.service.findFirst({ where: { isCustom: true, deletedAt: null } });
+  }
+
   list() {
     return this.prisma.service.findMany({ where: { deletedAt: null }, orderBy: { name: "asc" } });
   }

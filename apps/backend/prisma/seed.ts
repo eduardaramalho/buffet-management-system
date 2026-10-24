@@ -38,6 +38,11 @@ for (const [roleName, permissionKeys] of Object.entries(matrix)) {
   }
 }
 
+// RF06 / ADR 0001: the generic "Outro" entry (free label) is part of the catalog from the start.
+// Idempotent: only created when the active catalog has no generic service yet.
+const genericService = await prisma.service.findFirst({ where: { isCustom: true, deletedAt: null } });
+if (!genericService) await prisma.service.create({ data: { name: "Outro", isCustom: true } });
+
 const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: "admin" } });
 const adminPasswordHash = await bcrypt.hash("Admin123!", 12);
 const adminUser = await prisma.user.upsert({

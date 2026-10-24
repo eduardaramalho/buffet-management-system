@@ -100,6 +100,10 @@ export interface EventRepository {
 
 export interface ServiceRepository {
   findById(id: string): Promise<ServiceRecord | null>;
+  // RF06: active service with this name (the MySQL collation already ignores case and accents).
+  findActiveByName(name: string, excludeId?: string): Promise<ServiceRecord | null>;
+  // RF06 / ADR 0001: the generic "Outro" entry is unique in the active catalog.
+  findActiveCustom(): Promise<ServiceRecord | null>;
   list(): Promise<ServiceRecord[]>;
   create(input: { name: string; isCustom: boolean }): Promise<ServiceRecord>;
   update(id: string, input: { name?: string; isCustom?: boolean }): Promise<ServiceRecord>;
