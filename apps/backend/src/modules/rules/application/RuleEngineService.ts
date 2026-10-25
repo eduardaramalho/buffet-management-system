@@ -63,7 +63,20 @@ export class RuleEngineService {
   }
 
   private normalizeTaskTemplates(templates: CreateRuleInput["taskTemplates"]) {
-    return templates?.map((template) => ({ ...template, title: template.title.trim(), description: template.description?.trim() || null }));
+    return templates?.map((template) => ({ ...template, title: template.title.trim(), description: template.description?.trim() || null, specialty: template.specialty ?? null }));
+  }
+
+  // ADR 0010: a template may only point to a specialty the rule itself allocates, so the engine is
+  // guaranteed to look for that team when the event is confirmed.
+  private assertTemplateSpecialtiesRequired(
+    templates: Array<{ title: string; specialty?: string | null }> | undefined,
+    requirements: Array<{ specialty: string }> | undefined,
+  ) {
+    const required = new Set((requirements ?? []).map((requirement) => requirement.specialty));
+    const invalid = (templates ?? []).find((template) => template.specialty && !required.has(template.specialty));
+    if (invalid) {
+      throw new RuleManagementError(`A especialidade da tarefa '${invalid.title.trim()}' precisa estar entre as equipes exigidas pela regra`);
+    }
   }
 
   async create(input: CreateRuleInput) {
@@ -71,6 +84,7 @@ export class RuleEngineService {
     if (!name) throw new RuleManagementError("O nome da regra é obrigatório");
     this.assertConsistentCondition(input.conditionMinGuests, input.conditionMaxGuests, input.resourceRequirements);
     this.validateTaskTemplates(input.taskTemplates);
+    this.assertTemplateSpecialtiesRequired(input.taskTemplates, input.resourceRequirements);
 
     const normalizedInput = {
       ...input,
@@ -111,6 +125,9 @@ export class RuleEngineService {
     const maxGuests = input.conditionMaxGuests !== undefined ? input.conditionMaxGuests : current.conditionMaxGuests;
     this.assertConsistentCondition(minGuests, maxGuests, input.resourceRequirements);
     this.validateTaskTemplates(input.taskTemplates);
+    if (input.taskTemplates !== undefined || input.resourceRequirements !== undefined) {
+      this.assertTemplateSpecialtiesRequired(input.taskTemplates ?? current.taskTemplates, input.resourceRequirements ?? current.resourceRequirements);
+    }
 
     const normalizedInput = {
       ...input,

@@ -123,6 +123,8 @@ export type RuleTaskTemplateRecord = {
   title: string;
   description: string | null;
   daysBeforeEvent: number | null;
+  // Team specialty that receives the generated task (null: no automatic assignment).
+  specialty?: string | null;
 };
 
 export interface RuleTaskTemplateRepository {

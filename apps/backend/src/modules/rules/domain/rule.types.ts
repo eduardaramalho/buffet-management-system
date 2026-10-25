@@ -7,6 +7,7 @@ export type RuleTaskTemplateRecord = {
   title: string;
   description: string | null;
   daysBeforeEvent: number | null;
+  specialty: TeamSpecialty | null;
 };
 
 export type RuleResourceRequirementRecord = {
@@ -41,6 +42,7 @@ export type RuleTaskTemplateInput = {
   title: string;
   description?: string | null;
   daysBeforeEvent?: number | null;
+  specialty?: TeamSpecialty | null;
 };
 
 export type CreateRuleInput = {

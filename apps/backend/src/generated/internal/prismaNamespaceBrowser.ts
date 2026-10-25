@@ -306,7 +306,8 @@ export const RuleTaskTemplateScalarFieldEnum = {
   ruleId: 'ruleId',
   title: 'title',
   description: 'description',
-  daysBeforeEvent: 'daysBeforeEvent'
+  daysBeforeEvent: 'daysBeforeEvent',
+  specialty: 'specialty'
 } as const
 
 export type RuleTaskTemplateScalarFieldEnum = (typeof RuleTaskTemplateScalarFieldEnum)[keyof typeof RuleTaskTemplateScalarFieldEnum]
