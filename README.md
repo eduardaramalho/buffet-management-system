@@ -26,7 +26,7 @@ O EventosPro centraliza clientes, eventos, serviços contratados, equipes e tare
 - **Catálogo de serviços:** cadastro dos serviços contratáveis com nome único e o item genérico "Outro" com rótulo livre.
 - **Eventos:** serviços contratados, ciclo de vida com transições validadas (Planejamento, Confirmado, Em andamento, Concluído, Cancelado) e replicação de um evento anterior como base de um novo, com revisão dos itens copiados e rastreabilidade da origem.
 - **Equipes e colaboradores:** equipes por especialidade, líder, alocação em eventos com detecção de conflito de agenda.
-- **Motor de regras:** condições por tipo de evento, número de convidados e serviços; geração idempotente de tarefas; alocação automática de equipes; alertas de falta de equipe.
+- **Motor de regras:** condições por tipo de evento, número de convidados e serviços; geração idempotente de tarefas; alocação automática de equipes e atribuição de cada tarefa à equipe responsável; alertas de falta de equipe.
 - **Gestão operacional:** quadro de tarefas, tarefas manuais, atualização de status e Central do evento com atualização automática.
 - **Dashboard e relatórios:** indicadores do gestor e relatórios de eventos, tarefas e desempenho das equipes, com exportação em CSV e PDF.
 - **Acesso:** autenticação JWT com refresh token rotacionado, RBAC por permissões e trilha de auditoria.
