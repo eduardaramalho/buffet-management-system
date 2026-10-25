@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 
-import { EventManagementService } from "./EventManagementService.js";
+import { EventManagementError, EventManagementService } from "./EventManagementService.js";
+import { NotFoundError } from "../../../shared/errors/NotFoundError.js";
 import type { EventRepository, EventRecord, CreateEventInput, EventRuleExecutionTrigger, ServiceRepository, EventAuditService, EventClientReader } from "../domain/event.types.js";
 import type { Logger } from "../../../shared/domain/logger.types.js";
 
@@ -411,30 +412,53 @@ describe("EventManagementService", () => {
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "EVENT_SERVICE_DETACHED" }));
   });
 
-  it("records EVENT_RESTORED with actor, entity id and old/new changes", async () => {
+  describe("restore", () => {
     const deleted = makeEvent({ deletedAt: new Date("2026-09-20T00:00:00.000Z") });
-    const restored = makeEvent({ deletedAt: null });
-    const audit = { record: jest.fn(async (_input: Parameters<EventAuditService["record"]>[0]) => undefined) } as unknown as EventAuditService;
-    const events = {
-      findById: jest.fn(async () => deleted),
-      restore: jest.fn(async () => restored),
-    } as unknown as EventRepository;
-    const service = new EventManagementService(events, audit);
 
-    await service.restore("event-1", "actor-1");
+    it("restores a soft-deleted event keeping its status and records EVENT_RESTORED with its name", async () => {
+      const restored = makeEvent({ deletedAt: null, status: "CONFIRMADO" });
+      const audit = { record: jest.fn(async (_input: Parameters<EventAuditService["record"]>[0]) => undefined) } as unknown as EventAuditService;
+      const events = {
+        findDeletedById: jest.fn(async () => deleted),
+        restore: jest.fn(async () => restored),
+      } as unknown as EventRepository;
+      const service = new EventManagementService(events, audit);
 
-    expect(events.restore).toHaveBeenCalledWith("event-1");
-    expect(audit.record).toHaveBeenCalledTimes(1);
-    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({
-      action: "EVENT_RESTORED",
-      userId: "actor-1",
-      entityId: "event-1",
-      changes: {
-        before: { deletedAt: "set" },
-        after: { deletedAt: null },
-      },
-    }));
+      await expect(service.restore("event-1", "actor-1")).resolves.toEqual(restored);
+
+      expect(events.restore).toHaveBeenCalledWith("event-1");
+      expect(audit.record).toHaveBeenCalledTimes(1);
+      expect(audit.record).toHaveBeenCalledWith({
+        userId: "actor-1",
+        action: "EVENT_RESTORED",
+        entity: "Event",
+        entityId: "event-1",
+        changes: { name: "Casamento de Alice", before: { deletedAt: deleted.deletedAt }, after: { deletedAt: null } },
+      });
+    });
+
+    it("rejects restoring an event that is not deleted (400) and a missing one (404)", async () => {
+      const active = makeEvent();
+      const events = {
+        findDeletedById: jest.fn(async () => null),
+        findById: jest.fn(async (id: string) => (id === "event-1" ? active : null)),
+        restore: jest.fn(),
+      } as unknown as EventRepository;
+      const service = new EventManagementService(events, { record: jest.fn() } as unknown as EventAuditService);
+
+      await expect(service.restore("event-1", "actor-1")).rejects.toThrow(new EventManagementError("O evento não está excluído"));
+      await expect(service.restore("missing", "actor-1")).rejects.toBeInstanceOf(NotFoundError);
+      expect(events.restore).not.toHaveBeenCalled();
+    });
+
+    it("lists the soft-deleted events", async () => {
+      const events = { listDeleted: jest.fn(async () => [deleted]) } as unknown as EventRepository;
+      const service = new EventManagementService(events, { record: jest.fn() } as unknown as EventAuditService);
+
+      await expect(service.listDeleted()).resolves.toEqual([deleted]);
+    });
   });
+
   describe("client link", () => {
     const createInput = (overrides: Partial<CreateEventInput> = {}): CreateEventInput => ({
       name: "Casamento de Alice",

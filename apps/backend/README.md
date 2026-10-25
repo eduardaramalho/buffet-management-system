@@ -9,6 +9,7 @@ Todos os endpoints abaixo exigem `Authorization: Bearer <access-token>`. As resp
 | Método | Path | Permissão |
 |---|---|---|
 | `GET` | `/api/v1/events` | `events:list` |
+| `GET` | `/api/v1/events/deleted` | `events:restore` |
 | `GET` | `/api/v1/events/:id` | `events:read` |
 | `POST` | `/api/v1/events` | `events:create` |
 | `PUT` | `/api/v1/events/:id` | `events:update` |
@@ -20,6 +21,8 @@ Todos os endpoints abaixo exigem `Authorization: Bearer <access-token>`. As resp
 | `POST` | `/api/v1/events/:id/replicate` | `events:replicate` |
 
 `GET /api/v1/events` aceita os filtros opcionais `search`, `status`, `from` e `to`.
+
+`GET /api/v1/events/deleted` lista os eventos excluídos (soft delete), do mais recente para o mais antigo. `PATCH /api/v1/events/:id/restore` devolve o evento como estava (mesmo status, serviços, equipes e tarefas) e registra `EVENT_RESTORED`; responde 400 se o evento não estiver excluído e 404 se não existir.
 
 Exemplo de criação:
 

@@ -199,7 +199,24 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect.poll(async () => (await findEvent(conflictingEvent.name)).status).toBe('CANCELADO')
   })
 
-  test('9. confirmação do evento aplica as regras e gera as tarefas', async () => {
+  test('9. exclusão e restauração de um evento', async () => {
+    const { conflictingEvent } = data
+    await navigateTo(page, 'Eventos', 'Eventos')
+    page.once('dialog', (dialog) => void dialog.accept())
+    await page.getByRole('button', { name: `Excluir ${conflictingEvent.name}` }).click()
+    await expect(eventRow(conflictingEvent.name)).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Excluídos' }).click()
+    await page.getByRole('button', { name: `Restaurar ${conflictingEvent.name}` }).click()
+    await expect(page.getByRole('status').filter({ hasText: `Evento '${conflictingEvent.name}' restaurado.` })).toBeVisible()
+
+    // Volta exatamente como estava: mesmo status (Cancelado) na lista de ativos.
+    await page.getByRole('button', { name: 'Ativos' }).click()
+    await expect(eventRow(conflictingEvent.name)).toBeVisible()
+    await expect.poll(async () => (await findEvent(conflictingEvent.name)).status).toBe('CANCELADO')
+  })
+
+  test('10. confirmação do evento aplica as regras e gera as tarefas', async () => {
     await openEventHub(data.event.name)
     await page.getByRole('button', { name: 'Confirmar', exact: true }).click()
 
@@ -213,7 +230,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.getByRole('alert').filter({ hasText: 'Há tarefas sem equipe alocada' })).toBeVisible()
   })
 
-  test('10. tarefa manual e atribuição de equipe às tarefas geradas', async () => {
+  test('11. tarefa manual e atribuição de equipe às tarefas geradas', async () => {
     const teamName = data.kitchenTeam.name
     await navigateTo(page, 'Tarefas', 'Tarefas')
 
@@ -236,7 +253,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     }
   })
 
-  test('11. execução: evento iniciado e tarefas concluídas', async () => {
+  test('12. execução: evento iniciado e tarefas concluídas', async () => {
     await openEventHub(data.event.name)
     await page.getByRole('button', { name: 'Iniciar evento' }).click()
     await expect(currentStep()).toContainText('Em andamento')
@@ -251,7 +268,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     }
   })
 
-  test('12. conclusão do evento', async () => {
+  test('13. conclusão do evento', async () => {
     await openEventHub(data.event.name)
     await expect(page.getByText('3 de 3')).toBeVisible()
     await page.getByRole('button', { name: 'Concluir', exact: true }).click()
@@ -260,7 +277,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect.poll(async () => (await findEvent(data.event.name)).status).toBe('CONCLUIDO')
   })
 
-  test('13. replicação do evento concluído como base de um novo evento (RF25)', async () => {
+  test('14. replicação do evento concluído como base de um novo evento (RF25)', async () => {
     const { replica } = data
     await openEventHub(data.event.name)
     await page.getByRole('button', { name: 'Replicar evento' }).click()
@@ -309,14 +326,14 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.getByRole('link', { name: replica.name })).toBeVisible()
   })
 
-  test('14. dashboard do gestor', async () => {
+  test('15. dashboard do gestor', async () => {
     await navigateTo(page, 'Dashboard', 'Dashboard')
     await expect(page.getByRole('heading', { name: 'Tarefas por Status' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Atividades recentes' })).toBeVisible()
     await expect(page.getByRole('alert')).toHaveCount(0)
   })
 
-  test('15. relatórios gerenciais e exportações', async () => {
+  test('16. relatórios gerenciais e exportações', async () => {
     await navigateTo(page, 'Relatórios', 'Relatórios')
     const period = page.getByRole('region', { name: 'Período' })
     await period.getByLabel('Data inicial').fill(toDateInput(daysFromNow(-1)))
@@ -342,7 +359,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(panel.getByRole('alert')).toHaveCount(0)
   })
 
-  test('16. controle de acesso: gestor vê apenas o que seu papel permite', async () => {
+  test('17. controle de acesso: gestor vê apenas o que seu papel permite', async () => {
     await logout(page)
     await login(page, data.manager.email, data.manager.password)
     const menu = page.getByRole('navigation')
@@ -362,7 +379,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await manager.dispose()
   })
 
-  test('17. sessão: o botão Sair continua acessível em tela baixa e no celular', async () => {
+  test('18. sessão: o botão Sair continua acessível em tela baixa e no celular', async () => {
     // Regressão: a sidebar é fixa e não rolava; em telas baixas o rodapé com "Sair" ficava fora da tela,
     // e no celular o botão era escondido por CSS (não havia como encerrar a sessão).
     for (const viewport of [{ width: 1366, height: 600 }, { width: 390, height: 844 }]) {

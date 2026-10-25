@@ -45,4 +45,9 @@ describe("toAuditChanges", () => {
     expect(formatAuditActivityMessage({ action: "SERVICE_UPDATED", entity: "Service", changes: { name: "Bar 2" } })).toBe("Serviço 'Bar 2' atualizado");
     expect(formatAuditActivityMessage({ action: "SERVICE_DELETED", entity: "Service", changes: { name: "Bar" } })).toBe("Serviço 'Bar' excluído");
   });
+
+  it("formats event deletion and restoration (soft delete)", () => {
+    expect(formatAuditActivityMessage({ action: "EVENT_DELETED", entity: "Event", changes: { after: { name: "Casamento" } } })).toBe("Evento 'Casamento' excluído");
+    expect(formatAuditActivityMessage({ action: "EVENT_RESTORED", entity: "Event", changes: { name: "Casamento" } })).toBe("Evento 'Casamento' restaurado");
+  });
 });

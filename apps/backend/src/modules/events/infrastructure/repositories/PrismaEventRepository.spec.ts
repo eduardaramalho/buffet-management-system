@@ -137,4 +137,16 @@ describe("PrismaEventRepository", () => {
       },
     });
   });
+
+  it("reads and lists only soft-deleted events for the restore view", async () => {
+    const findFirst = jest.fn(async (_args: unknown) => null);
+    const findMany = jest.fn(async (_args: unknown) => []);
+    const repository = new PrismaEventRepository({ event: { findFirst, findMany } } as never);
+
+    await repository.findDeletedById("event-1");
+    await repository.listDeleted();
+
+    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "event-1", deletedAt: { not: null } } }));
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { deletedAt: { not: null } }, orderBy: { deletedAt: "desc" } }));
+  });
 });

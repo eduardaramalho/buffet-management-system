@@ -93,6 +93,9 @@ export interface EventRepository {
   list(filter: EventListFilter): Promise<EventRecord[]>;
   update(id: string, input: UpdateEventInput): Promise<EventRecord>;
   softDelete(id: string): Promise<EventRecord>;
+  // Soft-deleted events only: the list behind the "Excluídos" view and the restore check.
+  findDeletedById(id: string): Promise<EventRecord | null>;
+  listDeleted(): Promise<EventRecord[]>;
   restore(id: string): Promise<EventRecord>;
   attachService(input: AttachServiceInput): Promise<EventRecord>;
   detachService(eventId: string, serviceId: string): Promise<void>;
