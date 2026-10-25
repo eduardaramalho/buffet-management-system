@@ -40,6 +40,8 @@ type ActivityMessage = (subject: string, changes: AuditChanges) => string;
 // One formatter per action instead of a nested ternary chain: adding an action is one line.
 const ACTIVITY_MESSAGES: Record<string, ActivityMessage> = {
   EVENT_CREATED: (subject) => `Evento '${subject}' criado`,
+  EVENT_DELETED: (subject) => `Evento '${subject}' excluído`,
+  EVENT_RESTORED: (subject) => `Evento '${subject}' restaurado`,
   TASK_STATUS_CHANGED: (subject, changes) => `Tarefa '${subject}' marcada como ${typeof changes?.after === "string" ? changes.after : "atualizada"}`,
   EVENT_REPLICATED: (subject, changes) => `Evento '${subject}' criado a partir de '${changes?.sourceEventName ?? "outro evento"}'`,
   EVENT_USED_AS_TEMPLATE: (subject, changes) => `Evento '${subject}' usado como base para '${changes?.replicaEventName ?? "novo evento"}'`,

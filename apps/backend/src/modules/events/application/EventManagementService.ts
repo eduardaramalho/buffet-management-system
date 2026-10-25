@@ -12,8 +12,10 @@ import type {
 } from "../domain/event.types.js";
 import type { Logger } from "../../../shared/domain/logger.types.js";
 import { normalizeServiceLabel } from "../domain/eventServiceLabel.js";
+import { NotFoundError } from "../../../shared/errors/NotFoundError.js";
 
 const MAX_GUESTS_COUNT = 5000;
+const EVENT_NOT_FOUND = "Evento não encontrado";
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
   PLANEJAMENTO: ["CONFIRMADO", "CANCELADO"],
   CONFIRMADO: ["EM_ANDAMENTO", "CANCELADO"],
@@ -78,14 +80,14 @@ export class EventManagementService {
 
   get(id: string) {
     return this.events.findDetailById(id).then((event) => {
-      if (!event) throw new EventManagementError("Evento não encontrado");
+      if (!event) throw new EventManagementError(EVENT_NOT_FOUND);
       return event;
     });
   }
 
   async update(id: string, input: UpdateEventInput, actorId: string) {
     const event = await this.events.findById(id);
-    if (!event) throw new EventManagementError("Evento não encontrado");
+    if (!event) throw new EventManagementError(EVENT_NOT_FOUND);
 
     if (input.status && input.status !== event.status && !VALID_STATUS_TRANSITIONS[event.status]?.includes(input.status)) {
       throw new EventManagementError("transição de status inválida");
@@ -127,7 +129,7 @@ export class EventManagementService {
 
   async remove(id: string, actorId: string) {
     const event = await this.events.findById(id);
-    if (!event) throw new EventManagementError("Evento não encontrado");
+    if (!event) throw new EventManagementError(EVENT_NOT_FOUND);
     if (event.status === "CONCLUIDO") {
       throw new EventManagementError("Eventos concluídos não podem ser excluídos");
     }
@@ -143,14 +145,25 @@ export class EventManagementService {
     return deleted;
   }
 
+  listDeleted() {
+    return this.events.listDeleted();
+  }
+
+  // Restores a soft-deleted event exactly as it was (same status, services, teams and tasks).
   async restore(id: string, actorId: string) {
+    const deleted = await this.events.findDeletedById(id);
+    if (!deleted) {
+      if (await this.events.findById(id)) throw new EventManagementError("O evento não está excluído");
+      throw new NotFoundError(EVENT_NOT_FOUND);
+    }
+
     const restored = await this.events.restore(id);
     await this.audit.record({
       userId: actorId,
       action: "EVENT_RESTORED",
       entity: "Event",
       entityId: id,
-      changes: { before: { deletedAt: "set" }, after: { deletedAt: null } },
+      changes: { name: deleted.name, before: { deletedAt: deleted.deletedAt }, after: { deletedAt: null } },
     });
     return restored;
   }

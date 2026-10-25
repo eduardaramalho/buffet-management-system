@@ -69,6 +69,14 @@ export class PrismaEventRepository implements EventRepository, ReplicationEventS
     return this.prisma.event.update({ where: { id }, data: { deletedAt: new Date() }, include: eventInclude }) as Promise<EventRecord>;
   }
 
+  findDeletedById(id: string) {
+    return this.prisma.event.findFirst({ where: { id, deletedAt: { not: null } }, include: eventInclude }) as Promise<EventRecord | null>;
+  }
+
+  listDeleted() {
+    return this.prisma.event.findMany({ where: { deletedAt: { not: null } }, orderBy: { deletedAt: "desc" }, include: eventInclude }) as Promise<EventRecord[]>;
+  }
+
   restore(id: string) {
     return this.prisma.event.update({ where: { id }, data: { deletedAt: null }, include: eventInclude }) as Promise<EventRecord>;
   }

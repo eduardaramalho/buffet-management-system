@@ -104,4 +104,19 @@ describe("EventController", () => {
     expect(updateResponse.status).toBe(200);
     expect(update).toHaveBeenCalledWith("event-1", { clientId: "client-2" }, "actor-1");
   });
+
+  it("lists deleted events only with events:restore, on a route that does not clash with /:id", async () => {
+    const hasPermission = jest.spyOn(authService, "hasPermission").mockResolvedValueOnce(false).mockResolvedValue(true);
+    const listDeleted = jest.spyOn(eventService, "listDeleted").mockResolvedValue([]);
+    const get = jest.spyOn(eventService, "get");
+
+    const forbidden = await request(app).get("/api/v1/events/deleted").set("Authorization", `Bearer ${token()}`);
+    const allowed = await request(app).get("/api/v1/events/deleted").set("Authorization", `Bearer ${token()}`);
+
+    expect(forbidden.status).toBe(403);
+    expect(allowed.status).toBe(200);
+    expect(hasPermission).toHaveBeenCalledWith("actor-1", "events:restore");
+    expect(listDeleted).toHaveBeenCalledTimes(1);
+    expect(get).not.toHaveBeenCalled();
+  });
 });

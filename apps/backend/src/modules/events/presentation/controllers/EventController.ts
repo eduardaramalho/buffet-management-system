@@ -17,6 +17,7 @@ export class EventController {
   constructor(private readonly service: EventManagementService) {}
 
   list = async (request: Request, response: Response) => response.json(await this.service.list(listSchema.parse(request.query)));
+  listDeleted = async (_request: Request, response: Response) => response.json(await this.service.listDeleted());
   get = async (request: Request, response: Response) => response.json(await this.service.get(routeId(request)));
 
   create = async (request: Request, response: Response) => {

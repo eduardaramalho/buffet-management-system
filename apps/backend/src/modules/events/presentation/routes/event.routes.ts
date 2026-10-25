@@ -6,6 +6,8 @@ import { authorize } from "../../../auth/presentation/middlewares/authorize.js";
 export const eventRoutes = Router();
 eventRoutes.use(authenticate);
 eventRoutes.get("/", authorize("events:list"), eventController.list);
+// Declared before "/:id" so "deleted" is not taken as an event id.
+eventRoutes.get("/deleted", authorize("events:restore"), eventController.listDeleted);
 eventRoutes.get("/:id", authorize("events:read"), eventController.get);
 eventRoutes.post("/", authorize("events:create"), eventController.create);
 eventRoutes.put("/:id", authorize("events:update"), eventController.update);
