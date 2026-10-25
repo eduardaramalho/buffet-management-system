@@ -12,6 +12,7 @@ const taskTemplateSchema = z.object({
   title: z.string().trim().min(1).max(150),
   description: z.string().optional().nullable(),
   daysBeforeEvent: z.number().int().min(0).max(365).optional().nullable(),
+  specialty: z.enum(teamSpecialties).optional().nullable(),
 });
 
 // Base sem defaults: o .partial() do Zod 4 mantém .default(), o que sobrescreveria campos omitidos no PUT.

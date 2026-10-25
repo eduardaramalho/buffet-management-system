@@ -355,6 +355,23 @@ export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedIntNullableFilter<$PrismaModel>
 }
 
+export type EnumTeamSpecialtyNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.TeamSpecialty | Prisma.EnumTeamSpecialtyFieldRefInput<$PrismaModel> | null
+  in?: $Enums.TeamSpecialty[] | null
+  notIn?: $Enums.TeamSpecialty[] | null
+  not?: Prisma.NestedEnumTeamSpecialtyNullableFilter<$PrismaModel> | $Enums.TeamSpecialty | null
+}
+
+export type EnumTeamSpecialtyNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.TeamSpecialty | Prisma.EnumTeamSpecialtyFieldRefInput<$PrismaModel> | null
+  in?: $Enums.TeamSpecialty[] | null
+  notIn?: $Enums.TeamSpecialty[] | null
+  not?: Prisma.NestedEnumTeamSpecialtyNullableWithAggregatesFilter<$PrismaModel> | $Enums.TeamSpecialty | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumTeamSpecialtyNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumTeamSpecialtyNullableFilter<$PrismaModel>
+}
+
 export type EnumTaskStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.TaskStatus | Prisma.EnumTaskStatusFieldRefInput<$PrismaModel>
   in?: $Enums.TaskStatus[]
@@ -701,6 +718,23 @@ export type NestedFloatNullableFilter<$PrismaModel = never> = {
   gt?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   gte?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   not?: Prisma.NestedFloatNullableFilter<$PrismaModel> | number | null
+}
+
+export type NestedEnumTeamSpecialtyNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.TeamSpecialty | Prisma.EnumTeamSpecialtyFieldRefInput<$PrismaModel> | null
+  in?: $Enums.TeamSpecialty[] | null
+  notIn?: $Enums.TeamSpecialty[] | null
+  not?: Prisma.NestedEnumTeamSpecialtyNullableFilter<$PrismaModel> | $Enums.TeamSpecialty | null
+}
+
+export type NestedEnumTeamSpecialtyNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.TeamSpecialty | Prisma.EnumTeamSpecialtyFieldRefInput<$PrismaModel> | null
+  in?: $Enums.TeamSpecialty[] | null
+  notIn?: $Enums.TeamSpecialty[] | null
+  not?: Prisma.NestedEnumTeamSpecialtyNullableWithAggregatesFilter<$PrismaModel> | $Enums.TeamSpecialty | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumTeamSpecialtyNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumTeamSpecialtyNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumTaskStatusFilter<$PrismaModel = never> = {

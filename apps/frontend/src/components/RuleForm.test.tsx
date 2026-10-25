@@ -105,7 +105,64 @@ describe('RuleForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
 
     await waitFor(() => expect(createRule).toHaveBeenCalledWith(expect.objectContaining({
-      taskTemplates: [{ title: 'Separar materiais', description: null, daysBeforeEvent: null }],
+      taskTemplates: [{ title: 'Separar materiais', description: null, daysBeforeEvent: null, specialty: null }],
     })))
+  })
+
+  describe('equipe responsável por tarefa (RFC 3.1, ADR 0010)', () => {
+    const addBarRequirement = () => {
+      fireEvent.click(screen.getByRole('button', { name: '+ Adicionar recurso' }))
+      fireEvent.change(screen.getByLabelText('Especialidade 1'), { target: { value: 'BAR' } })
+    }
+
+    it('offers only the specialties required by the rule and saves the chosen one', async () => {
+      vi.mocked(listServices).mockResolvedValue([])
+      vi.mocked(createRule).mockResolvedValue(createdRule)
+      render(<RuleForm onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
+      fireEvent.change(screen.getByLabelText('Nome da regra'), { target: { value: 'Casamento com bar' } })
+      fireEvent.click(screen.getByRole('button', { name: '+ Adicionar tarefa' }))
+      fireEvent.change(screen.getByLabelText('Título da tarefa 1'), { target: { value: 'Montar o bar' } })
+
+      const select = screen.getByLabelText('Equipe responsável 1')
+      expect(select).toBeDisabled()
+      expect(screen.getByText('Adicione um recurso exigido para atribuir as tarefas automaticamente.')).toBeInTheDocument()
+
+      addBarRequirement()
+      expect(select).toBeEnabled()
+      expect(Array.from((select as HTMLSelectElement).options).map((option) => option.textContent)).toEqual(['Sem atribuição automática', 'Bar'])
+      fireEvent.change(select, { target: { value: 'BAR' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+
+      await waitFor(() => expect(createRule).toHaveBeenCalledWith(expect.objectContaining({
+        resourceRequirements: [{ specialty: 'BAR', minQuantity: 1 }],
+        taskTemplates: [{ title: 'Montar o bar', description: null, daysBeforeEvent: null, specialty: 'BAR' }],
+      })))
+    })
+
+    it('clears the task specialty when the matching requirement is changed or removed', async () => {
+      vi.mocked(listServices).mockResolvedValue([])
+      render(<RuleForm onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: '+ Adicionar tarefa' }))
+      addBarRequirement()
+      fireEvent.change(screen.getByLabelText('Equipe responsável 1'), { target: { value: 'BAR' } })
+
+      fireEvent.change(screen.getByLabelText('Especialidade 1'), { target: { value: 'COZINHA' } })
+      expect(screen.getByLabelText('Equipe responsável 1')).toHaveValue('')
+
+      fireEvent.change(screen.getByLabelText('Equipe responsável 1'), { target: { value: 'COZINHA' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Remover recurso 1' }))
+      expect(screen.getByLabelText('Equipe responsável 1')).toHaveValue('')
+    })
+
+    it('pre-fills the specialty when editing a rule', async () => {
+      vi.mocked(listServices).mockResolvedValue([])
+      render(<RuleForm rule={{
+        ...createdRule,
+        resourceRequirements: [{ id: 'req-1', specialty: 'BAR', minQuantity: 1 }],
+        taskTemplates: [{ id: 'tpl-1', ruleId: 'rule-1', title: 'Montar o bar', description: null, daysBeforeEvent: 1, specialty: 'BAR' }],
+      }} onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
+
+      expect(screen.getByLabelText('Equipe responsável 1')).toHaveValue('BAR')
+    })
   })
 })

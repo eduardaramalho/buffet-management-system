@@ -81,8 +81,8 @@ describe("RuleEngineService", () => {
         conditionRequiredServiceIds: null,
         resourceRequirements: [],
         taskTemplates: [
-          { title: "Confirmar fornecedor", description: null, daysBeforeEvent: 10 },
-          { title: "Separar materiais", description: "Checklist", daysBeforeEvent: 2 },
+          { title: "Confirmar fornecedor", description: null, daysBeforeEvent: 10, specialty: null },
+          { title: "Separar materiais", description: "Checklist", daysBeforeEvent: 2, specialty: null },
         ],
         createdById: "actor-1",
       } as unknown as CreateRuleInput;
@@ -363,5 +363,52 @@ describe("RuleEngineService", () => {
       expect(audit.record).not.toHaveBeenCalled();
     });
   });
-});
 
+  describe("task template specialty (RFC 3.1, ADR 0010)", () => {
+    const input = (overrides: Partial<CreateRuleInput> = {}): CreateRuleInput => ({
+      name: "Casamento com bar", description: null, conditionServiceTypeIn: null, conditionMinGuests: null, conditionMaxGuests: null,
+      conditionRequiredServiceIds: null, createdById: "actor-1",
+      resourceRequirements: [{ specialty: "BAR", minQuantity: 1 }],
+      taskTemplates: [{ title: "Montar o bar", specialty: "BAR" }],
+      ...overrides,
+    });
+
+    it("stores the specialty of each template, defaulting to null", async () => {
+      const create = jest.fn(async (data: unknown) => makeRule({ taskTemplates: [] , ...(data as object) }));
+      const service = new RuleEngineService({ create } as unknown as RuleRepository, { record: jest.fn() } as unknown as AuditService);
+
+      await service.create(input({ taskTemplates: [{ title: "Montar o bar", specialty: "BAR" }, { title: "Lembrete" }] }));
+
+      expect(create).toHaveBeenCalledWith(expect.objectContaining({
+        taskTemplates: [
+          { title: "Montar o bar", description: null, specialty: "BAR" },
+          { title: "Lembrete", description: null, specialty: null },
+        ],
+      }));
+    });
+
+    it("rejects a template specialty the rule does not require", async () => {
+      const create = jest.fn();
+      const service = new RuleEngineService({ create } as unknown as RuleRepository, { record: jest.fn() } as unknown as AuditService);
+
+      await expect(service.create(input({ taskTemplates: [{ title: "Montar mesas", specialty: "SALAO" }] })))
+        .rejects.toThrow("A especialidade da tarefa 'Montar mesas' precisa estar entre as equipes exigidas pela regra");
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it("on update, checks against the requirements kept from the current rule, and against the current templates when only requirements change", async () => {
+      const current = makeRule({
+        resourceRequirements: [{ id: "req-1", specialty: "BAR", minQuantity: 1 }],
+        taskTemplates: [{ id: "tpl-1", ruleId: "rule-1", title: "Montar o bar", description: null, daysBeforeEvent: null, specialty: "BAR" }],
+      });
+      const update = jest.fn(async () => current);
+      const rules = { findById: jest.fn(async () => current), update } as unknown as RuleRepository;
+      const service = new RuleEngineService(rules, { record: jest.fn() } as unknown as AuditService);
+
+      await expect(service.update("rule-1", { taskTemplates: [{ title: "Montar o bar", specialty: "BAR" }] }, "actor-1")).resolves.toBeDefined();
+      await expect(service.update("rule-1", { taskTemplates: [{ title: "Montar mesas", specialty: "SALAO" }] }, "actor-1")).rejects.toThrow("precisa estar entre as equipes exigidas");
+      await expect(service.update("rule-1", { resourceRequirements: [{ specialty: "COZINHA", minQuantity: 1 }] }, "actor-1")).rejects.toThrow("A especialidade da tarefa 'Montar o bar'");
+      expect(update).toHaveBeenCalledTimes(1);
+    });
+  });
+});

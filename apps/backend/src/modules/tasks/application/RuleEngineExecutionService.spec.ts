@@ -454,4 +454,137 @@ describe("RuleEngineExecutionService", () => {
     await expect(service.applyRules("missing", "actor-1")).rejects.toThrow(RuleEngineExecutionError);
     await expect(service.applyRules("missing", "actor-1")).rejects.toThrow("Evento não encontrado");
   });
+
+  describe("automatic task assignment to the allocated team (RFC 3.1, ADR 0010)", () => {
+    type TeamRow = { id: string; specialty: string; status: string };
+    const template = (id: string, title: string, specialty: string | null) => ({ id, ruleId: "rule-1", title, description: null, daysBeforeEvent: 3, specialty });
+
+    const build = (options: {
+      requirements: Array<{ specialty: "BAR" | "SALAO" | "COZINHA"; minQuantity: number }>;
+      templates: ReturnType<typeof template>[];
+      teams: TeamRow[];
+      preAllocated?: string[];
+      existingTasks?: Array<Partial<TaskRecord>>;
+    }) => {
+      const requirements = options.requirements.map((item, index) => ({ id: `req-${index}`, ...item }));
+      const match = makeMatch({ resourceRequirements: requirements, rule: { ...makeMatch().rule, resourceRequirements: requirements } });
+      const ruleEngine = { evaluate: jest.fn(async () => [match]) } as unknown as RuleEngineService;
+      const events = { findById: jest.fn(async () => makeEvent()) } as unknown as EventRepository;
+      const teams = { list: jest.fn(async (filter: { specialty?: string }) => options.teams.filter((team) => !filter?.specialty || team.specialty === filter.specialty)) } as unknown as TeamRepository;
+      const eventTeamService = makeEventTeamServiceFake();
+      for (const teamId of options.preAllocated ?? []) void eventTeamService.assignTeamToEvent("event-1", teamId, "actor-0");
+      const tasks = makeTaskRepositoryFake();
+      for (const [index, task] of (options.existingTasks ?? []).entries()) {
+        tasks.created.push({ id: `old-${index}`, eventId: "event-1", title: `Antiga ${index}`, description: null, dueDate: null, status: "PENDENTE", assignedTeamId: null, sourceRuleId: null, createdAt: new Date(), updatedAt: new Date(), deletedAt: null, ...task } as TaskRecord);
+      }
+      const audit = { record: jest.fn(async (_input: { action: string; entityId?: string; userId?: string; changes?: Record<string, unknown> }) => undefined) };
+      const service = new RuleEngineExecutionService(
+        ruleEngine, events, teams, eventTeamService as unknown as EventTeamService, tasks, makeRuleApplicationFake(),
+        { listByRuleId: jest.fn(async () => options.templates) } as unknown as RuleTaskTemplateRepository,
+        audit as unknown as AuditService, makeFakeTransactionRunner(),
+      );
+      const generated = (title: string) => tasks.created.find((task) => task.title === title);
+      return { service, tasks, audit, generated };
+    };
+
+    it("assigns the task to the team of its specialty allocated by the same rule, with assignedAt and audit", async () => {
+      const { service, generated, audit } = build({
+        requirements: [{ specialty: "BAR", minQuantity: 1 }],
+        templates: [template("tpl-1", "Montar o bar", "BAR")],
+        teams: [{ id: "team-bar", specialty: "BAR", status: "ATIVA" }],
+      });
+
+      await service.applyRules("event-1", "actor-1");
+
+      const task = generated("Montar o bar");
+      expect(task?.assignedTeamId).toBe("team-bar");
+      expect(task?.assignedAt).toBeInstanceOf(Date);
+      expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "TASK_GENERATED", entityId: task?.id, changes: expect.objectContaining({ assignedTeamId: "team-bar" }) }));
+      expect(audit.record).toHaveBeenCalledWith({ userId: "actor-1", action: "TASK_TEAM_ASSIGNED", entity: "Task", entityId: task?.id, changes: { before: null, after: "team-bar", automatic: true } });
+    });
+
+    it("keeps a template without specialty unassigned, as before", async () => {
+      const { service, generated, audit } = build({
+        requirements: [{ specialty: "BAR", minQuantity: 1 }],
+        templates: [template("tpl-1", "Lembrete geral", null)],
+        teams: [{ id: "team-bar", specialty: "BAR", status: "ATIVA" }],
+      });
+
+      await service.applyRules("event-1", "actor-1");
+
+      expect(generated("Lembrete geral")).toEqual(expect.objectContaining({ assignedTeamId: null, assignedAt: null }));
+      expect(audit.record.mock.calls.map(([input]) => input.action)).not.toContain("TASK_TEAM_ASSIGNED");
+    });
+
+    it("balances tasks across the allocated teams of the specialty; a tie goes to the team allocated first", async () => {
+      const { service, generated } = build({
+        requirements: [{ specialty: "SALAO", minQuantity: 2 }],
+        templates: [template("tpl-1", "Montar mesas", "SALAO"), template("tpl-2", "Arrumar cadeiras", "SALAO"), template("tpl-3", "Servir boas-vindas", "SALAO")],
+        teams: [{ id: "salao-a", specialty: "SALAO", status: "ATIVA" }, { id: "salao-b", specialty: "SALAO", status: "ATIVA" }],
+      });
+
+      await service.applyRules("event-1", "actor-1");
+
+      expect([generated("Montar mesas"), generated("Arrumar cadeiras"), generated("Servir boas-vindas")].map((task) => task?.assignedTeamId)).toEqual(["salao-a", "salao-b", "salao-a"]);
+    });
+
+    it("counts only the open tasks the teams already have in the event", async () => {
+      const { service, generated } = build({
+        requirements: [{ specialty: "SALAO", minQuantity: 2 }],
+        templates: [template("tpl-1", "Montar mesas", "SALAO")],
+        teams: [{ id: "salao-a", specialty: "SALAO", status: "ATIVA" }, { id: "salao-b", specialty: "SALAO", status: "ATIVA" }],
+        preAllocated: ["salao-a", "salao-b"],
+        existingTasks: [
+          { assignedTeamId: "salao-a", status: "PENDENTE" },
+          { assignedTeamId: "salao-a", status: "EM_ANDAMENTO" },
+          { assignedTeamId: "salao-b", status: "CONCLUIDA" },
+          { assignedTeamId: "salao-b", status: "CANCELADA" },
+          { assignedTeamId: "salao-b", status: "PENDENTE", deletedAt: new Date() },
+        ],
+      });
+
+      await service.applyRules("event-1", "actor-1");
+
+      expect(generated("Montar mesas")?.assignedTeamId).toBe("salao-b");
+    });
+
+    it("uses a team allocated by hand before the confirmation", async () => {
+      const { service, generated } = build({
+        requirements: [{ specialty: "COZINHA", minQuantity: 1 }],
+        templates: [template("tpl-1", "Preparar cardápio", "COZINHA")],
+        teams: [{ id: "cozinha-1", specialty: "COZINHA", status: "ATIVA" }],
+        preAllocated: ["cozinha-1"],
+      });
+
+      await service.applyRules("event-1", "actor-1");
+
+      expect(generated("Preparar cardápio")?.assignedTeamId).toBe("cozinha-1");
+    });
+
+    it("leaves the task unassigned when no team of the specialty is available, next to the shortage alert (RN15)", async () => {
+      const { service, generated, tasks } = build({
+        requirements: [{ specialty: "BAR", minQuantity: 1 }],
+        templates: [template("tpl-1", "Montar o bar", "BAR")],
+        teams: [],
+      });
+
+      await service.applyRules("event-1", "actor-1");
+
+      expect(generated("Montar o bar")?.assignedTeamId).toBeNull();
+      expect(tasks.created.some((task) => task.title.startsWith("Faltam 1 equipe(s) de BAR"))).toBe(true);
+    });
+
+    it("never assigns to an inactive team, even if it is allocated to the event (RN17)", async () => {
+      const { service, generated } = build({
+        requirements: [{ specialty: "BAR", minQuantity: 1 }],
+        templates: [template("tpl-1", "Montar o bar", "BAR")],
+        teams: [{ id: "bar-inativa", specialty: "BAR", status: "INATIVA" }],
+        preAllocated: ["bar-inativa"],
+      });
+
+      await service.applyRules("event-1", "actor-1");
+
+      expect(generated("Montar o bar")?.assignedTeamId).toBeNull();
+    });
+  });
 });

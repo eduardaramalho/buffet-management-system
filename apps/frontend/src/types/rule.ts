@@ -3,8 +3,9 @@ import type { TeamSpecialty } from './team'
 
 export type RuleResourceRequirement = { id: string; specialty: TeamSpecialty; minQuantity: number }
 export type RuleResourceRequirementInput = { specialty: TeamSpecialty; minQuantity: number }
-export type RuleTaskTemplate = { id: string; ruleId: string; title: string; description: string | null; daysBeforeEvent: number | null }
-export type RuleTaskTemplateInput = { title: string; description?: string | null; daysBeforeEvent?: number | null }
+// specialty: team specialty that receives the generated task automatically (RFC 3.1, ADR 0010).
+export type RuleTaskTemplate = { id: string; ruleId: string; title: string; description: string | null; daysBeforeEvent: number | null; specialty?: TeamSpecialty | null }
+export type RuleTaskTemplateInput = { title: string; description?: string | null; daysBeforeEvent?: number | null; specialty?: TeamSpecialty | null }
 
 export type Rule = {
   id: string

@@ -40,6 +40,7 @@ export type RuleTaskTemplateMinAggregateOutputType = {
   title: string | null
   description: string | null
   daysBeforeEvent: number | null
+  specialty: $Enums.TeamSpecialty | null
 }
 
 export type RuleTaskTemplateMaxAggregateOutputType = {
@@ -48,6 +49,7 @@ export type RuleTaskTemplateMaxAggregateOutputType = {
   title: string | null
   description: string | null
   daysBeforeEvent: number | null
+  specialty: $Enums.TeamSpecialty | null
 }
 
 export type RuleTaskTemplateCountAggregateOutputType = {
@@ -56,6 +58,7 @@ export type RuleTaskTemplateCountAggregateOutputType = {
   title: number
   description: number
   daysBeforeEvent: number
+  specialty: number
   _all: number
 }
 
@@ -74,6 +77,7 @@ export type RuleTaskTemplateMinAggregateInputType = {
   title?: true
   description?: true
   daysBeforeEvent?: true
+  specialty?: true
 }
 
 export type RuleTaskTemplateMaxAggregateInputType = {
@@ -82,6 +86,7 @@ export type RuleTaskTemplateMaxAggregateInputType = {
   title?: true
   description?: true
   daysBeforeEvent?: true
+  specialty?: true
 }
 
 export type RuleTaskTemplateCountAggregateInputType = {
@@ -90,6 +95,7 @@ export type RuleTaskTemplateCountAggregateInputType = {
   title?: true
   description?: true
   daysBeforeEvent?: true
+  specialty?: true
   _all?: true
 }
 
@@ -185,6 +191,7 @@ export type RuleTaskTemplateGroupByOutputType = {
   title: string
   description: string | null
   daysBeforeEvent: number | null
+  specialty: $Enums.TeamSpecialty | null
   _count: RuleTaskTemplateCountAggregateOutputType | null
   _avg: RuleTaskTemplateAvgAggregateOutputType | null
   _sum: RuleTaskTemplateSumAggregateOutputType | null
@@ -216,6 +223,7 @@ export type RuleTaskTemplateWhereInput = {
   title?: Prisma.StringFilter<"RuleTaskTemplate"> | string
   description?: Prisma.StringNullableFilter<"RuleTaskTemplate"> | string | null
   daysBeforeEvent?: Prisma.IntNullableFilter<"RuleTaskTemplate"> | number | null
+  specialty?: Prisma.EnumTeamSpecialtyNullableFilter<"RuleTaskTemplate"> | $Enums.TeamSpecialty | null
   rule?: Prisma.XOR<Prisma.RuleScalarRelationFilter, Prisma.RuleWhereInput>
 }
 
@@ -225,6 +233,7 @@ export type RuleTaskTemplateOrderByWithRelationInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   daysBeforeEvent?: Prisma.SortOrderInput | Prisma.SortOrder
+  specialty?: Prisma.SortOrderInput | Prisma.SortOrder
   rule?: Prisma.RuleOrderByWithRelationInput
   _relevance?: Prisma.RuleTaskTemplateOrderByRelevanceInput
 }
@@ -238,6 +247,7 @@ export type RuleTaskTemplateWhereUniqueInput = Prisma.AtLeast<{
   title?: Prisma.StringFilter<"RuleTaskTemplate"> | string
   description?: Prisma.StringNullableFilter<"RuleTaskTemplate"> | string | null
   daysBeforeEvent?: Prisma.IntNullableFilter<"RuleTaskTemplate"> | number | null
+  specialty?: Prisma.EnumTeamSpecialtyNullableFilter<"RuleTaskTemplate"> | $Enums.TeamSpecialty | null
   rule?: Prisma.XOR<Prisma.RuleScalarRelationFilter, Prisma.RuleWhereInput>
 }, "id">
 
@@ -247,6 +257,7 @@ export type RuleTaskTemplateOrderByWithAggregationInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   daysBeforeEvent?: Prisma.SortOrderInput | Prisma.SortOrder
+  specialty?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.RuleTaskTemplateCountOrderByAggregateInput
   _avg?: Prisma.RuleTaskTemplateAvgOrderByAggregateInput
   _max?: Prisma.RuleTaskTemplateMaxOrderByAggregateInput
@@ -263,6 +274,7 @@ export type RuleTaskTemplateScalarWhereWithAggregatesInput = {
   title?: Prisma.StringWithAggregatesFilter<"RuleTaskTemplate"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"RuleTaskTemplate"> | string | null
   daysBeforeEvent?: Prisma.IntNullableWithAggregatesFilter<"RuleTaskTemplate"> | number | null
+  specialty?: Prisma.EnumTeamSpecialtyNullableWithAggregatesFilter<"RuleTaskTemplate"> | $Enums.TeamSpecialty | null
 }
 
 export type RuleTaskTemplateCreateInput = {
@@ -270,6 +282,7 @@ export type RuleTaskTemplateCreateInput = {
   title: string
   description?: string | null
   daysBeforeEvent?: number | null
+  specialty?: $Enums.TeamSpecialty | null
   rule: Prisma.RuleCreateNestedOneWithoutTaskTemplatesInput
 }
 
@@ -279,6 +292,7 @@ export type RuleTaskTemplateUncheckedCreateInput = {
   title: string
   description?: string | null
   daysBeforeEvent?: number | null
+  specialty?: $Enums.TeamSpecialty | null
 }
 
 export type RuleTaskTemplateUpdateInput = {
@@ -286,6 +300,7 @@ export type RuleTaskTemplateUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   daysBeforeEvent?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  specialty?: Prisma.NullableEnumTeamSpecialtyFieldUpdateOperationsInput | $Enums.TeamSpecialty | null
   rule?: Prisma.RuleUpdateOneRequiredWithoutTaskTemplatesNestedInput
 }
 
@@ -295,6 +310,7 @@ export type RuleTaskTemplateUncheckedUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   daysBeforeEvent?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  specialty?: Prisma.NullableEnumTeamSpecialtyFieldUpdateOperationsInput | $Enums.TeamSpecialty | null
 }
 
 export type RuleTaskTemplateCreateManyInput = {
@@ -303,6 +319,7 @@ export type RuleTaskTemplateCreateManyInput = {
   title: string
   description?: string | null
   daysBeforeEvent?: number | null
+  specialty?: $Enums.TeamSpecialty | null
 }
 
 export type RuleTaskTemplateUpdateManyMutationInput = {
@@ -310,6 +327,7 @@ export type RuleTaskTemplateUpdateManyMutationInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   daysBeforeEvent?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  specialty?: Prisma.NullableEnumTeamSpecialtyFieldUpdateOperationsInput | $Enums.TeamSpecialty | null
 }
 
 export type RuleTaskTemplateUncheckedUpdateManyInput = {
@@ -318,6 +336,7 @@ export type RuleTaskTemplateUncheckedUpdateManyInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   daysBeforeEvent?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  specialty?: Prisma.NullableEnumTeamSpecialtyFieldUpdateOperationsInput | $Enums.TeamSpecialty | null
 }
 
 export type RuleTaskTemplateListRelationFilter = {
@@ -342,6 +361,7 @@ export type RuleTaskTemplateCountOrderByAggregateInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   daysBeforeEvent?: Prisma.SortOrder
+  specialty?: Prisma.SortOrder
 }
 
 export type RuleTaskTemplateAvgOrderByAggregateInput = {
@@ -354,6 +374,7 @@ export type RuleTaskTemplateMaxOrderByAggregateInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   daysBeforeEvent?: Prisma.SortOrder
+  specialty?: Prisma.SortOrder
 }
 
 export type RuleTaskTemplateMinOrderByAggregateInput = {
@@ -362,6 +383,7 @@ export type RuleTaskTemplateMinOrderByAggregateInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   daysBeforeEvent?: Prisma.SortOrder
+  specialty?: Prisma.SortOrder
 }
 
 export type RuleTaskTemplateSumOrderByAggregateInput = {
@@ -410,11 +432,16 @@ export type RuleTaskTemplateUncheckedUpdateManyWithoutRuleNestedInput = {
   deleteMany?: Prisma.RuleTaskTemplateScalarWhereInput | Prisma.RuleTaskTemplateScalarWhereInput[]
 }
 
+export type NullableEnumTeamSpecialtyFieldUpdateOperationsInput = {
+  set?: $Enums.TeamSpecialty | null
+}
+
 export type RuleTaskTemplateCreateWithoutRuleInput = {
   id?: string
   title: string
   description?: string | null
   daysBeforeEvent?: number | null
+  specialty?: $Enums.TeamSpecialty | null
 }
 
 export type RuleTaskTemplateUncheckedCreateWithoutRuleInput = {
@@ -422,6 +449,7 @@ export type RuleTaskTemplateUncheckedCreateWithoutRuleInput = {
   title: string
   description?: string | null
   daysBeforeEvent?: number | null
+  specialty?: $Enums.TeamSpecialty | null
 }
 
 export type RuleTaskTemplateCreateOrConnectWithoutRuleInput = {
@@ -459,6 +487,7 @@ export type RuleTaskTemplateScalarWhereInput = {
   title?: Prisma.StringFilter<"RuleTaskTemplate"> | string
   description?: Prisma.StringNullableFilter<"RuleTaskTemplate"> | string | null
   daysBeforeEvent?: Prisma.IntNullableFilter<"RuleTaskTemplate"> | number | null
+  specialty?: Prisma.EnumTeamSpecialtyNullableFilter<"RuleTaskTemplate"> | $Enums.TeamSpecialty | null
 }
 
 export type RuleTaskTemplateCreateManyRuleInput = {
@@ -466,6 +495,7 @@ export type RuleTaskTemplateCreateManyRuleInput = {
   title: string
   description?: string | null
   daysBeforeEvent?: number | null
+  specialty?: $Enums.TeamSpecialty | null
 }
 
 export type RuleTaskTemplateUpdateWithoutRuleInput = {
@@ -473,6 +503,7 @@ export type RuleTaskTemplateUpdateWithoutRuleInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   daysBeforeEvent?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  specialty?: Prisma.NullableEnumTeamSpecialtyFieldUpdateOperationsInput | $Enums.TeamSpecialty | null
 }
 
 export type RuleTaskTemplateUncheckedUpdateWithoutRuleInput = {
@@ -480,6 +511,7 @@ export type RuleTaskTemplateUncheckedUpdateWithoutRuleInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   daysBeforeEvent?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  specialty?: Prisma.NullableEnumTeamSpecialtyFieldUpdateOperationsInput | $Enums.TeamSpecialty | null
 }
 
 export type RuleTaskTemplateUncheckedUpdateManyWithoutRuleInput = {
@@ -487,6 +519,7 @@ export type RuleTaskTemplateUncheckedUpdateManyWithoutRuleInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   daysBeforeEvent?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  specialty?: Prisma.NullableEnumTeamSpecialtyFieldUpdateOperationsInput | $Enums.TeamSpecialty | null
 }
 
 
@@ -497,6 +530,7 @@ export type RuleTaskTemplateSelect<ExtArgs extends runtime.Types.Extensions.Inte
   title?: boolean
   description?: boolean
   daysBeforeEvent?: boolean
+  specialty?: boolean
   rule?: boolean | Prisma.RuleDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["ruleTaskTemplate"]>
 
@@ -508,9 +542,10 @@ export type RuleTaskTemplateSelectScalar = {
   title?: boolean
   description?: boolean
   daysBeforeEvent?: boolean
+  specialty?: boolean
 }
 
-export type RuleTaskTemplateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ruleId" | "title" | "description" | "daysBeforeEvent", ExtArgs["result"]["ruleTaskTemplate"]>
+export type RuleTaskTemplateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ruleId" | "title" | "description" | "daysBeforeEvent" | "specialty", ExtArgs["result"]["ruleTaskTemplate"]>
 export type RuleTaskTemplateInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   rule?: boolean | Prisma.RuleDefaultArgs<ExtArgs>
 }
@@ -526,6 +561,7 @@ export type $RuleTaskTemplatePayload<ExtArgs extends runtime.Types.Extensions.In
     title: string
     description: string | null
     daysBeforeEvent: number | null
+    specialty: $Enums.TeamSpecialty | null
   }, ExtArgs["result"]["ruleTaskTemplate"]>
   composites: {}
 }
@@ -901,6 +937,7 @@ export interface RuleTaskTemplateFieldRefs {
   readonly title: Prisma.FieldRef<"RuleTaskTemplate", 'String'>
   readonly description: Prisma.FieldRef<"RuleTaskTemplate", 'String'>
   readonly daysBeforeEvent: Prisma.FieldRef<"RuleTaskTemplate", 'Int'>
+  readonly specialty: Prisma.FieldRef<"RuleTaskTemplate", 'TeamSpecialty'>
 }
     
 

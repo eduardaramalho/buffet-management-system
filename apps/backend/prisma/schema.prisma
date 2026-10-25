@@ -350,12 +350,15 @@ model RuleResourceRequirement {
 // Template for a Task spawned when a Rule is applied to an Event. daysBeforeEvent is nullable
 // because some tasks are plain alerts with no relative deadline (task is created without a dueDate).
 model RuleTaskTemplate {
-  id              String  @id @default(uuid()) @db.Char(36)
-  ruleId          String  @map("rule_id") @db.Char(36)
-  title           String  @db.VarChar(150)
-  description     String? @db.Text
-  daysBeforeEvent Int?    @map("days_before_event")
-  rule            Rule    @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  id              String         @id @default(uuid()) @db.Char(36)
+  ruleId          String         @map("rule_id") @db.Char(36)
+  title           String         @db.VarChar(150)
+  description     String?        @db.Text
+  daysBeforeEvent Int?           @map("days_before_event")
+  // RFC 3.1 (ADR 0010): specialty whose allocated team receives the generated task. Null keeps the
+  // task unassigned (plain reminder). Must be one of the rule's resource requirements.
+  specialty       TeamSpecialty?
+  rule            Rule           @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 
   @@index([ruleId])
   @@map("rule_task_templates")
