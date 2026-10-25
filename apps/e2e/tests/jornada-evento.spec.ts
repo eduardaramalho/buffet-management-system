@@ -137,6 +137,8 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     }
     await dialog.getByRole('button', { name: '+ Adicionar recurso' }).click()
     await dialog.getByLabel('Especialidade 1').selectOption({ label: rule.specialty })
+    // RFC 3.1 (ADR 0010): each generated task goes to the allocated team of this specialty.
+    for (const index of rule.tasks.keys()) await dialog.getByLabel(`Equipe responsável ${index + 1}`).selectOption({ label: rule.specialty })
     await dialog.getByRole('button', { name: 'Salvar' }).click()
     await expect(dialog).toBeHidden()
     await expect(page.getByText(rule.name, { exact: true }).first()).toBeVisible()
@@ -216,7 +218,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect.poll(async () => (await findEvent(conflictingEvent.name)).status).toBe('CANCELADO')
   })
 
-  test('10. confirmação do evento aplica as regras e gera as tarefas', async () => {
+  test('10. confirmação do evento aplica as regras, gera as tarefas e atribui a equipe', async () => {
     await openEventHub(data.event.name)
     await page.getByRole('button', { name: 'Confirmar', exact: true }).click()
 
@@ -226,11 +228,16 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.getByRole('heading', { name: 'Regras aplicadas' })).toBeVisible()
     await expect(page.locator('.event-details-side').getByText(data.rule.name)).toBeVisible()
     for (const task of data.rule.tasks) await expect(page.getByText(task.title, { exact: true })).toBeVisible()
-    // Tarefas geradas pela regra ainda não têm equipe: a Central alerta o gestor.
-    await expect(page.getByRole('alert').filter({ hasText: 'Há tarefas sem equipe alocada' })).toBeVisible()
+    // Atribuição automática (RFC 3.1): as tarefas da regra já saem com a equipe da especialidade.
+    await expect(page.getByRole('alert').filter({ hasText: 'Há tarefas sem equipe alocada' })).toHaveCount(0)
+    const confirmed = await findEvent(data.event.name)
+    const teams = await admin.json<Array<{ id: string; name: string }>>(admin.get('/teams'))
+    const kitchen = teams.find((team) => team.name === data.kitchenTeam.name)!
+    const generated = await admin.json<Array<{ title: string; assignedTeamId: string | null }>>(admin.get(`/tasks?eventId=${confirmed.id}`))
+    for (const task of data.rule.tasks) expect(generated.find((item) => item.title === task.title)?.assignedTeamId).toBe(kitchen.id)
   })
 
-  test('11. tarefa manual e atribuição de equipe às tarefas geradas', async () => {
+  test('11. tarefa manual e tarefas da regra já atribuídas', async () => {
     const teamName = data.kitchenTeam.name
     await navigateTo(page, 'Tarefas', 'Tarefas')
 
@@ -243,13 +250,10 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(dialog).toBeHidden()
     await expect(page.getByRole('region', { name: 'Pendente' }).getByText(data.manualTask.title)).toBeVisible()
 
+    // As tarefas da regra já foram atribuídas automaticamente na confirmação.
     for (const task of data.rule.tasks) {
-      await page.getByRole('button', { name: `Atribuir equipe a ${task.title}` }).click()
-      const editDialog = page.getByRole('dialog', { name: 'Editar tarefa' })
-      await selectWhenLoaded(editDialog.getByLabel('Equipe'), teamName)
-      await editDialog.getByRole('button', { name: 'Salvar' }).click()
-      await expect(editDialog).toBeHidden()
-      await expect(page.getByRole('button', { name: `Atribuir equipe a ${task.title}` })).toBeHidden()
+      await expect(page.getByRole('region', { name: 'Pendente' }).getByText(task.title, { exact: true })).toBeVisible()
+      await expect(page.getByRole('button', { name: `Atribuir equipe a ${task.title}` })).toHaveCount(0)
     }
   })
 

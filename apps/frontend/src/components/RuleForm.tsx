@@ -23,7 +23,7 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
     rule?.resourceRequirements.map((item) => ({ specialty: item.specialty, minQuantity: item.minQuantity })) ?? [],
   )
   const [taskTemplates, setTaskTemplates] = useState<RuleTaskTemplateInput[]>(
-    rule?.taskTemplates.map((template) => ({ title: template.title, description: template.description, daysBeforeEvent: template.daysBeforeEvent })) ?? [],
+    rule?.taskTemplates.map((template) => ({ title: template.title, description: template.description, daysBeforeEvent: template.daysBeforeEvent, specialty: template.specialty ?? null })) ?? [],
   )
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -32,10 +32,18 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
 
   const toggleServiceType = (type: EventType) => setServiceTypes((current) => current.includes(type) ? current.filter((item) => item !== type) : [...current, type])
   const toggleRequiredService = (serviceId: string) => setRequiredServiceIds((current) => current.includes(serviceId) ? current.filter((id) => id !== serviceId) : [...current, serviceId])
-  const addRequirement = () => setRequirements((current) => [...current, { specialty: TEAM_SPECIALTIES[0], minQuantity: 1 }])
-  const updateRequirement = (index: number, patch: Partial<RuleResourceRequirementInput>) => setRequirements((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item))
-  const removeRequirement = (index: number) => setRequirements((current) => current.filter((_, itemIndex) => itemIndex !== index))
-  const addTaskTemplate = () => setTaskTemplates((current) => [...current, { title: '', description: null, daysBeforeEvent: null }])
+  // A task can only point to a specialty the rule requires (ADR 0010): when requirements change,
+  // a task whose specialty is no longer required goes back to "no automatic assignment".
+  const changeRequirements = (next: RuleResourceRequirementInput[]) => {
+    const required = new Set(next.map((item) => item.specialty))
+    setRequirements(next)
+    setTaskTemplates((current) => current.map((template) => template.specialty && !required.has(template.specialty) ? { ...template, specialty: null } : template))
+  }
+  const addRequirement = () => changeRequirements([...requirements, { specialty: TEAM_SPECIALTIES[0], minQuantity: 1 }])
+  const updateRequirement = (index: number, patch: Partial<RuleResourceRequirementInput>) => changeRequirements(requirements.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item))
+  const removeRequirement = (index: number) => changeRequirements(requirements.filter((_, itemIndex) => itemIndex !== index))
+  const requiredSpecialties = TEAM_SPECIALTIES.filter((specialty) => requirements.some((item) => item.specialty === specialty))
+  const addTaskTemplate = () => setTaskTemplates((current) => [...current, { title: '', description: null, daysBeforeEvent: null, specialty: null }])
   const updateTaskTemplate = (index: number, patch: Partial<RuleTaskTemplateInput>) => setTaskTemplates((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item))
   const removeTaskTemplate = (index: number) => setTaskTemplates((current) => current.filter((_, itemIndex) => itemIndex !== index))
 
@@ -55,10 +63,11 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
         conditionMaxGuests: maxGuests ? Number(maxGuests) : null,
         conditionRequiredServiceIds: requiredServiceIds.length ? requiredServiceIds : null,
         resourceRequirements: requirements,
-        taskTemplates: taskTemplates.map((template) => ({ ...template, title: template.title.trim(), description: template.description?.trim() || null, daysBeforeEvent: template.daysBeforeEvent ?? null })),
+        taskTemplates: taskTemplates.map((template) => ({ ...template, title: template.title.trim(), description: template.description?.trim() || null, daysBeforeEvent: template.daysBeforeEvent ?? null, specialty: template.specialty ?? null })),
       }
       const saved = rule ? await updateRule(rule.id, input) : await createRule(input)
-      rule ? onUpdated(saved) : onCreated(saved)
+      if (rule) onUpdated(saved)
+      else onCreated(saved)
       onClose()
     } catch (cause) { setError(getApiErrorMessage(cause, 'Não foi possível salvar a regra')) } finally { setLoading(false) }
   }
@@ -79,15 +88,6 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
         {services.length === 0 ? <p className="empty">Nenhum serviço cadastrado. Cadastre serviços para usá-los como condição.</p> : <div className="service-checks">{services.map((service) => <label key={service.id}><input type="checkbox" aria-label={service.name} checked={requiredServiceIds.includes(service.id)} onChange={() => toggleRequiredService(service.id)} /> {service.name}</label>)}</div>}
       </section>
 
-      <section><h3>Tarefas geradas</h3>
-        {taskTemplates.map((template, index) => <div key={index} className="rule-requirement-row">
-          <label>Título<input aria-label={`Título da tarefa ${index + 1}`} value={template.title} onChange={(event) => updateTaskTemplate(index, { title: event.target.value })} /></label>
-          <label>Dias antes do evento<input aria-label={`Dias antes do evento ${index + 1}`} type="number" min="0" max="365" value={template.daysBeforeEvent ?? ''} onChange={(event) => updateTaskTemplate(index, { daysBeforeEvent: event.target.value === '' ? null : Number(event.target.value) })} /></label>
-          <button type="button" className="link-button" aria-label={`Remover tarefa ${index + 1}`} onClick={() => removeTaskTemplate(index)}>Remover</button>
-        </div>)}
-        <button type="button" className="link-button" onClick={addTaskTemplate}>+ Adicionar tarefa</button>
-      </section>
-
       <section><h3>Recursos exigidos</h3>
         {requirements.map((requirement, index) => <div key={index} className="rule-requirement-row">
           <label>Especialidade<select aria-label={`Especialidade ${index + 1}`} value={requirement.specialty} onChange={(event) => updateRequirement(index, { specialty: event.target.value as TeamSpecialty })}>{TEAM_SPECIALTIES.map((specialty) => <option key={specialty} value={specialty}>{specialtyLabels[specialty]}</option>)}</select></label>
@@ -95,6 +95,16 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
           <button type="button" className="link-button" aria-label={`Remover recurso ${index + 1}`} onClick={() => removeRequirement(index)}>Remover</button>
         </div>)}
         <button type="button" className="link-button" onClick={addRequirement}>+ Adicionar recurso</button>
+      </section>
+      <section><h3>Tarefas geradas</h3>
+        <p className="muted">{requiredSpecialties.length ? 'Ao confirmar o evento, cada tarefa com equipe responsável vai para a equipe da especialidade alocada ao evento que tiver menos tarefas em aberto.' : 'Adicione um recurso exigido para atribuir as tarefas automaticamente.'}</p>
+        {taskTemplates.map((template, index) => <div key={index} className="rule-requirement-row">
+          <label>Título<input aria-label={`Título da tarefa ${index + 1}`} value={template.title} onChange={(event) => updateTaskTemplate(index, { title: event.target.value })} /></label>
+          <label>Dias antes do evento<input aria-label={`Dias antes do evento ${index + 1}`} type="number" min="0" max="365" value={template.daysBeforeEvent ?? ''} onChange={(event) => updateTaskTemplate(index, { daysBeforeEvent: event.target.value === '' ? null : Number(event.target.value) })} /></label>
+          <label>Equipe responsável<select aria-label={`Equipe responsável ${index + 1}`} value={template.specialty ?? ''} disabled={requiredSpecialties.length === 0} onChange={(event) => updateTaskTemplate(index, { specialty: (event.target.value || null) as TeamSpecialty | null })}><option value="">Sem atribuição automática</option>{requiredSpecialties.map((specialty) => <option key={specialty} value={specialty}>{specialtyLabels[specialty]}</option>)}</select></label>
+          <button type="button" className="link-button" aria-label={`Remover tarefa ${index + 1}`} onClick={() => removeTaskTemplate(index)}>Remover</button>
+        </div>)}
+        <button type="button" className="link-button" onClick={addTaskTemplate}>+ Adicionar tarefa</button>
       </section>
 
       {error && <Notice message={error} error />}
