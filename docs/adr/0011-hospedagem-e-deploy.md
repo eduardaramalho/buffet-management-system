@@ -1,6 +1,6 @@
 # ADR 0011: Hospedagem em produção e deploy contínuo
 
-- **Status:** Proposto
+- **Status:** Aceito
 - **Escopo:** Infraestrutura (`deploy/`), CI/CD (`.github/workflows/ci.yml`, job `deploy`), backend (`trust proxy`, seed de produção), documentação (README, Wiki: Deploy)
 
 ## Contexto

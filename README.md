@@ -68,7 +68,13 @@ cp .env.example .env      # troque os segredos e senhas
 docker compose up --build -d
 ```
 
-Na primeira execução o backend aplica as migrations automaticamente. Em seguida, crie permissões, papéis e o usuário administrador seguindo a seção de seed em [Como Rodar](https://github.com/eduardaramalho/buffet-management-system/wiki/Como-Rodar).
+Na primeira execução o backend aplica as migrations automaticamente. Em seguida, crie permissões, papéis, o serviço "Outro" e o usuário administrador (`admin@buffet.local`, com a senha definida em `ADMIN_INITIAL_PASSWORD`):
+
+```bash
+docker compose exec backend node dist/seed.js
+```
+
+O seed é idempotente e pode ser executado de novo a qualquer momento. A senha do administrador só é definida na criação; se ele já existir, a senha atual é mantida. Detalhes em [Como Rodar](https://github.com/eduardaramalho/buffet-management-system/wiki/Como-Rodar).
 
 | Serviço | Endereço |
 |---|---|
@@ -101,7 +107,7 @@ Medição de 22/10/2026. Cada execução do CI publica a cobertura de cada aplic
 ```
 buffet-management-system/
 ├── apps/
-│   ├── backend/        # API REST, Prisma (schema, migrations, seed), Dockerfile
+│   ├── backend/        # API REST, Prisma (schema, migrations), seed (src/seed.ts), Dockerfile
 │   ├── frontend/       # SPA React, Dockerfile, nginx.conf
 │   └── e2e/            # testes end-to-end com Playwright
 ├── docs/adr/           # Architecture Decision Records

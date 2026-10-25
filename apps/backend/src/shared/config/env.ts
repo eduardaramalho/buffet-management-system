@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { parseTrustProxy } from "./trustProxy.js";
 
 const required = (name: string) => {
   const value = process.env[name];
@@ -15,5 +16,6 @@ export const env = {
   port: Number(process.env.PORT ?? 3000),
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
   logLevel: process.env.LOG_LEVEL ?? "info",
-  nodeEnv: process.env.NODE_ENV ?? "development"
+  nodeEnv: process.env.NODE_ENV ?? "development",
+  trustProxy: parseTrustProxy(process.env.TRUST_PROXY)
 };

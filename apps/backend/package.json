@@ -6,7 +6,8 @@
     "start": "node dist/server.js",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "tsx src/seed.ts",
+    "db:seed:prod": "node dist/seed.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
     "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage --runInBand"
   },
