@@ -272,13 +272,13 @@ As regras são gerenciadas por `GET/POST /api/v1/rules` e `GET/PUT/DELETE /api/v
   "name": "Casamento grande",
   "resourceRequirements": [],
   "taskTemplates": [
-    { "title": "Confirmar fornecedor", "description": "Ligar para o fornecedor", "daysBeforeEvent": 10 },
+    { "title": "Confirmar fornecedor", "description": "Ligar para o fornecedor", "daysBeforeEvent": 10, "specialty": "BAR" },
     { "title": "Separar materiais", "daysBeforeEvent": 2 }
   ]
 }
 ```
 
-`title` tem de 1 a 150 caracteres após o trim; `description` é opcional; `daysBeforeEvent` é um inteiro entre 0 e 365 ou `null`. Os títulos devem ser únicos dentro da regra. No `PUT`, omitir `taskTemplates` preserva os templates atuais; enviar `taskTemplates: []` remove todos. A criação e a substituição dos templates ocorrem na mesma transação da regra.
+`title` tem de 1 a 150 caracteres após o trim; `description` é opcional; `daysBeforeEvent` é um inteiro entre 0 e 365 ou `null`. Os títulos devem ser únicos dentro da regra. `specialty` é opcional e precisa ser uma das especialidades de `resourceRequirements` (400 caso contrário): ao confirmar o evento, a tarefa gerada vai para a equipe ativa dessa especialidade alocada ao evento que tiver menos tarefas em aberto, com empate para a alocada primeiro ([ADR 0010](../../docs/adr/0010-atribuicao-automatica-de-tarefas.md)). Sem equipe disponível, ou sem `specialty`, a tarefa nasce sem equipe. No `PUT`, omitir `taskTemplates` preserva os templates atuais; enviar `taskTemplates: []` remove todos. A criação e a substituição dos templates ocorrem na mesma transação da regra.
 
 ## Tarefas e motor de regras
 
