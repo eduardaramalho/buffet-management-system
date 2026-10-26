@@ -32,7 +32,7 @@ O projeto já roda inteiro em Docker Compose: MySQL 8, backend (Node 24, migrati
    2. Login na Azure por **OIDC** (`azure/login`), sem senha armazenada.
    3. `az vm run-command invoke` envia o bundle `deploy/` e o `.env` de produção, autentica no GHCR com o `GITHUB_TOKEN` temporário do job, faz `docker compose pull` e `up -d`, aplica as migrations e roda o seed.
 9. **Identidade do pipeline:** uma **User Assigned Managed Identity** (`id-eventospro-deploy`) com credencial federada para o repositório (branch `main`) e papel **Virtual Machine Contributor** restrito ao resource group. Contas de estudante costumam ter a criação de App Registration bloqueada no tenant da universidade; a identidade gerenciada é um recurso da própria assinatura.
-10. **Segredos:** ficam em **secrets do repositório** no GitHub (Environments em repositório privado exigem plano pago). O `.env` de produção é gerado no job e nunca é versionado.
+10. **Segredos e configuração:** senhas e identificadores da Azure ficam em **secrets do repositório**; valores não sensíveis (domínio, e-mail do Let's Encrypt, resource group e nome da VM) ficam em **variáveis do repositório**. Environments em repositório privado exigem plano pago. O `.env` de produção é gerado no job e nunca é versionado.
 11. **Ajustes no backend para produção** (com TDD):
     - `trust proxy` configurável por variável de ambiente, para que o rate limiter enxergue o IP real do cliente atrás do Caddy, e não o IP do proxy.
     - O seed passa a ler a senha inicial do admin de `ADMIN_INITIAL_PASSWORD`, só define a senha na criação (nunca sobrescreve) e passa a ser executável na imagem de produção, que não tem as dependências de desenvolvimento.

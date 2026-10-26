@@ -1,0 +1,133 @@
+# Ambiente de produção (ADR 0011). Executado na VM em /opt/eventospro pelo job "deploy" do CI.
+# Diferenças em relação ao docker-compose.yml de desenvolvimento:
+# - usa imagens publicadas no GHCR (as mesmas que passaram pelo CI), nunca build na VM;
+# - só o Caddy publica portas no host (80/443); banco, API e observabilidade ficam na rede interna;
+# - limites de memória por serviço e rotação de logs, para a VM B2s (4 GB) não esgotar recursos.
+name: eventospro
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    # performance_schema desligado economiza ~200 MB de RAM; o monitoramento da aplicação é feito pelo Prometheus.
+    command: ["--performance-schema=OFF", "--innodb-buffer-pool-size=256M"]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?defina MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?defina MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER:?defina MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?defina MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    mem_limit: 1g
+    logging: *default-logging
+
+  backend:
+    image: ${BACKEND_IMAGE:?defina BACKEND_IMAGE}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?defina JWT_ACCESS_SECRET}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL_MS: ${JWT_REFRESH_TTL_MS:-604800000}
+      PASSWORD_RESET_TTL_MS: ${PASSWORD_RESET_TTL_MS:-3600000}
+      PORT: 3000
+      CORS_ORIGIN: https://${DOMAIN:?defina DOMAIN}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      NODE_ENV: production
+      # Um proxy (Caddy) entre o cliente e a API: o rate limiter passa a usar o IP real do cliente.
+      TRUST_PROXY: 1
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?defina ADMIN_INITIAL_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/v1/health').then(response => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    mem_limit: 512m
+    logging: *default-logging
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?defina FRONTEND_IMAGE}
+    restart: unless-stopped
+    mem_limit: 64m
+    logging: *default-logging
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?defina ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificados emitidos pelo Let's Encrypt; persistem entre deploys para não estourar o limite de emissão.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    mem_limit: 128m
+    logging: *default-logging
+
+  prometheus:
+    image: prom/prometheus:v3.8.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      # Retenção curta: suficiente para o acompanhamento do período de avaliação sem ocupar o disco da VM.
+      - --storage.tsdb.retention.time=15d
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    mem_limit: 384m
+    logging: *default-logging
+
+  grafana:
+    image: grafana/grafana:12.0.2
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?defina GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      # Servido pelo Caddy em https://<domínio>/grafana (mesmo domínio e certificado da aplicação).
+      GF_SERVER_ROOT_URL: https://${DOMAIN}/grafana/
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    mem_limit: 256m
+    logging: *default-logging
+
+volumes:
+  mysql_data:
+  caddy_data:
+  caddy_config:
+  prometheus_data:
+  grafana_data:

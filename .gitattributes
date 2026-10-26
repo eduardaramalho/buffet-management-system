@@ -1,0 +1,4 @@
+# Scripts e configuração executados no Linux (VM de produção, containers, CI) precisam de LF,
+# mesmo quando o repositório é clonado no Windows.
+*.sh text eol=lf
+deploy/** text eol=lf
