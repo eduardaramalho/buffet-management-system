@@ -2,7 +2,8 @@
 
 Decisões e alternativas em [ADR 0011](../docs/adr/0011-hospedagem-e-deploy.md). Resumo:
 
-- Uma VM Linux (Ubuntu 24.04, B2s) na assinatura Azure for Students, resource group `rg-eventospro-prod`.
+- Uma VM Linux ARM (Ubuntu 24.04, `Standard_B2pls_v2`, 2 vCPUs e 4 GiB) em **Canada Central**, na assinatura Azure for Students, resource group `rg-eventospro-prod`.
+- Endereço público: `https://eventospro.canadacentral.cloudapp.azure.com`.
 - Tudo roda em Docker Compose (`docker-compose.prod.yml`): MySQL, backend, frontend, Caddy (HTTPS), Prometheus e Grafana.
 - O deploy é contínuo: cada push na `main` que passa por `backend`, `frontend`, `e2e` e `sonar` dispara o job `deploy` do CI.
 - O CI publica as imagens no GHCR e atualiza a VM com `az vm run-command`. Não existe SSH: a porta 22 fica fechada.
@@ -24,6 +25,8 @@ Decisões e alternativas em [ADR 0011](../docs/adr/0011-hospedagem-e-deploy.md).
 |---|---|---|
 | `docker-compose.prod.yml` | VM | Serviços de produção, limites de memória, rotação de logs |
 | `Caddyfile` | VM | HTTPS (Let's Encrypt), roteamento, cabeçalhos de segurança |
+| `scripts/azure-provision.sh` | Cloud Shell, uma vez | Recria VM, IP, portas e identidade do GitHub pela CLI (equivalente ao passo a passo abaixo) |
+| `scripts/github-configure.sh` | Cloud Shell, uma vez | Cadastra secrets (senhas aleatórias) e variáveis do GitHub |
 | `scripts/vm-bootstrap.sh` | VM, uma vez | Docker, swap, atualizações automáticas de segurança |
 | `scripts/build-remote-script.sh` | CI | Empacota a configuração e o `.env` no script enviado à VM |
 | `scripts/remote-deploy.sh` | VM, a cada deploy | Pull das imagens, `up`, seed, agendamento do backup |
@@ -31,7 +34,7 @@ Decisões e alternativas em [ADR 0011](../docs/adr/0011-hospedagem-e-deploy.md).
 
 ## Fluxo de um deploy
 
-1. Build e push das imagens `ghcr.io/<repositório>/backend` e `frontend`, com a tag do commit.
+1. Build e push das imagens `ghcr.io/<repositório>/backend` e `frontend` para `linux/arm64`, com a tag do commit. Os estágios de build rodam na arquitetura do runner; só o runtime é emulado (QEMU).
 2. Geração do `.env` de produção a partir dos secrets e variáveis do repositório.
 3. Login na Azure por OIDC com a identidade gerenciada `id-eventospro-deploy` (nenhuma senha guardada).
 4. `az vm run-command` executa na VM:
@@ -45,6 +48,8 @@ Decisões e alternativas em [ADR 0011](../docs/adr/0011-hospedagem-e-deploy.md).
 
 ### 1. Criar a VM
 
+A assinatura Azure for Students só permite criar recursos em **Italy North, Canada Central, Chile Central, Brazil South e Belgium Central** (política `RequestDisallowedByAzure`). Entre elas, só Canada Central tinha a série B liberada, e apenas em ARM; por isso a VM e as imagens são ARM.
+
 No portal, **Virtual machines → Create → Azure virtual machine**.
 
 **Aba Basics**
@@ -54,11 +59,12 @@ No portal, **Virtual machines → Create → Azure virtual machine**.
 | Subscription | Azure for Students |
 | Resource group | `rg-eventospro-prod` |
 | Virtual machine name | `vm-eventospro-prod` |
-| Region | `(US) East US` |
+| Region | `(Canada) Canada Central` |
 | Availability options | No infrastructure redundancy required |
 | Security type | Standard |
-| Image | Ubuntu Server 24.04 LTS - x64 Gen2 |
-| Size | `Standard_B2s` (2 vCPUs, 4 GiB) |
+| VM architecture | **Arm64** |
+| Image | Ubuntu Server 24.04 LTS - ARM64 Gen2 |
+| Size | `Standard_B2pls_v2` (2 vCPUs, 4 GiB, cerca de US$ 27/mês) |
 | Authentication type | SSH public key |
 | Username | `azureuser` |
 | SSH public key source | Generate new key pair (guarde o `.pem`; só para emergência) |
@@ -79,7 +85,7 @@ No portal, **Virtual machines → Create → Azure virtual machine**.
 2. **Settings → Configuration**:
    - **DNS name label:** `eventospro` (se estiver em uso, tente `eventospro-tcc`).
    - **Assignment:** Static.
-3. **Save.** Anote o endereço completo (ex.: `eventospro.eastus.cloudapp.azure.com`); ele é o `PUBLIC_DOMAIN`.
+3. **Apply.** O endereço completo é `eventospro.canadacentral.cloudapp.azure.com`; ele é o `PUBLIC_DOMAIN`.
 
 ### 3. Preparar a VM
 
@@ -90,7 +96,7 @@ No portal, **Virtual machines → Create → Azure virtual machine**.
 ### 4. Identidade do GitHub Actions
 
 1. Busque **Managed Identities → Create**:
-   - Resource group `rg-eventospro-prod`, Region `East US`, Name `id-eventospro-deploy`.
+   - Resource group `rg-eventospro-prod`, Region `Canada Central`, Name `id-eventospro-deploy`.
 2. Na identidade criada: **Settings → Federated credentials → Add credential**:
    - Scenario: **GitHub Actions deploying Azure resources**
    - Organization: `eduardaramalho`; Repository: `buffet-management-system`
@@ -123,7 +129,7 @@ Repositório → **Settings → Secrets and variables → Actions**.
 
 | Nome | Valor |
 |---|---|
-| `PUBLIC_DOMAIN` | ex.: `eventospro.eastus.cloudapp.azure.com` |
+| `PUBLIC_DOMAIN` | `eventospro.canadacentral.cloudapp.azure.com` |
 | `ACME_EMAIL` | e-mail para avisos do Let's Encrypt |
 | `AZURE_RESOURCE_GROUP` | `rg-eventospro-prod` |
 | `AZURE_VM_NAME` | `vm-eventospro-prod` |

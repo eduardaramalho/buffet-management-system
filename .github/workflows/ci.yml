@@ -204,6 +204,8 @@ jobs:
       packages: write
       id-token: write
     env:
+      # A VM de produção é ARM (B2pls_v2, ADR 0011): as imagens são publicadas para linux/arm64.
+      DEPLOY_PLATFORM: linux/arm64
       DOMAIN: ${{ vars.PUBLIC_DOMAIN }}
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       AZURE_VM_NAME: ${{ vars.AZURE_VM_NAME }}
@@ -220,6 +222,12 @@ jobs:
             echo "IMAGE_PREFIX=${prefix}"
           } >> "$GITHUB_ENV"
 
+      # Emula ARM no runner x64; só os estágios finais rodam emulados (os de build usam $BUILDPLATFORM).
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -234,6 +242,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: apps/backend
+          platforms: ${{ env.DEPLOY_PLATFORM }}
           push: true
           tags: |
             ${{ env.BACKEND_IMAGE }}
@@ -245,6 +254,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: apps/frontend
+          platforms: ${{ env.DEPLOY_PLATFORM }}
           push: true
           # Vazio: o frontend chama /api/v1 na mesma origem, roteado pelo Caddy.
           build-args: |

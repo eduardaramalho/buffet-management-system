@@ -1,4 +1,5 @@
-FROM node:24-alpine AS build
+# O build do Vite gera arquivos estáticos: roda na arquitetura do runner, mesmo quando a imagem final é ARM (ADR 0011).
+FROM --platform=$BUILDPLATFORM node:24-alpine AS build
 
 WORKDIR /app
 

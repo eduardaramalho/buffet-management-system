@@ -18,7 +18,7 @@ O projeto já roda inteiro em Docker Compose: MySQL 8, backend (Node 24, migrati
 ## Decisões
 
 1. **Provedor:** Microsoft Azure, assinatura Azure for Students, com orçamento e alertas de custo no Cost Management.
-2. **Computação:** uma **VM Linux** (Ubuntu 24.04 LTS, tamanho **B2s**, 2 vCPU e 4 GB), no resource group `rg-eventospro-prod`. Tamanhos menores (B1s com 1 GB, B1ms com 2 GB) ficam no limite com MySQL, Node, Prometheus e Grafana juntos, e indisponibilidade reprova o projeto.
+2. **Computação:** uma **VM Linux ARM** (Ubuntu 24.04 LTS, tamanho **B2pls_v2**, 2 vCPUs e 4 GB, cerca de US$ 27/mês) em **Canada Central**, no resource group `rg-eventospro-prod`. A assinatura de estudante só permite cinco regiões (Italy North, Canada Central, Chile Central, Brazil South, Belgium Central), e nelas a série B x64 não estava liberada; Canada Central oferecia a série B em ARM. Tamanhos com 1 GB ficam no limite com MySQL, Node, Prometheus e Grafana juntos, e indisponibilidade reprova o projeto.
 3. **Orquestração:** `deploy/docker-compose.prod.yml`, separado do Compose de desenvolvimento. Usa imagens versionadas pelo SHA do commit, não faz build na VM e define limites de memória por serviço.
 4. **Banco:** MySQL 8 em container, com volume persistente e **backup diário** (`mysqldump` agendado na VM, com retenção). O MySQL não publica porta no host.
 5. **Borda e HTTPS:** **Caddy** como proxy reverso, com certificado Let's Encrypt para o rótulo DNS gratuito do IP público (`eventospro.<região>.cloudapp.azure.com`).
@@ -26,7 +26,7 @@ O projeto já roda inteiro em Docker Compose: MySQL 8, backend (Node 24, migrati
    - `/api/v1/metrics` é bloqueado na borda. O Prometheus coleta pela rede interna do Docker.
    - O Grafana é servido em `/grafana`, com senha forte vinda dos secrets.
 6. **Rede:** o NSG da VM libera apenas as portas 80 e 443. A porta 22 fica fechada, porque nenhuma etapa de operação ou deploy depende de SSH.
-7. **Registro de imagens:** GitHub Container Registry (GHCR), com as imagens `backend` e `frontend` publicadas pelo próprio workflow.
+7. **Registro de imagens:** GitHub Container Registry (GHCR), com as imagens `backend` e `frontend` publicadas pelo próprio workflow para `linux/arm64`. Os estágios de build dos Dockerfiles usam `$BUILDPLATFORM` (geram só JavaScript e arquivos estáticos); apenas o estágio final é montado com emulação (QEMU) no runner.
 8. **Deploy contínuo:** novo job `deploy` no `ci.yml`, executado só em push na `main` e depois de `e2e` e `sonar` passarem. Sequência:
    1. Build e push das imagens com a tag do commit.
    2. Login na Azure por **OIDC** (`azure/login`), sem senha armazenada.
@@ -36,7 +36,7 @@ O projeto já roda inteiro em Docker Compose: MySQL 8, backend (Node 24, migrati
 11. **Ajustes no backend para produção** (com TDD):
     - `trust proxy` configurável por variável de ambiente, para que o rate limiter enxergue o IP real do cliente atrás do Caddy, e não o IP do proxy.
     - O seed passa a ler a senha inicial do admin de `ADMIN_INITIAL_PASSWORD`, só define a senha na criação (nunca sobrescreve) e passa a ser executável na imagem de produção, que não tem as dependências de desenvolvimento.
-12. **Provisionamento:** pelo portal da Azure, com o passo a passo documentado na Wiki. Terraform fica como evolução, se o prazo permitir.
+12. **Provisionamento:** pelo portal da Azure, com o passo a passo documentado em `deploy/README.md`; `deploy/scripts/azure-provision.sh` reproduz a mesma infraestrutura pela Azure CLI. Terraform fica como evolução, se o prazo permitir.
 
 ## Prós
 
@@ -52,6 +52,7 @@ O projeto já roda inteiro em Docker Compose: MySQL 8, backend (Node 24, migrati
 - A manutenção do sistema operacional (atualizações de segurança) fica sob responsabilidade do projeto. Atualizações automáticas (`unattended-upgrades`) são ativadas no bootstrap.
 - O banco em container exige backup e restauração próprios, diferente de um banco gerenciado.
 - O `run-command` grava o script recebido na VM, acessível só pelo root. Como o `.env` vai nesse script, a VM passa a ser o perímetro de proteção dos segredos de produção.
+- O build das imagens ARM no runner x64 é mais lento, porque a instalação das dependências de produção roda emulada.
 - O rótulo DNS da Azure não é um domínio próprio. Um domínio pode ser apontado depois sem mudar a arquitetura.
 
 ## Alternativas descartadas

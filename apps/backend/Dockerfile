@@ -1,4 +1,6 @@
-FROM node:24-alpine AS build
+# O build (tsc, prisma generate) gera só JavaScript: roda na arquitetura do runner, mesmo quando a
+# imagem final é ARM (ADR 0011). Só o estágio de runtime usa a arquitetura de destino.
+FROM --platform=$BUILDPLATFORM node:24-alpine AS build
 
 WORKDIR /app
 ENV DATABASE_URL=mysql://user:password@localhost:3306/buffet_management
