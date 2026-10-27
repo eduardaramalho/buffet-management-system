@@ -1,3 +1,5 @@
 .env
 .claude/
 .windsurf/
+.agents/
+skills-lock.json
