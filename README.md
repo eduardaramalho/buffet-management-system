@@ -68,7 +68,13 @@ cp .env.example .env      # troque os segredos e senhas
 docker compose up --build -d
 ```
 
-Na primeira execução o backend aplica as migrations automaticamente. Em seguida, crie permissões, papéis e o usuário administrador seguindo a seção de seed em [Como Rodar](https://github.com/eduardaramalho/buffet-management-system/wiki/Como-Rodar).
+Na primeira execução o backend aplica as migrations automaticamente. Em seguida, crie permissões, papéis, o serviço "Outro" e o usuário administrador (`admin@buffet.local`, com a senha definida em `ADMIN_INITIAL_PASSWORD`):
+
+```bash
+docker compose exec backend node dist/seed.js
+```
+
+O seed é idempotente e pode ser executado de novo a qualquer momento. A senha do administrador só é definida na criação; se ele já existir, a senha atual é mantida. Detalhes em [Como Rodar](https://github.com/eduardaramalho/buffet-management-system/wiki/Como-Rodar).
 
 | Serviço | Endereço |
 |---|---|
@@ -79,6 +85,10 @@ Na primeira execução o backend aplica as migrations automaticamente. Em seguid
 | Grafana | http://localhost:3001 |
 
 Para rodar em modo de desenvolvimento (sem contêineres para backend e frontend), veja [Como Rodar](https://github.com/eduardaramalho/buffet-management-system/wiki/Como-Rodar).
+
+## Produção
+
+A aplicação roda em uma VM da Azure com Docker Compose, Caddy (HTTPS automático) e deploy contínuo pelo GitHub Actions: todo push na `main` que passa pelos testes, pelo E2E e pelo Sonar publica as imagens no GHCR e atualiza a VM, sem SSH. Arquitetura, configuração inicial e operação em [deploy/README.md](deploy/README.md); decisões no [ADR 0011](docs/adr/0011-hospedagem-e-deploy.md).
 
 ## Testes
 
@@ -101,12 +111,13 @@ Medição de 22/10/2026. Cada execução do CI publica a cobertura de cada aplic
 ```
 buffet-management-system/
 ├── apps/
-│   ├── backend/        # API REST, Prisma (schema, migrations, seed), Dockerfile
+│   ├── backend/        # API REST, Prisma (schema, migrations), seed (src/seed.ts), Dockerfile
 │   ├── frontend/       # SPA React, Dockerfile, nginx.conf
 │   └── e2e/            # testes end-to-end com Playwright
+├── deploy/             # produção: compose, Caddyfile e scripts de deploy e backup
 ├── docs/adr/           # Architecture Decision Records
 ├── observability/      # Prometheus e provisionamento do Grafana
-├── .github/workflows/  # pipeline de CI
+├── .github/workflows/  # pipeline de CI/CD
 └── docker-compose.yml
 ```
 
@@ -118,7 +129,7 @@ buffet-management-system/
 | Arquitetura (C4) e motor de regras | [Wiki: Arquitetura](https://github.com/eduardaramalho/buffet-management-system/wiki/Arquitetura) |
 | API | [Wiki: API](https://github.com/eduardaramalho/buffet-management-system/wiki/API) e [README do backend](apps/backend/README.md) |
 | Segurança e LGPD | [Wiki: Segurança e LGPD](https://github.com/eduardaramalho/buffet-management-system/wiki/Seguranca-e-LGPD) |
-| Deploy | [Wiki: Deploy](https://github.com/eduardaramalho/buffet-management-system/wiki/Deploy) |
+| Deploy | [deploy/README.md](deploy/README.md) e [Wiki: Deploy](https://github.com/eduardaramalho/buffet-management-system/wiki/Deploy) |
 | Decisões de arquitetura | [docs/adr](docs/adr) |
 | Proposta original (RFC) | [portfolio_buffet](https://github.com/eduardaramalho/portfolio_buffet) |
 

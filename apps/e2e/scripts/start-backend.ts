@@ -12,13 +12,14 @@ const env = {
   CORS_ORIGIN: e2eEnv.frontendUrl,
   LOG_LEVEL: process.env.LOG_LEVEL ?? 'warn',
   NODE_ENV: 'test',
+  ADMIN_INITIAL_PASSWORD: e2eEnv.admin.password,
 }
 
 const run = (command: string) => execSync(command, { cwd: BACKEND_ROOT, env, stdio: 'inherit' })
 
 run('npx prisma migrate reset --force')
 run('npx prisma generate')
-run('npx tsx prisma/seed.ts')
+run('npx tsx src/seed.ts')
 
 const server = spawn('npx', ['tsx', 'src/server.ts'], { cwd: BACKEND_ROOT, env, stdio: 'inherit', shell: true })
 const stop = () => server.kill()

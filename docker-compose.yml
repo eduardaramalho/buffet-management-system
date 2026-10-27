@@ -30,6 +30,8 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN}
       LOG_LEVEL: ${LOG_LEVEL}
       NODE_ENV: ${NODE_ENV}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD}
     depends_on:
       mysql:
         condition: service_healthy

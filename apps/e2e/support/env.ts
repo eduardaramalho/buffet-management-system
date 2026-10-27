@@ -32,6 +32,6 @@ export const e2eEnv = {
   frontendPort,
   backendUrl: `http://localhost:${backendPort}`,
   frontendUrl: `http://localhost:${frontendPort}`,
-  // Mesmo usuário do seed do backend (apps/backend/prisma/seed.ts).
+  // Usuário criado pelo seed do backend (apps/backend/src/seed.ts); a senha é repassada como ADMIN_INITIAL_PASSWORD.
   admin: { email: 'admin@buffet.local', password: 'Admin123!' },
 }

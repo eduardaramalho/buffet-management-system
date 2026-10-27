@@ -18,7 +18,7 @@ O Quality Gate do Sonar também não consegue aplicar limites diferentes por dir
 1. **Uma única lista de exclusões de cobertura**, idêntica no Jest, no Vitest e no Sonar. Ficam de fora apenas:
    - código gerado (`apps/backend/src/generated/**`, cliente Prisma);
    - testes e setup de testes;
-   - pontos de entrada que só montam a aplicação: `apps/backend/src/server.ts`, `apps/frontend/src/main.tsx`, `apps/frontend/src/App.tsx`.
+   - pontos de entrada que só montam a aplicação: `apps/backend/src/server.ts`, `apps/backend/src/seed.ts`, `apps/frontend/src/main.tsx`, `apps/frontend/src/App.tsx`.
 
    Rotas e factories **não** são excluídas: são cobertas pelos testes de permissão de cada módulo. Qualquer nova exclusão precisa atualizar os três arquivos e este ADR.
 

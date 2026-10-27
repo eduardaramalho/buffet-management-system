@@ -78,6 +78,9 @@ export const createRateLimitTestApp = (controller: AuthController) => {
 
 const app = express();
 
+// Must be set before the rate limiters run: behind Caddy (ADR 0011) every request would otherwise share the proxy IP.
+app.set("trust proxy", env.trustProxy);
+
 app.use(
   pinoHttp({
     logger,

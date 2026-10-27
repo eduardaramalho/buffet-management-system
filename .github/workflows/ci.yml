@@ -188,24 +188,144 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  # Job de deploy: sera adicionado quando a hospedagem for definida (Trilha 3).
-  # Nao manter um job com "steps: []", pois o GitHub rejeita o workflow inteiro.
-  # Esqueleto futuro:
-  # deploy:
-  #   needs: [e2e, sonar]
-  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Build Docker images
-  #       run: docker compose build backend frontend
-  #     - name: Login to container registry
-  #       uses: docker/login-action@v3
-  #       with:
-  #         registry: ${{ secrets.REGISTRY_HOST }}
-  #         username: ${{ secrets.REGISTRY_USERNAME }}
-  #         password: ${{ secrets.REGISTRY_PASSWORD }}
-  #     - name: Push Docker images
-  #       run: |
-  #         docker push ${{ secrets.BACKEND_IMAGE }}
-  #         docker push ${{ secrets.FRONTEND_IMAGE }}
+  # Deploy contínuo em produção (ADR 0011): só em push na main, depois de todos os checks.
+  # Publica as imagens no GHCR e atualiza a VM da Azure via `az vm run-command` (sem SSH).
+  deploy:
+    needs: [e2e, sonar]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Nunca dois deploys ao mesmo tempo; um deploy em andamento não é cancelado por um push novo.
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    env:
+      # A VM de produção é ARM (B2pls_v2, ADR 0011): as imagens são publicadas para linux/arm64.
+      DEPLOY_PLATFORM: linux/arm64
+      DOMAIN: ${{ vars.PUBLIC_DOMAIN }}
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      AZURE_VM_NAME: ${{ vars.AZURE_VM_NAME }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Define image names
+        run: |
+          prefix="ghcr.io/${GITHUB_REPOSITORY,,}"
+          {
+            echo "BACKEND_IMAGE=${prefix}/backend:${GITHUB_SHA}"
+            echo "FRONTEND_IMAGE=${prefix}/frontend:${GITHUB_SHA}"
+            echo "IMAGE_PREFIX=${prefix}"
+          } >> "$GITHUB_ENV"
+
+      # Emula ARM no runner x64; só os estágios finais rodam emulados (os de build usam $BUILDPLATFORM).
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/backend
+          platforms: ${{ env.DEPLOY_PLATFORM }}
+          push: true
+          tags: |
+            ${{ env.BACKEND_IMAGE }}
+            ${{ env.IMAGE_PREFIX }}/backend:latest
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/frontend
+          platforms: ${{ env.DEPLOY_PLATFORM }}
+          push: true
+          # Vazio: o frontend chama /api/v1 na mesma origem, roteado pelo Caddy.
+          build-args: |
+            VITE_API_URL=
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}
+            ${{ env.IMAGE_PREFIX }}/frontend:latest
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Generate production environment file
+        env:
+          ACME_EMAIL: ${{ vars.ACME_EMAIL }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
+          ADMIN_INITIAL_PASSWORD: ${{ secrets.ADMIN_INITIAL_PASSWORD }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+        run: |
+          for name in DOMAIN ACME_EMAIL AZURE_RESOURCE_GROUP AZURE_VM_NAME MYSQL_ROOT_PASSWORD MYSQL_PASSWORD JWT_ACCESS_SECRET ADMIN_INITIAL_PASSWORD GRAFANA_ADMIN_PASSWORD; do
+            if [ -z "${!name}" ]; then echo "::error::Configuração ausente: ${name}"; exit 1; fi
+          done
+          umask 077
+          cat > "$RUNNER_TEMP/production.env" <<EOF
+          DOMAIN=${DOMAIN}
+          ACME_EMAIL=${ACME_EMAIL}
+          BACKEND_IMAGE=${BACKEND_IMAGE}
+          FRONTEND_IMAGE=${FRONTEND_IMAGE}
+          MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+          MYSQL_DATABASE=buffet_management
+          MYSQL_USER=buffet
+          MYSQL_PASSWORD=${MYSQL_PASSWORD}
+          JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+          ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD}
+          GRAFANA_ADMIN_USER=admin
+          GRAFANA_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+          LOG_LEVEL=info
+          EOF
+
+      - name: Build remote deployment script
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash deploy/scripts/build-remote-script.sh "$RUNNER_TEMP/production.env" "$RUNNER_TEMP/remote-deploy.sh"
+
+      - name: Azure login (OIDC, sem senha armazenada)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to the Azure VM
+        run: |
+          az vm run-command invoke \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_VM_NAME" \
+            --command-id RunShellScript \
+            --scripts @"$RUNNER_TEMP/remote-deploy.sh" \
+            --query "value[0].message" --output tsv > "$RUNNER_TEMP/deploy-output.txt"
+          cat "$RUNNER_TEMP/deploy-output.txt"
+          # O run-command não repassa o código de saída do script; o marcador confirma que ele chegou ao fim.
+          grep -q "DEPLOY_OK" "$RUNNER_TEMP/deploy-output.txt" || { echo "::error::Deploy não concluído na VM"; exit 1; }
+
+      - name: Smoke test
+        run: |
+          curl --fail --silent --show-error --retry 12 --retry-delay 10 --retry-all-errors "https://${DOMAIN}/api/v1/health"
+          curl --fail --silent --show-error --output /dev/null "https://${DOMAIN}/"
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' "https://${DOMAIN}/api/v1/metrics")"
+          [ "$status" = "404" ] || { echo "::error::/api/v1/metrics exposto publicamente (HTTP ${status})"; exit 1; }
+
+      - name: Remove temporary files
+        if: always()
+        run: rm -f "$RUNNER_TEMP/production.env" "$RUNNER_TEMP/remote-deploy.sh" "$RUNNER_TEMP/deploy-output.txt"

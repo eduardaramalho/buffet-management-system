@@ -21,6 +21,7 @@ module.exports = {
     '!src/**/*.d.ts',
     '!src/generated/**',
     '!src/server.ts',
+    '!src/seed.ts',
   ],
   // lcov alimenta o Sonar; json-summary alimenta o resumo de cobertura do GitHub Actions.
   coverageReporters: ['text', 'text-summary', 'lcov', 'json-summary'],

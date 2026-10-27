@@ -1,0 +1,41 @@
+# Proxy reverso e HTTPS de produção (ADR 0011).
+# DOMAIN e ACME_EMAIL vêm do .env gerado pelo CI. O certificado é emitido pelo Let's Encrypt
+# na primeira requisição e renovado automaticamente pelo Caddy.
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# Métricas ficam só na rede interna: o Prometheus coleta direto em backend:3000.
+	handle /api/v1/metrics* {
+		respond 404
+	}
+
+	# API na mesma origem do frontend: dispensa CORS entre domínios e VITE_API_URL fica vazio.
+	handle /api/* {
+		reverse_proxy backend:3000
+	}
+
+	# Grafana com login próprio (senha forte em GRAFANA_ADMIN_PASSWORD).
+	handle /grafana* {
+		reverse_proxy grafana:3000
+	}
+
+	handle {
+		reverse_proxy frontend:80
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
