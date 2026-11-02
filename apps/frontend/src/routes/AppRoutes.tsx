@@ -20,6 +20,8 @@ import { ReportsPage } from '../pages/ReportsPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { InternalLayout } from '../components/InternalLayout'
 import { RouteErrorBoundary } from '../components/RouteErrorBoundary'
+import { Notice } from '../components/Notice'
+import { NO_ACCESS_PATH, getHomePath } from '../utils/homePath'
 
 export function AppRoutes() {
 	const { user, logout } = useAuth()
@@ -48,7 +50,13 @@ export function AppRoutes() {
 			<Route path="/roles" element={<ProtectedRoute permission="roles:list">{withNavigation(<RolesListPage />)}</ProtectedRoute>} />
 			<Route path="/roles/new" element={<ProtectedRoute permission="roles:create">{withNavigation(<RoleFormPage />)}</ProtectedRoute>} />
 			<Route path="/roles/:id" element={<ProtectedRoute permission="roles:update">{withNavigation(<RoleFormPage />)}</ProtectedRoute>} />
+			<Route path={NO_ACCESS_PATH} element={withNavigation(<NoAccessPage />)} />
 		</Route>
-		<Route path="*" element={<Navigate to={user ? '/users' : '/login'} replace />} />
+		<Route path="*" element={<Navigate to={user ? getHomePath(user) : '/login'} replace />} />
 	</Routes>
+}
+
+// Usuário sem nenhuma tela permitida: mantém o menu (vazio) e o botão Sair em vez de uma tela em branco.
+function NoAccessPage() {
+	return <main className="app-shell"><header><div><h1>Sem acesso</h1></div></header><Notice message="Seu perfil não tem acesso a nenhuma tela. Procure o administrador do sistema." /></main>
 }
