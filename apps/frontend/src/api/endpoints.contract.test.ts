@@ -39,8 +39,7 @@ const cases: ContractCase[] = [
   { name: 'authApi.login', call: () => authApi.login('a@b.com', 'secret123'), verb: 'post', args: ['/api/v1/auth/login', { email: 'a@b.com', password: 'secret123' }] },
   { name: 'authApi.refresh', call: () => authApi.refresh('rt-1'), verb: 'post', args: ['/api/v1/auth/refresh-token', { refreshToken: 'rt-1' }] },
   { name: 'authApi.logout', call: () => authApi.logout('rt-1'), verb: 'post', args: ['/api/v1/auth/logout', { refreshToken: 'rt-1' }], returnsData: false },
-  { name: 'authApi.forgotPassword', call: () => authApi.forgotPassword('a@b.com'), verb: 'post', args: ['/api/v1/auth/forgot-password', { email: 'a@b.com' }], returnsData: false },
-  { name: 'authApi.resetPassword', call: () => authApi.resetPassword('tk', 'secret123'), verb: 'post', args: ['/api/v1/auth/reset-password', { token: 'tk', password: 'secret123' }], returnsData: false },
+  { name: 'authApi.changePassword', call: () => authApi.changePassword('Abcd2345efgh', 'NovaSenha123'), verb: 'post', args: ['/api/v1/auth/change-password', { currentPassword: 'Abcd2345efgh', newPassword: 'NovaSenha123' }] },
   { name: 'authApi.me', call: () => authApi.me(), verb: 'get', args: ['/api/v1/auth/me'] },
   // users
   { name: 'usersApi.listUsers (com busca)', call: () => usersApi.listUsers('ana'), verb: 'get', args: ['/api/v1/users', { params: { search: 'ana' } }] },
@@ -50,6 +49,7 @@ const cases: ContractCase[] = [
   { name: 'usersApi.updateUser', call: () => usersApi.updateUser('u1', { name: 'Ana' }), verb: 'put', args: ['/api/v1/users/u1', { name: 'Ana' }] },
   { name: 'usersApi.setUserActive (ativar)', call: () => usersApi.setUserActive('u1', true), verb: 'patch', args: ['/api/v1/users/u1/activate'] },
   { name: 'usersApi.setUserActive (desativar)', call: () => usersApi.setUserActive('u1', false), verb: 'patch', args: ['/api/v1/users/u1/deactivate'] },
+  { name: 'usersApi.resetUserPassword', call: () => usersApi.resetUserPassword('u1'), verb: 'post', args: ['/api/v1/users/u1/reset-password'] },
   // roles
   { name: 'rolesApi.listRoles', call: () => rolesApi.listRoles(), verb: 'get', args: ['/api/v1/roles'] },
   { name: 'rolesApi.getRole', call: () => rolesApi.getRole('r1'), verb: 'get', args: ['/api/v1/roles/r1'] },

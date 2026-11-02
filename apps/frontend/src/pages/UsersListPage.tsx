@@ -5,6 +5,8 @@ import { Pagination } from '../components/Pagination'
 import { Table } from '../components/Table'
 import { UserForm } from '../components/UserForm'
 import { UserDetails } from '../components/UserDetails'
+import { ResetPasswordDialog } from '../components/ResetPasswordDialog'
+import { useAuth } from '../contexts/useAuth'
 import { Avatar } from '../components/Avatar'
 import { Badge } from '../components/Badge'
 import { Icon } from '../components/Icon'
@@ -13,6 +15,8 @@ import type { User } from '../types'
 
 const PAGE_SIZE = 10
 export function UsersListPage() {
+  const { user: actor } = useAuth()
+  const canResetPassword = Boolean(actor?.roles?.some((role) => role.permissions.includes('users:reset-password')))
   const [users, setUsers] = useState<User[]>([])
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -20,6 +24,7 @@ export function UsersListPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User>()
   const [viewingUser, setViewingUser] = useState<User>()
+  const [resettingUser, setResettingUser] = useState<User>()
 
   const load = async (value = '') => {
     try { setUsers(await listUsers(value)); setError('') }
@@ -49,11 +54,12 @@ export function UsersListPage() {
     <section className="content-head"><input className="search" placeholder="Buscar por nome, e-mail ou cargo..." value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); void load(event.target.value) }} /><select aria-label="Todos os perfis"><option>Todos os perfis</option></select><select aria-label="Status"><option>Status</option></select><button className="secondary">Filtros</button></section>
     {error && <Notice message={error} error />}
     <Table headers={['Usuário', 'E-mail', 'Cargo', 'Perfil', 'Status', 'Ações']}>
-      {visibleUsers.map((user) => { const administrator = isAdmin(user); const roleName = user.roles.map(({ role }) => role.name).join(', '); const tone = administrator ? 'admin' : roleName.toLowerCase().includes('editor') ? 'editor' : 'viewer'; return <tr key={user.id}><td><div className="user-cell"><Avatar name={user.name} /><strong>{user.name}</strong></div></td><td>{user.email}</td><td>—</td><td><Badge tone={tone}>{roleName || 'Sem papel'}</Badge></td><td><Badge tone={user.isActive ? 'active' : 'inactive'}>{user.isActive ? 'Ativo' : 'Inativo'}</Badge></td><td><div className="row-actions"><button title="Visualizar usuário" aria-label={`Visualizar ${user.name}`} onClick={() => setViewingUser(user)}><Icon name="eye" /></button><button title={administrator ? 'Usuários administradores não podem ser editados pela interface' : 'Editar usuário'} aria-label={`Editar ${user.name}`} disabled={administrator} onClick={() => { setEditingUser(user); setFormOpen(true) }}><Icon name="pencil" /></button><button title={administrator ? 'Usuários administradores não podem ser editados pela interface' : user.isActive ? 'Desativar usuário' : 'Ativar usuário'} aria-label={`${user.isActive ? 'Desativar' : 'Ativar'} ${user.name}`} disabled={administrator} onClick={() => void changeStatus(user)}><Icon name="power" /></button></div></td></tr> })}
+      {visibleUsers.map((user) => { const administrator = isAdmin(user); const roleName = user.roles.map(({ role }) => role.name).join(', '); const tone = administrator ? 'admin' : roleName.toLowerCase().includes('editor') ? 'editor' : 'viewer'; return <tr key={user.id}><td><div className="user-cell"><Avatar name={user.name} /><strong>{user.name}</strong></div></td><td>{user.email}</td><td>—</td><td><Badge tone={tone}>{roleName || 'Sem papel'}</Badge></td><td><Badge tone={user.isActive ? 'active' : 'inactive'}>{user.isActive ? 'Ativo' : 'Inativo'}</Badge></td><td><div className="row-actions"><button title="Visualizar usuário" aria-label={`Visualizar ${user.name}`} onClick={() => setViewingUser(user)}><Icon name="eye" /></button><button title={administrator ? 'Usuários administradores não podem ser editados pela interface' : 'Editar usuário'} aria-label={`Editar ${user.name}`} disabled={administrator} onClick={() => { setEditingUser(user); setFormOpen(true) }}><Icon name="pencil" /></button><button title={administrator ? 'Usuários administradores não podem ser editados pela interface' : user.isActive ? 'Desativar usuário' : 'Ativar usuário'} aria-label={`${user.isActive ? 'Desativar' : 'Ativar'} ${user.name}`} disabled={administrator} onClick={() => void changeStatus(user)}><Icon name="power" /></button>{canResetPassword && <button title={administrator ? 'A senha de administradores não pode ser redefinida pela interface' : 'Redefinir senha'} aria-label={`Redefinir senha de ${user.name}`} disabled={administrator} onClick={() => setResettingUser(user)}><Icon name="key" /></button>}</div></td></tr> })}
     </Table>
     {users.length === 0 && <div className="empty">Nenhum usuário encontrado.</div>}
     <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} />
     {formOpen && <UserForm user={editingUser} onClose={() => { setFormOpen(false); setEditingUser(undefined) }} onCreated={addUser} onUpdated={(updated) => { replaceUser(updated); setFormOpen(false); setEditingUser(undefined) }} />}
     {viewingUser && <UserDetails user={viewingUser} onClose={() => setViewingUser(undefined)} />}
+    {resettingUser && <ResetPasswordDialog user={resettingUser} onClose={() => setResettingUser(undefined)} />}
   </main>
 }

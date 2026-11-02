@@ -185,3 +185,7 @@ nav[aria-label="Paginação"] { display: flex; justify-content: flex-end; align-
 .event-header-actions .outline { white-space: nowrap; }
 /* Events list: Ativos | Excluídos (restore of soft-deleted events) */
 .view-toggle { display: inline-flex; gap: 0; margin: 0 0 16px; padding: 3px; border: 1px solid var(--line-200); border-radius: 8px; background: var(--white); }.view-toggle button { padding: 8px 14px; border-radius: 6px; color: var(--slate-600); background: transparent; font-size: 12px; font-weight: 700; }.view-toggle button[aria-pressed='true'] { color: var(--white); background: var(--blue-600); }
+
+/* ADR 0012: senha temporária exibida uma única vez ao administrador */
+.temporary-password { margin: 18px 0; }.temporary-password code { display: block; padding: 14px; border: 1px dashed var(--line-200); border-radius: 7px; background: var(--white); font: 700 22px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; text-align: center; user-select: all; }
+.form-actions .link-button { display: inline-flex; align-items: center; gap: 6px; margin-top: 0; }.form-actions .link-button svg { width: 16px; height: 16px; }
