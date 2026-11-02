@@ -12,8 +12,39 @@ vi.mock('../pages/RolesListPage', () => ({ RolesListPage: () => { if (pageFailur
 vi.mock('../pages/UserFormPage', () => ({ UserFormPage: () => <h1>Formulário de Usuário</h1> }))
 vi.mock('../pages/RoleFormPage', () => ({ RoleFormPage: () => <h1>Formulário de Papel</h1> }))
 vi.mock('../pages/LoginPage', () => ({ LoginPage: () => <h1>Login</h1> }))
-vi.mock('../pages/ForgotPasswordPage', () => ({ ForgotPasswordPage: () => <h1>Esqueci a senha</h1> }))
-vi.mock('../pages/ResetPasswordPage', () => ({ ResetPasswordPage: () => <h1>Redefinir senha</h1> }))
+vi.mock('../pages/ChangePasswordPage', () => ({ ChangePasswordPage: () => <h1>Trocar senha</h1> }))
+
+describe('AppRoutes password change (ADR 0012)', () => {
+  const baseUser = { id: '1', name: 'Alice', email: 'alice@example.com', roles: [{ name: 'admin', permissions: ['users:list', 'roles:list'] }] }
+
+  it('forces a user with a temporary password to the password change page', async () => {
+    const previous = authState.user
+    authState.user = { ...baseUser, mustChangePassword: true } as typeof authState.user
+    render(<MemoryRouter initialEntries={['/roles']}><AppRoutes /></MemoryRouter>)
+
+    expect(await screen.findByRole('heading', { name: 'Trocar senha' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Usuários' })).not.toBeInTheDocument()
+    authState.user = previous
+  })
+
+  it('does not offer the password change page when nothing is pending', async () => {
+    const previous = authState.user
+    authState.user = { ...baseUser, mustChangePassword: false } as typeof authState.user
+    render(<MemoryRouter initialEntries={['/change-password']}><AppRoutes /></MemoryRouter>)
+
+    expect(await screen.findByRole('heading', { name: 'Página de Usuários' })).toBeInTheDocument()
+    authState.user = previous
+  })
+
+  it('sends anonymous visitors of the password change page to the login', async () => {
+    const previous = authState.user
+    authState.user = null as unknown as typeof authState.user
+    render(<MemoryRouter initialEntries={['/change-password']}><AppRoutes /></MemoryRouter>)
+
+    expect(await screen.findByRole('heading', { name: 'Login' })).toBeInTheDocument()
+    authState.user = previous
+  })
+})
 
 describe('AppRoutes navigation and permissions', () => {
   it('navigates from the menu to users and roles with React Router links', async () => {
