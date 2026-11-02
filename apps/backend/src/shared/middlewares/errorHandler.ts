@@ -2,6 +2,7 @@ import type { ErrorRequestHandler } from "express";
 import { z } from "zod";
 import { AuthError } from "../../modules/auth/application/AuthService.js";
 import { UserManagementError } from "../../modules/auth/application/UserService.js";
+import { UserPasswordConflictError } from "../../modules/auth/application/UserPasswordService.js";
 import { EventManagementError } from "../../modules/events/application/EventManagementService.js";
 import { ServiceCatalogConflictError, ServiceCatalogError } from "../../modules/events/application/ServiceCatalogService.js";
 import { EventReplicationConflictError, EventReplicationError } from "../../modules/events/application/EventReplicationService.js";
@@ -23,6 +24,7 @@ const STATUS_BY_ERROR: Array<[ErrorClass, number]> = [
   [NotFoundError, 404],
   [AuthError, 400],
   [UserManagementError, 403],
+  [UserPasswordConflictError, 409],
   [ServiceCatalogConflictError, 409],
   [ServiceCatalogError, 400],
   [EventManagementError, 400],
@@ -49,7 +51,11 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
   }
 
   const mapped = STATUS_BY_ERROR.find(([errorClass]) => error instanceof errorClass);
-  if (mapped) return response.status(mapped[1]).json({ message: (error as Error).message });
+  if (mapped) {
+    // Código estável opcional (ex.: TEMP_PASSWORD_EXPIRED) para o frontend reagir sem comparar textos.
+    const code = error instanceof AuthError ? error.code : undefined;
+    return response.status(mapped[1]).json({ message: (error as Error).message, ...(code ? { code } : {}) });
+  }
 
   logger.error({ err: error, requestId: request.id }, "Unhandled request error");
   return response.status(500).json({ message: "Erro interno do servidor" });

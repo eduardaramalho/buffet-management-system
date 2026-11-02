@@ -1,11 +1,13 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { AuthError, AuthService } from "../../application/AuthService.js";
+import { PASSWORD_MIN_LENGTH } from "../../domain/password.policy.js";
 
-const credentialsSchema = z.object({ email: z.string().email(), password: z.string().min(8) });
+const credentialsSchema = z.object({ email: z.string().email(), password: z.string().min(PASSWORD_MIN_LENGTH) });
 const refreshSchema = z.object({ refreshToken: z.string().min(1) });
-const forgotPasswordSchema = z.object({ email: z.string().email() });
-const resetPasswordSchema = z.object({ token: z.string().min(1), password: z.string().min(8) });
+const changePasswordSchema = z
+  .object({ currentPassword: z.string().min(1), newPassword: z.string().min(PASSWORD_MIN_LENGTH) })
+  .refine((input) => input.currentPassword !== input.newPassword, { message: "A nova senha precisa ser diferente da atual", path: ["newPassword"] });
 
 export class AuthController {
   constructor(private readonly service: AuthService) {}
@@ -28,15 +30,11 @@ export class AuthController {
     response.status(204).send();
   };
 
-  forgotPassword = async (request: Request, response: Response) => {
-    await this.service.forgotPassword(forgotPasswordSchema.parse(request.body).email);
-    response.json({ message: "Se o e-mail existir, as instruções foram enviadas" });
-  };
-
-  resetPassword = async (request: Request, response: Response) => {
-    const input = resetPasswordSchema.parse(request.body);
-    await this.service.resetPassword(input.token, input.password);
-    response.json({ message: "Senha redefinida com sucesso" });
+  changePassword = async (request: Request, response: Response) => {
+    const userId = request.user?.sub;
+    if (!userId) return response.status(401).json({ message: "Não autenticado" });
+    const input = changePasswordSchema.parse(request.body);
+    response.json(await this.service.changePassword(userId, input.currentPassword, input.newPassword, request.ip));
   };
 
   me = async (request: Request, response: Response) => {

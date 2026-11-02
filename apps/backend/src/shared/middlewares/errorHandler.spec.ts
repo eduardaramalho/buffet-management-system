@@ -16,6 +16,25 @@ describe('errorHandler', () => {
     expect(response.json).toHaveBeenCalledWith({ message: 'Credenciais inválidas' });
   });
 
+  it('adds the stable error code to the body when the error carries one', () => {
+    const response: any = { status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() };
+
+    errorHandler(new AuthError('Sua senha temporária expirou', 'TEMP_PASSWORD_EXPIRED'), {} as any, response, jest.fn());
+
+    expect(response.status).toHaveBeenCalledWith(400);
+    expect(response.json).toHaveBeenCalledWith({ message: 'Sua senha temporária expirou', code: 'TEMP_PASSWORD_EXPIRED' });
+  });
+
+  it('maps a password reset on an inactive user to 409', async () => {
+    const { UserPasswordConflictError } = await import('../../modules/auth/application/UserPasswordService.js');
+    const response: any = { status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() };
+
+    errorHandler(new UserPasswordConflictError('Usuário inativo'), {} as any, response, jest.fn());
+
+    expect(response.status).toHaveBeenCalledWith(409);
+    expect(response.json).toHaveBeenCalledWith({ message: 'Usuário inativo' });
+  });
+
   it('maps zod validation errors to 422', () => {
     const request: any = {};
     const response: any = { status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() };

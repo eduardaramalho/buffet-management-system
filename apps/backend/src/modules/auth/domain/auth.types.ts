@@ -12,8 +12,13 @@ export type AuthUser = {
   passwordHash: string;
   isActive: boolean;
   deletedAt: Date | null;
+  mustChangePassword: boolean;
+  tempPasswordExpiresAt: Date | null;
   roles: UserRole[];
 };
+
+/** Dados que vão para o access token: a flag permite bloquear rotas sem consultar o banco (ADR 0012). */
+export type AccessTokenPayload = { sub: string; email: string; mustChangePassword: boolean };
 
 export type StoredRefreshToken = {
   id: string;
@@ -23,18 +28,11 @@ export type StoredRefreshToken = {
   revokedAt: Date | null;
 };
 
-export type StoredPasswordResetToken = {
-  id: string;
-  userId: string;
-  tokenHash: string;
-  expiresAt: Date;
-  usedAt: Date | null;
-};
-
 export interface UserRepository {
   findByEmail(email: string): Promise<AuthUser | null>;
   findById(id: string): Promise<AuthUser | null>;
-  updatePassword(id: string, passwordHash: string): Promise<void>;
+  /** Grava a nova senha, encerra a troca pendente e revoga as sessões abertas, tudo na mesma transação. */
+  changePassword(id: string, passwordHash: string): Promise<void>;
 }
 
 export interface RefreshTokenRepository {
@@ -49,17 +47,7 @@ export interface PasswordHasher {
 }
 
 export interface TokenProvider {
-  createAccessToken(payload: { sub: string; email: string }): string;
+  createAccessToken(payload: AccessTokenPayload): string;
   createRefreshToken(): string;
-  verifyAccessToken(token: string): { sub: string; email: string };
-}
-
-export interface PasswordResetTokenRepository {
-  create(input: { userId: string; tokenHash: string; expiresAt: Date }): Promise<StoredPasswordResetToken>;
-  findByHash(tokenHash: string): Promise<StoredPasswordResetToken | null>;
-  markUsed(id: string): Promise<void>;
-}
-
-export interface EmailProvider {
-  sendPasswordReset(input: { to: string; name: string; token: string }): Promise<void>;
+  verifyAccessToken(token: string): AccessTokenPayload;
 }

@@ -1,11 +1,11 @@
 import { randomBytes } from "node:crypto";
 import jwt from "jsonwebtoken";
-import type { TokenProvider } from "../../domain/auth.types.js";
+import type { AccessTokenPayload, TokenProvider } from "../../domain/auth.types.js";
 
 export class JwtTokenProvider implements TokenProvider {
   constructor(private readonly secret: string, private readonly accessTokenTtl: string | number = "15m") {}
 
-  createAccessToken(payload: { sub: string; email: string }) {
+  createAccessToken(payload: AccessTokenPayload) {
     return jwt.sign(payload, this.secret, { expiresIn: this.accessTokenTtl as jwt.SignOptions["expiresIn"] });
   }
 
@@ -13,9 +13,10 @@ export class JwtTokenProvider implements TokenProvider {
     return randomBytes(48).toString("base64url");
   }
 
-  verifyAccessToken(token: string) {
+  verifyAccessToken(token: string): AccessTokenPayload {
     const payload = jwt.verify(token, this.secret);
     if (typeof payload === "string" || !payload.sub || typeof payload.email !== "string") throw new Error("Token inválido");
-    return { sub: payload.sub, email: payload.email };
+    // Tokens emitidos antes da claim existir não têm troca pendente; só `true` explícito bloqueia.
+    return { sub: payload.sub, email: payload.email, mustChangePassword: payload.mustChangePassword === true };
   }
 }
