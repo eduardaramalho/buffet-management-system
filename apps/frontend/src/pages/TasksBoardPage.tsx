@@ -76,6 +76,7 @@ export function TasksBoardPage() {
   const canCreate = hasPermission('tasks:create')
   const canEdit = hasPermission('tasks:update')
   const canDelete = hasPermission('tasks:delete')
+  const canListTeams = hasPermission('teams:list')
   const [formOpen, setFormOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task>()
   const [tasks, setTasks] = useState<Task[]>([])
@@ -87,7 +88,8 @@ export function TasksBoardPage() {
 
   // Rejeita em caso de erro: o polling silencioso o ignora e mantém os dados atuais.
   const fetchAll = async () => {
-    const [taskList, eventList, teamList] = await Promise.all([listTasks(), listEvents(), listTeams()])
+    // Equipes só para quem pode listá-las: o colaborador vê e move tarefas sem acesso ao cadastro de equipes.
+    const [taskList, eventList, teamList] = await Promise.all([listTasks(), listEvents(), canListTeams ? listTeams() : Promise.resolve([])])
     setTasks(taskList)
     setEvents(eventList)
     setTeams(teamList)
@@ -152,10 +154,10 @@ export function TasksBoardPage() {
     </section>
     <section className="content-head">
       <input className="search" aria-label="Buscar por evento" placeholder="Buscar por nome do evento..." value={eventSearch} onChange={(changeEvent) => setEventSearch(changeEvent.target.value)} />
-      <select aria-label="Equipe" value={teamId} onChange={(changeEvent) => setTeamId(changeEvent.target.value)}>
+      {canListTeams && <select aria-label="Equipe" value={teamId} onChange={(changeEvent) => setTeamId(changeEvent.target.value)}>
         <option value="">Todas as equipes</option>
         {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
-      </select>
+      </select>}
     </section>
     {error && <Notice message={error} error />}
     <div className="task-board">

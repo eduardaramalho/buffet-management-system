@@ -9,7 +9,7 @@ import type { Task } from '../types/task'
 vi.mock('../api/tasksApi', () => ({ listTasks: vi.fn(), getTask: vi.fn(), updateTaskStatus: vi.fn(), createTask: vi.fn(), updateTask: vi.fn(), removeTask: vi.fn() }))
 vi.mock('../api/eventsApi', () => ({ listEvents: vi.fn() }))
 vi.mock('../api/teamsApi', () => ({ listTeams: vi.fn(), listTeamsByEvent: vi.fn() }))
-let permissions = ['tasks:list', 'tasks:create', 'tasks:update', 'tasks:delete', 'tasks:update-status']
+let permissions = ['tasks:list', 'tasks:create', 'tasks:update', 'tasks:delete', 'tasks:update-status', 'teams:list']
 vi.mock('../contexts/useAuth', () => ({ useAuth: () => ({ user: { roles: [{ name: 'Administrador', permissions }] } }) }))
 
 const task = (overrides: Partial<Task> = {}): Task => ({
@@ -33,7 +33,7 @@ const team = { id: 'team-1', name: 'Equipe Cozinha A', specialty: 'COZINHA' as c
 describe('TasksBoardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    permissions = ['tasks:list', 'tasks:create', 'tasks:update', 'tasks:delete', 'tasks:update-status']
+    permissions = ['tasks:list', 'tasks:create', 'tasks:update', 'tasks:delete', 'tasks:update-status', 'teams:list']
     vi.mocked(listTeamsByEvent).mockResolvedValue([{ eventId: 'event-1', teamId: 'team-1', assignedAt: '', assignedById: 'a' }])
   })
 
@@ -198,6 +198,10 @@ describe('TasksBoardPage', () => {
       expect(screen.queryByRole('button', { name: 'Editar Confirmar decoração' })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Excluir Confirmar decoração' })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Atribuir equipe a Confirmar decoração' })).not.toBeInTheDocument()
+      // Colaborador: sem teams:list, o quadro não consulta equipes nem oferece o filtro (antes a tela inteira falhava com 403).
+      expect(listTeams).not.toHaveBeenCalled()
+      expect(screen.queryByLabelText('Equipe')).not.toBeInTheDocument()
+      expect(screen.getByLabelText('Mover Confirmar decoração')).toBeInTheDocument()
     })
 
     it('mantém o card de tarefa gerada com o selo e permite excluí-la', async () => {
