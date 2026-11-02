@@ -501,6 +501,14 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expectStatus(await manager.post(`/events/${source.id}/replicate`, { name: 'Réplica indevida' }), 403)
     const managerUser = (await admin.json<Array<{ id: string; email: string }>>(admin.get('/users'))).find((user) => user.email === data.manager.email)
     await expectStatus(await manager.post(`/users/${managerUser!.id}/reset-password`), 403)
+
+    // ADR 0012: users:update (gestor) não troca senha pela edição; antes isso permitia tomar a conta de outro usuário.
+    const roles = await admin.json<Array<{ id: string; name: string }>>(admin.get('/roles'))
+    const colleague = await admin.json<{ id: string }>(admin.post('/users', {
+      name: 'Colaborador E2E', email: 'colaborador.e2e@buffet.local', password: 'Colaborador123!', roleId: roles.find((role) => role.name === 'colaborador')!.id,
+    }), 201)
+    await expectStatus(await manager.put(`/users/${colleague.id}`, { password: 'Invadida123!' }), 422)
+    await expectStatus(await manager.put(`/users/${managerUser!.id}`, { password: 'Invadida123!' }), 422)
     await manager.dispose()
   })
 
