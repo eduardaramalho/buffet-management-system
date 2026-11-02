@@ -39,6 +39,12 @@ describe('LoginPage', () => {
     expect(screen.queryByRole('link', { name: 'Esqueci minha senha' })).not.toBeInTheDocument()
   })
 
+  it('does not offer a "remember me" option, since the session lives only in memory', () => {
+    render(<MemoryRouter><LoginPage /></MemoryRouter>)
+
+    expect(screen.queryByRole('checkbox', { name: 'Lembrar de mim' })).not.toBeInTheDocument()
+  })
+
   it('shows the backend message when the temporary password expired', async () => {
     const message = 'Sua senha temporária expirou. Procure o administrador do sistema.'
     login.mockRejectedValue(new AxiosError('Request failed', '400', undefined, undefined, { status: 400, data: { message, code: 'TEMP_PASSWORD_EXPIRED' } } as AxiosResponse))
