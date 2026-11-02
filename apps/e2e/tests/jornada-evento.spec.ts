@@ -387,7 +387,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     // Nenhuma página interna abre antes da troca.
     await expect(page.getByRole('navigation')).toHaveCount(0)
 
-    await page.getByLabel('Senha atual').fill(temporaryPassword)
+    await page.getByLabel('Senha temporária').fill(temporaryPassword)
     await page.getByLabel('Nova senha', { exact: true }).fill(data.manager.newPassword)
     await page.getByLabel('Confirmar nova senha').fill(data.manager.newPassword)
     await page.getByRole('button', { name: 'Salvar nova senha' }).click()
