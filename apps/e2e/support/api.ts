@@ -16,6 +16,11 @@ export class ApiClient {
     await expectStatus(response, 200)
     const { accessToken } = await response.json() as { accessToken: string }
     await anonymous.dispose()
+    return ApiClient.fromToken(accessToken)
+  }
+
+  /** Reaproveita um token já emitido (ex.: pela troca de senha) sem gastar uma tentativa do limite de login. */
+  static async fromToken(accessToken: string) {
     const context = await request.newContext({ baseURL: e2eEnv.backendUrl, extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` } })
     return new ApiClient(context)
   }

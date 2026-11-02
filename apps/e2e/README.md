@@ -20,9 +20,10 @@ Jornada completa do sistema em um navegador real, contra um backend e um banco *
 16. Dashboard gerencial
 17. Relatórios (eventos, tarefas, desempenho das equipes) e exportação CSV/PDF
 18. Redefinição de senha pelo administrador: admin protegido (403) e senha anterior invalidada (ADR 0012)
-19. Troca obrigatória da senha temporária
+19. Troca obrigatória da senha temporária; a gestora abre em Clientes, a primeira tela permitida (ADR 0013)
 20. Controle de acesso (RBAC) do gestor na interface e no backend
 21. Sessão: botão Sair acessível em tela baixa e no celular
+22. Colaborador: abre em Eventos, só consulta eventos e move o status das tarefas; o backend recusa o resto (ADR 0013)
 
 Os passos são dependentes (`test.describe.serial`). Erros de JavaScript não tratados na página
 fazem qualquer passo falhar, mesmo que a API tenha respondido corretamente.
@@ -36,8 +37,9 @@ fazem qualquer passo falhar, mesmo que a API tenha respondido corretamente.
   precisa conter `e2e`.
 - O token de acesso fica em memória no frontend, então a jornada navega pelo menu e não recarrega a
   página após o login.
-- O limite de login do backend é 5 tentativas a cada 15 min por IP; a jornada usa as 5 (a quinta
-  confirma que a senha anterior deixa de valer após a redefinição). Um novo login na jornada estoura o limite. Como o backend
+- O limite de login do backend é 5 tentativas a cada 15 min por IP, e a jornada usa as 5: administrador
+  (API e tela), senha anterior recusada, gestora com a senha temporária e colaborador. A API da gestora
+  reaproveita o token devolvido pela troca de senha (`ApiClient.fromToken`). Um novo login estoura o limite. Como o backend
   é reiniciado a cada execução, o contador zera entre rodadas.
 
 ## Executar localmente

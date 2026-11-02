@@ -16,6 +16,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
   let page: Page
   let admin: ApiClient
   let temporaryPassword = ''
+  let managerAccessToken = ''
   const pageErrors: string[] = []
 
   const eventRow = (name: string) => page.getByRole('button', { name: `Visualizar ${name}` })
@@ -480,8 +481,12 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await page.getByLabel('Senha temporária').fill(temporaryPassword)
     await page.getByLabel('Nova senha', { exact: true }).fill(data.manager.newPassword)
     await page.getByLabel('Confirmar nova senha').fill(data.manager.newPassword)
+    const changed = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/change-password'))
     await page.getByRole('button', { name: 'Salvar nova senha' }).click()
-    await expect(page.getByRole('heading', { level: 1, name: 'Usuários' })).toBeVisible()
+    // A troca devolve um par novo de tokens já sem a flag de troca pendente; o passo 20 usa esse token na API.
+    managerAccessToken = (await (await changed).json() as { accessToken: string }).accessToken
+    // Página inicial = primeira tela do menu que o papel pode abrir (para o gestor, Clientes).
+    await expect(page.getByRole('heading', { level: 1, name: 'Clientes' })).toBeVisible()
   })
 
   test('20. controle de acesso: gestor vê apenas o que seu papel permite', async () => {
@@ -493,8 +498,8 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     }
     await expect(page.getByRole('button', { name: `Redefinir senha de ${data.manager.name}` })).toHaveCount(0)
 
-    // A tela esconder o menu não basta: o backend precisa recusar a operação. A senha nova já vale na API.
-    const manager = await ApiClient.login({ email: data.manager.email, password: data.manager.newPassword })
+    // A tela esconder o menu não basta: o backend precisa recusar a operação.
+    const manager = await ApiClient.fromToken(managerAccessToken)
     await expectStatus(await manager.get('/events'), 403)
     await expectStatus(await manager.post('/rules', { name: 'Regra indevida' }), 403)
     await expectStatus(await manager.get('/clients'), 200)
@@ -505,8 +510,9 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
 
     // ADR 0012: users:update (gestor) não troca senha pela edição; antes isso permitia tomar a conta de outro usuário.
     const roles = await admin.json<Array<{ id: string; name: string }>>(admin.get('/roles'))
+    const { collaboratorUser } = data
     const colleague = await admin.json<{ id: string }>(admin.post('/users', {
-      name: 'Colaborador E2E', email: 'colaborador.e2e@buffet.local', password: 'Colaborador123!', roleId: roles.find((role) => role.name === 'colaborador')!.id,
+      name: collaboratorUser.name, email: collaboratorUser.email, password: collaboratorUser.password, roleId: roles.find((role) => role.name === collaboratorUser.role)!.id,
     }), 201)
     await expectStatus(await manager.put(`/users/${colleague.id}`, { password: 'Invadida123!' }), 422)
     await expectStatus(await manager.put(`/users/${managerUser!.id}`, { password: 'Invadida123!' }), 422)
@@ -520,6 +526,53 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
       await page.setViewportSize(viewport)
       await expect(page.getByRole('button', { name: 'Sair' })).toBeInViewport()
     }
+    await logout(page)
+  })
+
+  test('22. colaborador acompanha eventos e move o status das tarefas, sem editar nada', async () => {
+    const { collaboratorUser, replica } = data
+    // O passo 21 termina no tamanho de celular.
+    await page.setViewportSize({ width: 1280, height: 720 })
+    const signedIn = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/login'))
+    await login(page, collaboratorUser.email, collaboratorUser.password)
+    const collaborator = await ApiClient.fromToken((await (await signedIn).json() as { accessToken: string }).accessToken)
+
+    // Página inicial: a primeira tela do menu que o papel abre. Antes o colaborador entrava em loop de redirecionamento.
+    await expect(page.getByRole('heading', { level: 1, name: 'Eventos' })).toBeVisible()
+    const menu = page.getByRole('navigation')
+    for (const visible of ['Eventos', 'Tarefas']) await expect(menu.getByRole('link', { name: visible, exact: true })).toBeVisible()
+    for (const hidden of ['Dashboard', 'Relatórios', 'Clientes', 'Serviços', 'Equipes', 'Colaboradores', 'Regras', 'Usuários', 'Papéis e permissões']) {
+      await expect(menu.getByRole('link', { name: hidden, exact: true })).toHaveCount(0)
+    }
+
+    // Lista e Central do evento só para consulta.
+    await expect(page.getByRole('button', { name: 'Novo Evento' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: `Editar ${replica.name}` })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: `Excluir ${replica.name}` })).toHaveCount(0)
+    await eventRow(replica.name).click()
+    await expect(page.getByRole('heading', { level: 1, name: replica.name })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Tarefas do evento' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Iniciar evento' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Replicar evento' })).toHaveCount(0)
+
+    // Quadro de tarefas: move o status, sem criar, editar ou excluir.
+    await navigateTo(page, 'Tarefas', 'Tarefas')
+    await expect(page.getByRole('button', { name: 'Nova tarefa' })).toHaveCount(0)
+    await page.getByLabel('Buscar por evento').fill(replica.name)
+    const [task] = data.rule.tasks
+    await page.getByLabel(`Mover ${task.title}`).selectOption({ label: 'Em andamento' })
+    await expect(page.getByRole('region', { name: 'Em andamento' }).getByText(task.title, { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: `Editar ${task.title}` })).toHaveCount(0)
+
+    // O backend recusa tudo o que o papel não permite.
+    const replicaEvent = await findEvent(replica.name)
+    await expectStatus(await collaborator.post('/tasks', { eventId: replicaEvent.id, title: 'Tarefa indevida' }), 403)
+    await expectStatus(await collaborator.put(`/events/${replicaEvent.id}`, { name: 'Edição indevida' }), 403)
+    await expectStatus(await collaborator.get('/users'), 403)
+    await expectStatus(await collaborator.get('/teams'), 403)
+    const managerUser = (await admin.json<Array<{ id: string; email: string }>>(admin.get('/users'))).find((user) => user.email === data.manager.email)!
+    await expectStatus(await collaborator.patch(`/users/${managerUser.id}/deactivate`), 403)
+    await collaborator.dispose()
     await logout(page)
   })
 })
