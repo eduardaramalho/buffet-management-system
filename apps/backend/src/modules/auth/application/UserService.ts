@@ -32,13 +32,10 @@ export class UserService {
     return this.toResponse(user);
   }
 
-  async update(id: string, input: { name?: string; email?: string; password?: string }, actorId: string) {
+  /** Dados cadastrais apenas. A senha muda só pelo reset do administrador ou pela troca do próprio usuário (ADR 0012). */
+  async update(id: string, input: { name?: string; email?: string }, actorId: string) {
     await this.ensureUserCanBeEdited(id);
-    const user = await this.users.update(id, {
-      name: input.name,
-      email: input.email?.toLowerCase().trim(),
-      passwordHash: input.password ? await this.hasher.hash(input.password) : undefined
-    });
+    const user = await this.users.update(id, { name: input.name, email: input.email?.toLowerCase().trim() });
     await this.audit.record({ userId: actorId, action: "USER_UPDATED", entity: "User", entityId: id, changes: { name: input.name, email: input.email } });
     return this.toResponse(user);
   }

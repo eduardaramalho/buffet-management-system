@@ -16,12 +16,20 @@ export class ApiClient {
     await expectStatus(response, 200)
     const { accessToken } = await response.json() as { accessToken: string }
     await anonymous.dispose()
+    return ApiClient.fromToken(accessToken)
+  }
+
+  /** Reaproveita um token já emitido (ex.: pela troca de senha) sem gastar uma tentativa do limite de login. */
+  static async fromToken(accessToken: string) {
     const context = await request.newContext({ baseURL: e2eEnv.backendUrl, extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` } })
     return new ApiClient(context)
   }
 
   get(path: string) { return this.context.get(`/api/v1${path}`) }
   post(path: string, data?: unknown) { return this.context.post(`/api/v1${path}`, { data }) }
+  put(path: string, data?: unknown) { return this.context.put(`/api/v1${path}`, { data }) }
+  patch(path: string, data?: unknown) { return this.context.patch(`/api/v1${path}`, { data }) }
+  delete(path: string) { return this.context.delete(`/api/v1${path}`) }
 
   async json<T>(response: Promise<APIResponse>, status = 200): Promise<T> {
     const resolved = await response

@@ -4,9 +4,15 @@ import { daysFromNow } from './dates'
 export const data = {
   // newPassword: definida pela gestora depois que o administrador redefine a senha (ADR 0012).
   manager: { name: 'Gestora E2E', email: 'gestora.e2e@buffet.local', password: 'Gestora123!', newPassword: 'GestoraNova456!', role: 'gestor' },
+  // Perfil operacional: acompanha eventos e move o status das tarefas (criado pelo administrador no passo 20).
+  collaboratorUser: { name: 'Colaborador E2E', email: 'colaborador.e2e@buffet.local', password: 'Colaborador123!', role: 'colaborador' },
   client: { name: 'Mariana Souza', email: 'mariana.souza@example.com', phone: '(47) 99999-0000' },
   service: 'Buffet completo',
+  // RF06: created, renamed and soft-deleted; it must stop being offered in new events.
+  retiredService: { name: 'Decoração floral', renamed: 'Decoração com flores' },
   kitchenTeam: { name: 'Cozinha Central', specialty: 'Cozinha', collaborator: { name: 'Carlos Lima', position: 'Chef' } },
+  // Inactivated in the UI: an inactive team keeps its history but cannot be assigned to events.
+  supportTeam: { name: 'Equipe de Apoio', specialty: 'LIMPEZA' },
   rule: {
     name: 'Casamento grande',
     eventType: 'Casamento',

@@ -1,7 +1,7 @@
 # ADR 0012: Recuperação de senha por redefinição administrativa
 
 - **Status:** Aceito
-- **Escopo:** Backend (`AuthService`, `UserPasswordService`, `CryptoTemporaryPasswordGenerator`, `JwtTokenProvider`, `authenticate`, `PrismaUserRepository`, `errorHandler`, seed, migration `20261028120000_admin_password_reset`), frontend (`LoginPage`, `ChangePasswordPage`, `ResetPasswordDialog`, `UsersListPage`, `ProtectedRoute`, `AuthContext`), E2E (passos 17 e 18 da jornada)
+- **Escopo:** Backend (`AuthService`, `UserPasswordService`, `CryptoTemporaryPasswordGenerator`, `JwtTokenProvider`, `authenticate`, `PrismaUserRepository`, `errorHandler`, seed, migration `20261028120000_admin_password_reset`), frontend (`LoginPage`, `ChangePasswordPage`, `ResetPasswordDialog`, `UsersListPage`, `ProtectedRoute`, `AuthContext`), E2E (passos 18 e 19 da jornada)
 
 ## Contexto
 
@@ -20,6 +20,7 @@ O sistema é interno. Os usuários são funcionários do buffet cadastrados pelo
 7. **Administradores protegidos não são alvo.** A mesma regra do `UserService`: a senha de um usuário com papel protegido não é redefinida pela interface (403). Usuário inativo responde 409 (precisa ser reativado antes), e usuário inexistente ou excluído, 404.
 8. **Auditoria:** `USER_PASSWORD_RESET` (autor é o administrador, com o prazo de validade) e `USER_PASSWORD_CHANGED` (autor é o próprio usuário).
 9. **Remoção do fluxo por e-mail:** endpoints, páginas, `ConsoleEmailProvider`, `PrismaPasswordResetTokenRepository`, variável `PASSWORD_RESET_TTL_MS` e a tabela `password_reset_tokens`, que guardava apenas tokens de uso único e curta duração.
+10. **A edição de usuário não muda a senha** (correção de 02/11/2026). `PUT /api/v1/users/:id` aceitava `password` com a permissão `users:update`, que também é dos papéis gestor e colaborador: um gestor conseguia definir a senha de outro usuário e entrar na conta dele, sem troca obrigatória e sem revogar sessões. O schema da edição passou a ser estrito e responde 422 a qualquer campo fora de `name` e `email`; as telas de edição não têm mais campo de senha. A senha só muda pela redefinição do administrador (`users:reset-password`) ou pela troca feita pelo próprio usuário (`/auth/change-password`). Coberto no passo 20 da jornada E2E.
 
 ## Atualização: novo visual das telas de acesso (02/11/2026)
 

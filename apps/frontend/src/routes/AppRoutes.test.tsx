@@ -11,6 +11,7 @@ vi.mock('../pages/UsersListPage', () => ({ UsersListPage: () => <h1>Página de U
 vi.mock('../pages/RolesListPage', () => ({ RolesListPage: () => { if (pageFailure.roles) throw new Error('falha de renderização'); return <h1>Página de Papéis</h1> } }))
 vi.mock('../pages/UserFormPage', () => ({ UserFormPage: () => <h1>Formulário de Usuário</h1> }))
 vi.mock('../pages/RoleFormPage', () => ({ RoleFormPage: () => <h1>Formulário de Papel</h1> }))
+vi.mock('../pages/EventsListPage', () => ({ EventsListPage: () => <h1>Página de Eventos</h1> }))
 vi.mock('../pages/LoginPage', () => ({ LoginPage: () => <h1>Login</h1> }))
 vi.mock('../pages/ChangePasswordPage', () => ({ ChangePasswordPage: () => <h1>Trocar senha</h1> }))
 
@@ -78,5 +79,29 @@ describe('AppRoutes navigation and permissions', () => {
     expect(await screen.findByRole('heading', { name: 'Página de Usuários' })).toBeInTheDocument()
     pageFailure.roles = false
     vi.restoreAllMocks()
+  })
+})
+
+describe('AppRoutes home page by permission', () => {
+  // Regressão: quem não tinha users:list era mandado para /users e entrava em loop de redirecionamento.
+  it('sends a user without access to the requested page to the first page it can open', async () => {
+    const previous = authState.user
+    authState.user = { ...previous, roles: [{ name: 'colaborador', permissions: ['users:read', 'events:list', 'tasks:list'] }] }
+    render(<MemoryRouter initialEntries={['/users']}><AppRoutes /></MemoryRouter>)
+
+    expect(await screen.findByRole('heading', { name: 'Página de Eventos' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Usuários' })).not.toBeInTheDocument()
+    authState.user = previous
+  })
+
+  it('shows a no-access page, keeping the logout, when no page is allowed', async () => {
+    const previous = authState.user
+    authState.user = { ...previous, roles: [{ name: 'sem-telas', permissions: ['users:read'] }] }
+    render(<MemoryRouter initialEntries={['/qualquer']}><AppRoutes /></MemoryRouter>)
+
+    expect(await screen.findByRole('heading', { name: 'Sem acesso' })).toBeInTheDocument()
+    expect(screen.getByText('Seu perfil não tem acesso a nenhuma tela. Procure o administrador do sistema.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument()
+    authState.user = previous
   })
 })

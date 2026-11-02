@@ -17,7 +17,7 @@ export interface UserManagementRepository {
   list(filter: UserListFilter): Promise<ManagedUser[]>;
   findManagedById(id: string): Promise<ManagedUser | null>;
   create(input: { name: string; email: string; passwordHash: string; roleId: string }): Promise<ManagedUser>;
-  update(id: string, input: { name?: string; email?: string; passwordHash?: string }): Promise<ManagedUser>;
+  update(id: string, input: { name?: string; email?: string }): Promise<ManagedUser>;
   setActive(id: string, isActive: boolean): Promise<ManagedUser>;
   softDelete(id: string): Promise<ManagedUser>;
 }

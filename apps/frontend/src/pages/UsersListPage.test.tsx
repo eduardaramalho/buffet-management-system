@@ -6,7 +6,7 @@ import { UsersListPage } from './UsersListPage'
 
 const { listUsers, createUser, listRoles, setUserActive, updateUser, getUser, resetUserPassword, authState } = vi.hoisted(() => ({
   resetUserPassword: vi.fn(),
-  authState: { user: { id: 'me', name: 'Admin', email: 'admin@buffet.local', roles: [{ name: 'admin', permissions: ['users:list', 'users:reset-password'] }] } as unknown },
+  authState: { user: { id: 'me', name: 'Admin', email: 'admin@buffet.local', roles: [{ name: 'admin', permissions: ['users:list', 'users:create', 'users:reset-password'] }] } as unknown },
   listUsers: vi.fn(),
   createUser: vi.fn(),
   listRoles: vi.fn(),
@@ -155,6 +155,8 @@ describe('UsersListPage creation flow', () => {
 
     expect(await screen.findByRole('button', { name: 'Editar Alice' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Redefinir senha de Alice' })).not.toBeInTheDocument()
+    // Sem users:create o botão levaria a um 403.
+    expect(screen.queryByRole('button', { name: 'Novo usuário' })).not.toBeInTheDocument()
     authState.user = previous
   })
 })

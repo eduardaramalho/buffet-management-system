@@ -38,8 +38,8 @@ export function UserFormPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     try {
-      // Na edição, senha vazia significa "manter a atual" e não é enviada.
-      if (id) await updateUser(id, { name, email, ...(password ? { password } : {}) })
+      // ADR 0012: a edição não muda a senha; ela só muda pelo reset do administrador ou pela troca do próprio usuário.
+      if (id) await updateUser(id, { name, email })
       else await createUser({ name, email, password, roleId })
       navigate('/users')
     } catch (cause) {
@@ -63,14 +63,16 @@ export function UserFormPage() {
               </select>
             </label>
           )}
-          <FormField
-            label="Senha"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            minLength={isEditing ? undefined : MIN_PASSWORD_LENGTH}
-            required={!isEditing}
-          />
+          {!isEditing && (
+            <FormField
+              label="Senha"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              minLength={MIN_PASSWORD_LENGTH}
+              required
+            />
+          )}
           {error && <Notice message={error} error />}
           <Button>Salvar</Button>
         </form>

@@ -79,7 +79,7 @@ describe('UserFormPage', () => {
   })
 
   describe('edição', () => {
-    it('carrega os dados, não exibe papel, senha é opcional e não é enviada vazia', async () => {
+    it('carrega os dados, não exibe papel nem senha e envia só nome e e-mail', async () => {
       getUser.mockResolvedValue({ id: 'u1', name: 'Ana', email: 'ana@buffet.com' })
       updateUser.mockResolvedValue({ id: 'u1' })
       renderAt('/users/u1/edit')
@@ -87,25 +87,14 @@ describe('UserFormPage', () => {
       expect(screen.getByRole('heading', { name: 'Editar usuário' })).toBeInTheDocument()
       expect(await screen.findByDisplayValue('Ana')).toBeInTheDocument()
       expect(screen.queryByLabelText('Papel')).not.toBeInTheDocument()
-      expect(screen.getByLabelText('Senha')).not.toBeRequired()
+      // ADR 0012: a senha só muda pelo reset do administrador ou pela troca feita pelo próprio usuário.
+      expect(screen.queryByLabelText('Senha')).not.toBeInTheDocument()
       expect(listRoles).not.toHaveBeenCalled()
 
       await userEvent.click(screen.getByRole('button', { name: 'Salvar' }))
 
       expect(updateUser).toHaveBeenCalledWith('u1', { name: 'Ana', email: 'ana@buffet.com' })
       expect(await screen.findByText('Lista de usuários')).toBeInTheDocument()
-    })
-
-    it('envia a nova senha quando preenchida', async () => {
-      getUser.mockResolvedValue({ id: 'u1', name: 'Ana', email: 'ana@buffet.com' })
-      updateUser.mockResolvedValue({ id: 'u1' })
-      renderAt('/users/u1/edit')
-
-      await screen.findByDisplayValue('Ana')
-      await userEvent.type(screen.getByLabelText('Senha'), 'outraSenha1')
-      await userEvent.click(screen.getByRole('button', { name: 'Salvar' }))
-
-      expect(updateUser).toHaveBeenCalledWith('u1', { name: 'Ana', email: 'ana@buffet.com', password: 'outraSenha1' })
     })
 
     it('mostra erro quando o usuário não carrega', async () => {

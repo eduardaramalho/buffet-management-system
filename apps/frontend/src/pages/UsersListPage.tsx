@@ -17,6 +17,7 @@ const PAGE_SIZE = 10
 export function UsersListPage() {
   const { user: actor } = useAuth()
   const canResetPassword = Boolean(actor?.roles?.some((role) => role.permissions.includes('users:reset-password')))
+  const canCreate = Boolean(actor?.roles?.some((role) => role.permissions.includes('users:create')))
   const [users, setUsers] = useState<User[]>([])
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -49,7 +50,7 @@ export function UsersListPage() {
   }
 
   return <main className="app-shell">
-    <header><div><span className="eyebrow">PAINEL OPERACIONAL</span><h1>Usuários</h1></div><button className="secondary" onClick={() => { setEditingUser(undefined); setFormOpen(true) }}>Novo usuário</button></header>
+    <header><div><span className="eyebrow">PAINEL OPERACIONAL</span><h1>Usuários</h1></div>{canCreate && <button className="secondary" onClick={() => { setEditingUser(undefined); setFormOpen(true) }}>Novo usuário</button>}</header>
     <section className="summary"><StatCard icon={<Icon name="users" />} value={users.length} label="Total de usuários" tone="blue" /><StatCard icon={<Icon name="check" />} value={activeUsers} label="Usuários ativos" tone="green" /><StatCard icon={<Icon name="x" />} value={users.length - activeUsers} label="Inativos" tone="gold" /><StatCard icon={<Icon name="shield" />} value={users.filter(isAdmin).length} label="Administradores" tone="purple" /></section>
     <section className="content-head"><input className="search" placeholder="Buscar por nome, e-mail ou cargo..." value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); void load(event.target.value) }} /><select aria-label="Todos os perfis"><option>Todos os perfis</option></select><select aria-label="Status"><option>Status</option></select><button className="secondary">Filtros</button></section>
     {error && <Notice message={error} error />}

@@ -1,3 +1,4 @@
+import { ZodError } from 'zod';
 import { describe, expect, it, jest } from '@jest/globals';
 
 import { UserController } from './UserController.js';
@@ -87,6 +88,27 @@ describe('UserController', () => {
     expect(status).toHaveBeenCalledWith(201);
     expect(status).toHaveBeenCalledWith(204);
     expect(send).toHaveBeenCalled();
+  });
+
+  // ADR 0012: quem tem users:update (gestor, colaborador) não pode trocar a senha de outra conta pela edição.
+  it('rejects a password in the update body before reaching the service', async () => {
+    const service = { update: jest.fn() };
+    const controller = new UserController(service as any);
+    const request = { user: { sub: 'actor-1' }, params: { id: 'u1' }, body: { name: 'Alice', password: 'Invadida123!' } };
+
+    await expect(controller.update(request as any, { json: jest.fn() } as any)).rejects.toBeInstanceOf(ZodError);
+    expect(service.update).not.toHaveBeenCalled();
+  });
+
+  it('updates name and email', async () => {
+    const service = { update: jest.fn(async () => ({ id: 'u1' })) };
+    const json = jest.fn();
+    const controller = new UserController(service as any);
+
+    await controller.update({ user: { sub: 'actor-1' }, params: { id: 'u1' }, body: { name: 'Alice', email: 'alice@buffet.com' } } as any, { json } as any);
+
+    expect(service.update).toHaveBeenCalledWith('u1', { name: 'Alice', email: 'alice@buffet.com' }, 'actor-1');
+    expect(json).toHaveBeenCalledWith({ id: 'u1' });
   });
 
   it('rejects update, activation, and removal without an authenticated actor', async () => {

@@ -30,12 +30,35 @@ describe('EventsListPage', () => {
   })
 
   it('opens the creation form from Novo Evento', async () => {
+    authState.permissions = ['events:list', 'events:create']
     vi.mocked(listEvents).mockResolvedValue([])
     vi.mocked(listServices).mockResolvedValue([])
     render(<MemoryRouter><EventsListPage /></MemoryRouter>)
     fireEvent.click(await screen.findByRole('button', { name: 'Novo Evento' }))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(createEvent).not.toHaveBeenCalled()
+  })
+
+  // Colaborador: acompanha os eventos sem criar, editar ou excluir.
+  it('shows only the view action to a read-only user', async () => {
+    vi.mocked(listEvents).mockResolvedValue([event('CONFIRMADO')])
+    vi.mocked(listServices).mockResolvedValue([])
+    render(<MemoryRouter><EventsListPage /></MemoryRouter>)
+
+    expect(await screen.findByRole('button', { name: 'Visualizar Evento confirmado' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Novo Evento' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Editar Evento confirmado' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Excluir Evento confirmado' })).not.toBeInTheDocument()
+  })
+
+  it('offers edit and delete with the matching permissions', async () => {
+    authState.permissions = ['events:list', 'events:update', 'events:delete']
+    vi.mocked(listEvents).mockResolvedValue([event('CONFIRMADO')])
+    vi.mocked(listServices).mockResolvedValue([])
+    render(<MemoryRouter><EventsListPage /></MemoryRouter>)
+
+    expect(await screen.findByRole('button', { name: 'Editar Evento confirmado' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Excluir Evento confirmado' })).toBeInTheDocument()
   })
 
   describe('excluídos e restauração', () => {

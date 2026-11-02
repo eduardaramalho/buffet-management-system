@@ -28,6 +28,13 @@ class InMemorySeedRepository implements SeedRepository {
     this.rolePermissions.add(`${roleId}:${permissionId}`);
   }
 
+  async revokeRolePermissionsExcept(roleId: string, permissionIds: string[]) {
+    const prefix = `${roleId}:`;
+    for (const link of [...this.rolePermissions]) {
+      if (link.startsWith(prefix) && !permissionIds.includes(link.slice(prefix.length))) this.rolePermissions.delete(link);
+    }
+  }
+
   async hasActiveGenericService() {
     return this.genericServices.length > 0;
   }
@@ -75,6 +82,24 @@ describe("DatabaseSeeder", () => {
         expect(repository.rolePermissions.has(`${role?.id}:${repository.permissions.get(key)}`)).toBe(true);
       }
     }
+  });
+
+  // A matriz é a fonte da verdade: o seed roda a cada deploy e precisa retirar o que saiu dela.
+  it("revokes permissions a seeded role no longer has", async () => {
+    const roleId = await repository.upsertRole("colaborador", false);
+    await repository.linkRolePermission(roleId, await repository.upsertPermission("users:update"));
+
+    await seeder.run({ adminInitialPassword: "Strong-pass-1" });
+
+    expect(repository.rolePermissions.has(`${roleId}:${repository.permissions.get("users:update")}`)).toBe(false);
+    expect(repository.rolePermissions.has(`${roleId}:${repository.permissions.get("tasks:update-status")}`)).toBe(true);
+  });
+
+  // Perfil operacional: acompanha eventos e move o status das tarefas, sem criar, editar ou excluir nada.
+  it("gives the colaborador role read access to events and tasks plus task status updates only", () => {
+    expect([...ROLE_PERMISSION_MATRIX.colaborador].sort()).toEqual(
+      ["events:list", "events:read", "tasks:list", "tasks:read", "tasks:update-status", "users:read"].sort()
+    );
   });
 
   it("creates the generic service only when the active catalog has none", async () => {

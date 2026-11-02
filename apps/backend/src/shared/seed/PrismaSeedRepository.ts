@@ -32,6 +32,10 @@ export class PrismaSeedRepository implements SeedRepository {
     });
   }
 
+  async revokeRolePermissionsExcept(roleId: string, permissionIds: string[]) {
+    await this.prisma.rolePermission.deleteMany({ where: { roleId, permissionId: { notIn: permissionIds } } });
+  }
+
   async hasActiveGenericService() {
     const service = await this.prisma.service.findFirst({ where: { isCustom: true, deletedAt: null }, select: { id: true } });
     return service !== null;

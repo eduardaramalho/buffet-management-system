@@ -21,7 +21,11 @@ type View = 'active' | 'deleted'
 export function EventsListPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const canRestore = Boolean(user?.roles?.some((role) => role.permissions.includes('events:restore')))
+  const hasPermission = (permission: string) => Boolean(user?.roles?.some((role) => role.permissions.includes(permission)))
+  const canRestore = hasPermission('events:restore')
+  const canCreate = hasPermission('events:create')
+  const canUpdate = hasPermission('events:update')
+  const canDelete = hasPermission('events:delete')
   const [view, setView] = useState<View>('active')
   const [events, setEvents] = useState<Event[]>([])
   const [deletedEvents, setDeletedEvents] = useState<Event[]>([])
@@ -70,7 +74,7 @@ export function EventsListPage() {
   }
 
   return <main className="app-shell">
-    <header><div><span className="eyebrow">PAINEL OPERACIONAL</span><h1>Eventos</h1></div>{view === 'active' && <button className="secondary" onClick={() => { setEditingEvent(undefined); setFormOpen(true) }}>Novo Evento</button>}</header>
+    <header><div><span className="eyebrow">PAINEL OPERACIONAL</span><h1>Eventos</h1></div>{view === 'active' && canCreate && <button className="secondary" onClick={() => { setEditingEvent(undefined); setFormOpen(true) }}>Novo Evento</button>}</header>
     {canRestore && <div className="view-toggle" role="group" aria-label="Visualização dos eventos">
       <button type="button" aria-pressed={view === 'active'} onClick={() => changeView('active')}>Ativos</button>
       <button type="button" aria-pressed={view === 'deleted'} onClick={() => changeView('deleted')}>Excluídos</button>
@@ -83,7 +87,7 @@ export function EventsListPage() {
     {error && <Notice message={error} error />}
     {success && <Notice message={success} />}
     {view === 'active'
-      ? <Table headers={['Evento', 'Data', 'Local', 'Tipo de serviço', 'Status', 'Ações']}>{visibleRows.map((event) => <tr key={event.id}><td><strong>{event.name}</strong></td><td>{formatDate(event.eventDate)}</td><td>{event.location}</td><td>{event.serviceType}</td><td><Badge tone={statusTone[event.status]}>{statusLabels[event.status]}</Badge></td><td><div className="row-actions"><button title="Visualizar evento" aria-label={`Visualizar ${event.name}`} onClick={() => navigate(`/events/${event.id}`)}>◉</button><button title="Editar evento" aria-label={`Editar ${event.name}`} onClick={() => { setEditingEvent(event); setFormOpen(true) }}>✎</button><button title="Cancelar ou excluir evento" aria-label={`Excluir ${event.name}`} onClick={() => void remove(event)}>×</button></div></td></tr>)}</Table>
+      ? <Table headers={['Evento', 'Data', 'Local', 'Tipo de serviço', 'Status', 'Ações']}>{visibleRows.map((event) => <tr key={event.id}><td><strong>{event.name}</strong></td><td>{formatDate(event.eventDate)}</td><td>{event.location}</td><td>{event.serviceType}</td><td><Badge tone={statusTone[event.status]}>{statusLabels[event.status]}</Badge></td><td><div className="row-actions"><button title="Visualizar evento" aria-label={`Visualizar ${event.name}`} onClick={() => navigate(`/events/${event.id}`)}>◉</button>{canUpdate && <button title="Editar evento" aria-label={`Editar ${event.name}`} onClick={() => { setEditingEvent(event); setFormOpen(true) }}>✎</button>}{canDelete && <button title="Cancelar ou excluir evento" aria-label={`Excluir ${event.name}`} onClick={() => void remove(event)}>×</button>}</div></td></tr>)}</Table>
       : <Table headers={['Evento', 'Data', 'Status', 'Excluído em', 'Ações']}>{visibleRows.map((event) => <tr key={event.id}><td><strong>{event.name}</strong></td><td>{formatDate(event.eventDate)}</td><td><Badge tone={statusTone[event.status]}>{statusLabels[event.status]}</Badge></td><td>{event.deletedAt ? formatDate(event.deletedAt) : '-'}</td><td><button type="button" className="secondary outline" aria-label={`Restaurar ${event.name}`} onClick={() => void restore(event)}>Restaurar</button></td></tr>)}</Table>}
     {rows.length === 0 && <div className="empty">{view === 'active' ? 'Nenhum evento encontrado.' : 'Nenhum evento excluído.'}</div>}
     <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} />
