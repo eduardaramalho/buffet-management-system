@@ -6,7 +6,11 @@ export const data = {
   manager: { name: 'Gestora E2E', email: 'gestora.e2e@buffet.local', password: 'Gestora123!', newPassword: 'GestoraNova456!', role: 'gestor' },
   client: { name: 'Mariana Souza', email: 'mariana.souza@example.com', phone: '(47) 99999-0000' },
   service: 'Buffet completo',
+  // RF06: created, renamed and soft-deleted; it must stop being offered in new events.
+  retiredService: { name: 'Decoração floral', renamed: 'Decoração com flores' },
   kitchenTeam: { name: 'Cozinha Central', specialty: 'Cozinha', collaborator: { name: 'Carlos Lima', position: 'Chef' } },
+  // Inactivated in the UI: an inactive team keeps its history but cannot be assigned to events.
+  supportTeam: { name: 'Equipe de Apoio', specialty: 'LIMPEZA' },
   rule: {
     name: 'Casamento grande',
     eventType: 'Casamento',

@@ -22,6 +22,9 @@ export class ApiClient {
 
   get(path: string) { return this.context.get(`/api/v1${path}`) }
   post(path: string, data?: unknown) { return this.context.post(`/api/v1${path}`, { data }) }
+  put(path: string, data?: unknown) { return this.context.put(`/api/v1${path}`, { data }) }
+  patch(path: string, data?: unknown) { return this.context.patch(`/api/v1${path}`, { data }) }
+  delete(path: string) { return this.context.delete(`/api/v1${path}`) }
 
   async json<T>(response: Promise<APIResponse>, status = 200): Promise<T> {
     const resolved = await response
