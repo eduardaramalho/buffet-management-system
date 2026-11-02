@@ -1,7 +1,7 @@
 # ADR 0008: Replicação de eventos (RF25)
 
 - **Status:** Aceito
-- **Escopo:** Backend (`modules/events`, `modules/teams`, `modules/tasks/domain`, `prisma/schema.prisma`, migration `20261023180000_add_event_replication`, `prisma/seed.ts`), frontend (`ReplicateEventDialog`, `EventDetailsPage`, `utils/dateInput`), E2E (passo 12 da jornada)
+- **Escopo:** Backend (`modules/events`, `modules/teams`, `modules/tasks/domain`, `prisma/schema.prisma`, migration `20261023180000_add_event_replication`, `prisma/seed.ts`), frontend (`ReplicateEventDialog`, `EventDetailsPage`, `utils/dateInput`), E2E (passo 15 da jornada)
 
 ## Contexto
 

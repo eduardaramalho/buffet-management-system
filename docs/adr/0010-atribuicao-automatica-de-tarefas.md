@@ -1,7 +1,7 @@
 # ADR 0010: Atribuição automática das tarefas geradas às equipes
 
 - **Status:** Aceito
-- **Escopo:** Backend (`rule_task_templates.specialty`, migration `20261025180000_add_task_template_specialty`, `RuleEngineService`, `RuleController`, `RuleEngineExecutionService`), frontend (`RuleForm`), E2E (passos 6, 10 e 11)
+- **Escopo:** Backend (`rule_task_templates.specialty`, migration `20261025180000_add_task_template_specialty`, `RuleEngineService`, `RuleController`, `RuleEngineExecutionService`), frontend (`RuleForm`), E2E (passos 7, 11 e 12)
 
 ## Contexto
 

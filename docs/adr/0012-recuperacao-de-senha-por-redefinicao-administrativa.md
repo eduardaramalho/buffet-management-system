@@ -1,7 +1,7 @@
 # ADR 0012: Recuperação de senha por redefinição administrativa
 
 - **Status:** Aceito
-- **Escopo:** Backend (`AuthService`, `UserPasswordService`, `CryptoTemporaryPasswordGenerator`, `JwtTokenProvider`, `authenticate`, `PrismaUserRepository`, `errorHandler`, seed, migration `20261028120000_admin_password_reset`), frontend (`LoginPage`, `ChangePasswordPage`, `ResetPasswordDialog`, `UsersListPage`, `ProtectedRoute`, `AuthContext`), E2E (passos 17 e 18 da jornada)
+- **Escopo:** Backend (`AuthService`, `UserPasswordService`, `CryptoTemporaryPasswordGenerator`, `JwtTokenProvider`, `authenticate`, `PrismaUserRepository`, `errorHandler`, seed, migration `20261028120000_admin_password_reset`), frontend (`LoginPage`, `ChangePasswordPage`, `ResetPasswordDialog`, `UsersListPage`, `ProtectedRoute`, `AuthContext`), E2E (passos 18 e 19 da jornada)
 
 ## Contexto
 
