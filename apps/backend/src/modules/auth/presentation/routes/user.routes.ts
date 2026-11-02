@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { userController } from "../../infrastructure/factories/user.factory.js";
+import { userController, userPasswordController } from "../../infrastructure/factories/user.factory.js";
 import { authenticate } from "../middlewares/authenticate.js";
 import { authorize } from "../middlewares/authorize.js";
 
@@ -12,3 +12,5 @@ userRoutes.put("/:id", authorize("users:update"), userController.update);
 userRoutes.delete("/:id", authorize("users:delete"), userController.remove);
 userRoutes.patch("/:id/activate", authorize("users:update"), userController.setActive(true));
 userRoutes.patch("/:id/deactivate", authorize("users:update"), userController.setActive(false));
+// ADR 0012: o administrador gera uma senha temporária; o usuário é obrigado a trocá-la no próximo login.
+userRoutes.post("/:id/reset-password", authorize("users:reset-password"), userPasswordController.reset);
