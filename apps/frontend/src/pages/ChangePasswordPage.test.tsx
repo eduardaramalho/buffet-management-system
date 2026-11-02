@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AxiosError, type AxiosResponse } from 'axios'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -24,7 +24,7 @@ const renderPage = () => render(
 )
 
 const fill = async (current: string, next: string, confirmation: string) => {
-  await userEvent.type(screen.getByLabelText('Senha atual'), current)
+  await userEvent.type(screen.getByLabelText('Senha temporária'), current)
   await userEvent.type(screen.getByLabelText('Nova senha'), next)
   await userEvent.type(screen.getByLabelText('Confirmar nova senha'), confirmation)
   await userEvent.click(screen.getByRole('button', { name: 'Salvar nova senha' }))
@@ -36,8 +36,38 @@ describe('ChangePasswordPage', () => {
   it('explains that the temporary password must be replaced', () => {
     renderPage()
 
-    expect(screen.getByRole('heading', { name: 'Defina uma nova senha' })).toBeInTheDocument()
-    expect(screen.getByText(/senha temporária/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Defina uma nova senha' })).toBeInTheDocument()
+    expect(screen.getByText(/Você entrou com a senha temporária/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Senha temporária')).toHaveAccessibleDescription('A senha que o administrador informou para você.')
+  })
+
+  it('shows which account is changing the password', () => {
+    renderPage()
+
+    expect(screen.getByText('Bia')).toBeInTheDocument()
+    expect(screen.getByText('bia@buffet.com')).toBeInTheDocument()
+  })
+
+  it('checks the password requirements while the user types', async () => {
+    renderPage()
+    const requirements = screen.getByRole('list', { name: 'Requisitos da nova senha' })
+    const item = (label: string) => within(requirements).getByText(label).closest('li')
+
+    expect(item('Pelo menos 8 caracteres')).not.toHaveClass('met')
+    expect(item('As duas senhas são iguais')).not.toHaveClass('met')
+
+    await userEvent.type(screen.getByLabelText('Senha temporária'), 'Abcd2345efgh')
+    await userEvent.type(screen.getByLabelText('Nova senha'), 'NovaSenha123')
+
+    expect(item('Pelo menos 8 caracteres')).toHaveClass('met')
+    expect(item('Diferente da senha temporária')).toHaveClass('met')
+    expect(item('As duas senhas são iguais')).not.toHaveClass('met')
+    expect(item('As duas senhas são iguais')).toHaveTextContent('Pendente:')
+
+    await userEvent.type(screen.getByLabelText('Confirmar nova senha'), 'NovaSenha123')
+
+    expect(item('As duas senhas são iguais')).toHaveClass('met')
+    expect(item('As duas senhas são iguais')).toHaveTextContent('Atendido:')
   })
 
   it('changes the password and goes to the home page', async () => {
