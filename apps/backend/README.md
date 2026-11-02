@@ -8,6 +8,8 @@
 | `POST` | `/api/v1/auth/change-password` | Bearer (liberada durante a troca pendente) | nenhuma: opera sobre a própria conta |
 | `GET` | `/api/v1/auth/me` | Bearer (liberada durante a troca pendente) | `users:read` |
 
+`PUT /users/:id` altera apenas `name` e `email`. Qualquer outro campo, inclusive `password`, responde 422: a senha só muda pela redefinição abaixo ou pela troca feita pelo próprio usuário (`POST /auth/change-password`), conforme o ADR 0012.
+
 `POST /users/:id/reset-password` gera uma senha temporária válida por 24 horas, marca a troca obrigatória e revoga as sessões abertas do usuário. A senha só aparece nesta resposta:
 
 ```json
