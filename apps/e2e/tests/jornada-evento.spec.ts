@@ -15,6 +15,7 @@ import { login, logout, navigateTo, selectWhenLoaded } from '../support/ui'
 test.describe.serial('Jornada do evento: cadastro → regras → confirmação → execução → conclusão → replicação → relatórios', () => {
   let page: Page
   let admin: ApiClient
+  let temporaryPassword = ''
   const pageErrors: string[] = []
 
   const eventRow = (name: string) => page.getByRole('button', { name: `Visualizar ${name}` })
@@ -363,27 +364,58 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(panel.getByRole('alert')).toHaveCount(0)
   })
 
-  test('17. controle de acesso: gestor vê apenas o que seu papel permite', async () => {
+  test('17. redefinição de senha: administrador gera uma senha temporária para a gestora (ADR 0012)', async () => {
+    await navigateTo(page, 'Usuários', 'Usuários')
+    // A senha de administradores protegidos não pode ser redefinida pela interface.
+    await expect(page.getByRole('button', { name: 'Redefinir senha de Administrador' })).toBeDisabled()
+
+    await page.getByRole('button', { name: `Redefinir senha de ${data.manager.name}` }).click()
+    const dialog = page.getByRole('dialog', { name: 'Redefinir senha' })
+    await dialog.getByRole('button', { name: 'Redefinir senha' }).click()
+    const shown = dialog.locator('.temporary-password code')
+    await expect(shown).toHaveText(/^[A-Za-z0-9]{12}$/)
+    temporaryPassword = (await shown.textContent())!.trim()
+    await expect(dialog.getByText(/não será exibida novamente/)).toBeVisible()
+    await dialog.getByRole('button', { name: 'Concluir' }).click()
+    await expect(dialog).toBeHidden()
+  })
+
+  test('18. troca obrigatória: a gestora entra com a senha temporária e define uma nova', async () => {
     await logout(page)
-    await login(page, data.manager.email, data.manager.password)
+    await login(page, data.manager.email, temporaryPassword)
+    await expect(page.getByRole('heading', { name: 'Defina uma nova senha' })).toBeVisible()
+    // Nenhuma página interna abre antes da troca.
+    await expect(page.getByRole('navigation')).toHaveCount(0)
+
+    await page.getByLabel('Senha atual').fill(temporaryPassword)
+    await page.getByLabel('Nova senha', { exact: true }).fill(data.manager.newPassword)
+    await page.getByLabel('Confirmar nova senha').fill(data.manager.newPassword)
+    await page.getByRole('button', { name: 'Salvar nova senha' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Usuários' })).toBeVisible()
+  })
+
+  test('19. controle de acesso: gestor vê apenas o que seu papel permite', async () => {
     const menu = page.getByRole('navigation')
     await expect(menu.getByRole('link', { name: 'Usuários', exact: true })).toBeVisible()
     await expect(menu.getByRole('link', { name: 'Clientes', exact: true })).toBeVisible()
     for (const hidden of ['Eventos', 'Tarefas', 'Regras', 'Serviços', 'Relatórios', 'Dashboard']) {
       await expect(menu.getByRole('link', { name: hidden, exact: true })).toHaveCount(0)
     }
+    await expect(page.getByRole('button', { name: `Redefinir senha de ${data.manager.name}` })).toHaveCount(0)
 
-    // A tela esconder o menu não basta: o backend precisa recusar a operação.
-    const manager = await ApiClient.login({ email: data.manager.email, password: data.manager.password })
+    // A tela esconder o menu não basta: o backend precisa recusar a operação. A senha nova já vale na API.
+    const manager = await ApiClient.login({ email: data.manager.email, password: data.manager.newPassword })
     await expectStatus(await manager.get('/events'), 403)
     await expectStatus(await manager.post('/rules', { name: 'Regra indevida' }), 403)
     await expectStatus(await manager.get('/clients'), 200)
     const source = await findEvent(data.event.name)
     await expectStatus(await manager.post(`/events/${source.id}/replicate`, { name: 'Réplica indevida' }), 403)
+    const managerUser = (await admin.json<Array<{ id: string; email: string }>>(admin.get('/users'))).find((user) => user.email === data.manager.email)
+    await expectStatus(await manager.post(`/users/${managerUser!.id}/reset-password`), 403)
     await manager.dispose()
   })
 
-  test('18. sessão: o botão Sair continua acessível em tela baixa e no celular', async () => {
+  test('20. sessão: o botão Sair continua acessível em tela baixa e no celular', async () => {
     // Regressão: a sidebar é fixa e não rolava; em telas baixas o rodapé com "Sair" ficava fora da tela,
     // e no celular o botão era escondido por CSS (não havia como encerrar a sessão).
     for (const viewport of [{ width: 1366, height: 600 }, { width: 390, height: 844 }]) {

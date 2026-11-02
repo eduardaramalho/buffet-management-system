@@ -146,8 +146,8 @@ app.get("/api/v1/metrics", async (_request, response, next) => {
 
 app.use(globalApiLimiter);
 app.use("/api/v1/auth/login", loginLimiter);
-app.use("/api/v1/auth/forgot-password", sensitiveAuthLimiter);
-app.use("/api/v1/auth/reset-password", sensitiveAuthLimiter);
+// A troca de senha confere a senha atual: limitar evita força bruta com um access token roubado.
+app.use("/api/v1/auth/change-password", sensitiveAuthLimiter);
 app.use(express.json());
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);

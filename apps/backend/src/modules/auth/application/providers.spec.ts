@@ -18,20 +18,27 @@ describe('Auth providers', () => {
 
   it('creates and verifies access tokens', () => {
     const provider = new JwtTokenProvider('test-secret', '5m');
-    const token = provider.createAccessToken({ sub: 'user-1', email: 'alice@buffet.com' });
+    const token = provider.createAccessToken({ sub: 'user-1', email: 'alice@buffet.com', mustChangePassword: true });
 
-    expect(provider.verifyAccessToken(token)).toEqual({ sub: 'user-1', email: 'alice@buffet.com' });
+    expect(provider.verifyAccessToken(token)).toEqual({ sub: 'user-1', email: 'alice@buffet.com', mustChangePassword: true });
     expect(() => provider.verifyAccessToken('not-a-token')).toThrow();
     expect(() => provider.verifyAccessToken(jwt.sign({ sub: 'user-1' }, 'test-secret'))).toThrow('Token inválido');
   });
 
   it('rejects access tokens without the required subject and email claims', () => {
     const provider = new JwtTokenProvider('secret');
-    const tokenWithoutEmail = provider.createAccessToken({ sub: 'user-1', email: 'alice@buffet.com' });
+    const tokenWithoutEmail = provider.createAccessToken({ sub: 'user-1', email: 'alice@buffet.com', mustChangePassword: false });
 
-    expect(provider.verifyAccessToken(tokenWithoutEmail)).toEqual({ sub: 'user-1', email: 'alice@buffet.com' });
+    expect(provider.verifyAccessToken(tokenWithoutEmail)).toEqual({ sub: 'user-1', email: 'alice@buffet.com', mustChangePassword: false });
     expect(() => provider.verifyAccessToken('not-a-jwt')).toThrow();
     expect(() => provider.verifyAccessToken(jwt.sign({ email: 'alice@buffet.com' }, 'secret'))).toThrow('Token inválido');
+  });
+
+  it('treats tokens issued before the pending-change claim existed as not pending', () => {
+    const provider = new JwtTokenProvider('secret');
+    const legacyToken = jwt.sign({ sub: 'user-1', email: 'alice@buffet.com' }, 'secret');
+
+    expect(provider.verifyAccessToken(legacyToken)).toEqual({ sub: 'user-1', email: 'alice@buffet.com', mustChangePassword: false });
   });
 
   it('uses the default bcrypt cost when no rounds are provided', async () => {

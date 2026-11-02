@@ -4,7 +4,9 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { UsersListPage } from './UsersListPage'
 
-const { listUsers, createUser, listRoles, setUserActive, updateUser, getUser } = vi.hoisted(() => ({
+const { listUsers, createUser, listRoles, setUserActive, updateUser, getUser, resetUserPassword, authState } = vi.hoisted(() => ({
+  resetUserPassword: vi.fn(),
+  authState: { user: { id: 'me', name: 'Admin', email: 'admin@buffet.local', roles: [{ name: 'admin', permissions: ['users:list', 'users:reset-password'] }] } as unknown },
   listUsers: vi.fn(),
   createUser: vi.fn(),
   listRoles: vi.fn(),
@@ -13,7 +15,8 @@ const { listUsers, createUser, listRoles, setUserActive, updateUser, getUser } =
   getUser: vi.fn(),
 }))
 
-vi.mock('../api/usersApi', () => ({ listUsers, createUser, setUserActive, updateUser, getUser }))
+vi.mock('../api/usersApi', () => ({ listUsers, createUser, setUserActive, updateUser, getUser, resetUserPassword }))
+vi.mock('../contexts/useAuth', () => ({ useAuth: () => authState }))
 vi.mock('../api/rolesApi', () => ({ listRoles }))
 
 describe('UsersListPage creation flow', () => {
@@ -120,5 +123,38 @@ describe('UsersListPage creation flow', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Usuários administradores não podem ser editados pela interface')
+  })
+
+  it('opens the password reset for common users when the actor has the permission', async () => {
+    const commonUser = { id: 'user-1', name: 'Alice', email: 'alice@example.com', isActive: true, roles: [{ role: { id: 'role-1', name: 'Operador', isProtected: false } }] }
+    listUsers.mockResolvedValue([commonUser])
+    resetUserPassword.mockResolvedValue({ temporaryPassword: 'Abcd2345efgh', expiresAt: '2026-10-28T15:00:00.000Z' })
+    renderPage()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Redefinir senha de Alice' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Redefinir senha' }))
+
+    expect(resetUserPassword).toHaveBeenCalledWith('user-1')
+    expect(await screen.findByText('Abcd2345efgh')).toBeInTheDocument()
+  })
+
+  it('disables the password reset for administrators', async () => {
+    const admin = { id: 'admin-1', name: 'Administrador', email: 'admin@example.com', isActive: true, roles: [{ role: { id: 'role-admin', name: 'admin', isProtected: true } }] }
+    listUsers.mockResolvedValue([admin])
+    renderPage()
+
+    expect(await screen.findByRole('button', { name: 'Redefinir senha de Administrador' })).toBeDisabled()
+  })
+
+  it('hides the password reset from actors without the permission', async () => {
+    const commonUser = { id: 'user-1', name: 'Alice', email: 'alice@example.com', isActive: true, roles: [{ role: { id: 'role-1', name: 'Operador', isProtected: false } }] }
+    listUsers.mockResolvedValue([commonUser])
+    const previous = authState.user
+    authState.user = { id: 'me', name: 'Gestor', email: 'g@buffet.com', roles: [{ name: 'gestor', permissions: ['users:list'] }] }
+    renderPage()
+
+    expect(await screen.findByRole('button', { name: 'Editar Alice' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Redefinir senha de Alice' })).not.toBeInTheDocument()
+    authState.user = previous
   })
 })

@@ -15,7 +15,8 @@ Jornada completa do sistema em um navegador real, contra um backend e um banco *
 11. Conclusão do evento
 12. Dashboard do gestor
 13. Relatórios (eventos, tarefas, desempenho das equipes) e exportação CSV/PDF
-14. Controle de acesso (RBAC) na interface e no backend
+14. Redefinição de senha pelo administrador e troca obrigatória da senha temporária (ADR 0012)
+15. Controle de acesso (RBAC) na interface e no backend
 
 Os passos são dependentes (`test.describe.serial`). Erros de JavaScript não tratados na página
 fazem qualquer passo falhar, mesmo que a API tenha respondido corretamente.
