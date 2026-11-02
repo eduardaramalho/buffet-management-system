@@ -2,7 +2,8 @@ import { daysFromNow } from './dates'
 
 // Dados fixos e legíveis: o banco é recriado a cada execução, então não há colisão entre rodadas.
 export const data = {
-  manager: { name: 'Gestora E2E', email: 'gestora.e2e@buffet.local', password: 'Gestora123!', role: 'gestor' },
+  // newPassword: definida pela gestora depois que o administrador redefine a senha (ADR 0012).
+  manager: { name: 'Gestora E2E', email: 'gestora.e2e@buffet.local', password: 'Gestora123!', newPassword: 'GestoraNova456!', role: 'gestor' },
   client: { name: 'Mariana Souza', email: 'mariana.souza@example.com', phone: '(47) 99999-0000' },
   service: 'Buffet completo',
   kitchenTeam: { name: 'Cozinha Central', specialty: 'Cozinha', collaborator: { name: 'Carlos Lima', position: 'Chef' } },
