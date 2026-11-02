@@ -100,9 +100,9 @@ cd apps/e2e      && npm test                # jornada completa no navegador (req
 
 | Suíte | Testes | Linhas | Branches | Funções | Statements | Mínimo exigido | Threshold do CI |
 |---|---|---|---|---|---|---|---|
-| Backend | 662 | 98,4% | 92,5% | 95,0% | 97,1% | 75% | 85% nas quatro métricas |
-| Frontend | 353 | 95,4% | 84,3% | 86,7% | 89,3% | 25% | 80% nas quatro métricas |
-| E2E | jornada com 21 passos | não se aplica | | | | | |
+| Backend | 665 | 98,4% | 92,5% | 95,0% | 97,2% | 75% | 85% nas quatro métricas |
+| Frontend | 362 | 95,4% | 84,6% | 86,9% | 89,4% | 25% | 80% nas quatro métricas |
+| E2E | jornada com 22 passos | não se aplica | | | | | |
 
 Medição de 02/11/2026. Cada execução do CI publica a cobertura de cada aplicação no resumo do job. As exclusões de cobertura e os thresholds seguem o [ADR 0007](docs/adr/0007-politica-de-qualidade-e-cobertura.md). Detalhes em [Qualidade e Testes](https://github.com/eduardaramalho/buffet-management-system/wiki/Qualidade-e-Testes).
 
