@@ -21,6 +21,14 @@ O sistema é interno. Os usuários são funcionários do buffet cadastrados pelo
 8. **Auditoria:** `USER_PASSWORD_RESET` (autor é o administrador, com o prazo de validade) e `USER_PASSWORD_CHANGED` (autor é o próprio usuário).
 9. **Remoção do fluxo por e-mail:** endpoints, páginas, `ConsoleEmailProvider`, `PrismaPasswordResetTokenRepository`, variável `PASSWORD_RESET_TTL_MS` e a tabela `password_reset_tokens`, que guardava apenas tokens de uso único e curta duração.
 
+## Atualização: novo visual das telas de acesso (02/11/2026)
+
+O fluxo não mudou, só a apresentação. O login e a troca obrigatória passaram a usar o `AuthLayout` (painel lateral no navy da sidebar, formulário à direita) e o `PasswordField` (mostrar ou ocultar a senha, aviso de Caps Lock).
+
+- A orientação "Procure o administrador do sistema" agora fica atrás do botão **Esqueceu a senha?**, que abre a explicação na própria tela (`aria-expanded`). Não há link, rota nem envio de e-mail.
+- O erro `TEMP_PASSWORD_EXPIRED` aparece como aviso, separado do erro de credenciais, com a mensagem do backend.
+- Na troca obrigatória, o campo "Senha atual" passou a se chamar **Senha temporária**, e um checklist mostra, enquanto o usuário digita, as mesmas regras conferidas no envio (mínimo de 8 caracteres, diferente da temporária, confirmação igual).
+
 ## Por que a flag vai no token
 
 | | Claim no access token (escolhida) | Consulta ao banco em cada requisição |
