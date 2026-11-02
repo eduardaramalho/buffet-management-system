@@ -6,7 +6,7 @@ const createPrismaMock = () => {
   const prisma = {
     role: { upsert: jest.fn(async (_args: unknown) => ({ id: "role-1" })) },
     permission: { upsert: jest.fn(async (_args: unknown) => ({ id: "permission-1" })) },
-    rolePermission: { upsert: jest.fn(async (_args: unknown) => ({})) },
+    rolePermission: { upsert: jest.fn(async (_args: unknown) => ({})), deleteMany: jest.fn(async (_args: unknown) => ({ count: 0 })) },
     service: {
       findFirst: jest.fn(async (_args: unknown): Promise<{ id: string } | null> => null),
       create: jest.fn(async (_args: unknown) => ({}))
@@ -53,6 +53,15 @@ describe("PrismaSeedRepository", () => {
       where: { roleId_permissionId: { roleId: "role-1", permissionId: "permission-1" } },
       update: {},
       create: { roleId: "role-1", permissionId: "permission-1" }
+    });
+  });
+
+  it("revokes the role permissions that are not in the given list", async () => {
+    const { prisma, repository } = createPrismaMock();
+
+    await repository.revokeRolePermissionsExcept("role-1", ["permission-1", "permission-2"]);
+    expect(prisma.rolePermission.deleteMany).toHaveBeenCalledWith({
+      where: { roleId: "role-1", permissionId: { notIn: ["permission-1", "permission-2"] } }
     });
   });
 

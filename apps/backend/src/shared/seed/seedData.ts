@@ -12,5 +12,7 @@ const clientPermissions = ["clients:list", "clients:read", "clients:create", "cl
 export const ROLE_PERMISSION_MATRIX: Record<string, string[]> = {
   [ADMIN_ROLE_NAME]: ["users:list", "users:read", "users:create", "users:update", "users:delete", "users:reset-password", "roles:list", "roles:read", "roles:create", "roles:update", "roles:delete", "roles:manage-permissions", "audit:read", "dashboard:view", "events:list", "events:read", "events:create", "events:update", "events:delete", "events:restore", "events:replicate", "services:list", "services:read", "services:create", "services:update", "services:delete", "teams:list", "teams:read", "teams:create", "teams:update", "teams:delete", "teams:manage-members", "teams:assign-event", "collaborators:manage", "rules:list", "rules:read", "rules:create", "rules:update", "rules:delete", "rules:evaluate", "rules:apply", "tasks:list", "tasks:read", "tasks:update-status", "tasks:create", "tasks:update", "tasks:delete", "reports:view", ...clientPermissions],
   gestor: ["users:list", "users:read", "users:update", "audit:read", ...clientPermissions],
-  colaborador: ["users:read", "users:update"]
+  // Perfil operacional (quem executa as tarefas): acompanha eventos e tarefas e só move o status das tarefas.
+  // users:read é exigida por GET /auth/me, que carrega a sessão.
+  colaborador: ["users:read", "events:list", "events:read", "tasks:list", "tasks:read", "tasks:update-status"]
 };

@@ -26,10 +26,14 @@ export class DatabaseSeeder {
     for (const [roleName, permissionKeys] of Object.entries(ROLE_PERMISSION_MATRIX)) {
       const roleId = await this.repository.upsertRole(roleName, roleName === ADMIN_ROLE_NAME);
       roleIds.set(roleName, roleId);
+      const permissionIds: string[] = [];
       for (const key of permissionKeys) {
         const permissionId = await this.repository.upsertPermission(key);
         await this.repository.linkRolePermission(roleId, permissionId);
+        permissionIds.push(permissionId);
       }
+      // The seed runs on every deploy: a permission removed from the matrix must also leave the role in production.
+      await this.repository.revokeRolePermissionsExcept(roleId, permissionIds);
     }
     return roleIds;
   }

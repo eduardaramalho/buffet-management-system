@@ -9,6 +9,8 @@ export interface SeedRepository {
   upsertRole(name: string, isProtected: boolean): Promise<string>;
   upsertPermission(key: string): Promise<string>;
   linkRolePermission(roleId: string, permissionId: string): Promise<void>;
+  /** Removes the role's links to any permission outside the list (the matrix is the source of truth). */
+  revokeRolePermissionsExcept(roleId: string, permissionIds: string[]): Promise<void>;
   hasActiveGenericService(): Promise<boolean>;
   createGenericService(name: string): Promise<void>;
   findUserIdByEmail(email: string): Promise<string | null>;
