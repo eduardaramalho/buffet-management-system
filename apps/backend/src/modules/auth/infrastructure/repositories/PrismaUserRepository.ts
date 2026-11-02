@@ -56,7 +56,7 @@ export class PrismaUserRepository implements UserRepository, UserManagementRepos
     }) as Promise<ManagedUser>;
   }
 
-  update(id: string, input: { name?: string; email?: string; passwordHash?: string }) {
+  update(id: string, input: { name?: string; email?: string }) {
     return this.prisma.user.update({ where: { id }, data: input, include: { roles: { select: { role: { select: { id: true, name: true, isProtected: true } } } } } }) as Promise<ManagedUser>;
   }
 
