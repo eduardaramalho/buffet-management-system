@@ -11,7 +11,8 @@ export const navigateTo = async (page: Page, menu: string, heading: string) => {
 
 export const login = async (page: Page, email: string, password: string) => {
   await page.getByLabel('E-mail').fill(email)
-  await page.getByLabel('Senha').fill(password)
+  // exact: o botão "Mostrar senha" também tem "senha" no nome acessível.
+  await page.getByLabel('Senha', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Entrar' }).click()
   await expect(page.getByRole('button', { name: 'Sair' })).toBeVisible()
 }
