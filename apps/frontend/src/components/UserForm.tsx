@@ -27,7 +27,7 @@ export function UserForm({ user, onClose, onCreated, onUpdated }: UserFormProps)
     setLoading(true)
     try {
       if (user) {
-        const updatedUser = await updateUser(user.id, { name, email, ...(password ? { password } : {}) })
+        const updatedUser = await updateUser(user.id, { name, email })
         const finalUser = status === 'inactive' && updatedUser.isActive ? await setUserActive(updatedUser.id, false) : updatedUser
         onUpdated(finalUser)
       } else {
