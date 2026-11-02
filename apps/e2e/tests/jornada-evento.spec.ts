@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, request, test, type Page } from '@playwright/test'
 import { ApiClient, expectStatus } from '../support/api'
 import { data } from '../support/data'
 import { daysFromNow, toDateInput, toDateTimeLocal } from '../support/dates'
@@ -50,6 +50,8 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
   })
 
   test('1. administrador acessa o sistema', async () => {
+    // ADR 0012: sem recuperação por e-mail; a tela orienta procurar o administrador.
+    await expect(page.getByText('Esqueceu a senha? Procure o administrador do sistema.')).toBeVisible()
     await login(page, e2eEnv.admin.email, e2eEnv.admin.password)
     await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible()
   })
@@ -99,6 +101,27 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(dialog.getByRole('alert')).toContainText('Já existe um serviço com este nome')
     await dialog.getByRole('button', { name: 'Cancelar' }).click()
     await expect(dialog).toBeHidden()
+
+    // Edição e exclusão lógica: o serviço some do catálogo (e dos novos eventos, verificado no passo 8).
+    const { retiredService } = data
+    await page.getByRole('button', { name: 'Novo serviço' }).click()
+    await dialog.getByLabel('Nome do serviço').fill(retiredService.name)
+    await dialog.getByRole('button', { name: 'Salvar' }).click()
+    await expect(dialog).toBeHidden()
+    await page.getByRole('button', { name: `Editar ${retiredService.name}` }).click()
+    const editDialog = page.getByRole('dialog', { name: 'Editar serviço' })
+    await editDialog.getByLabel('Nome do serviço').fill(retiredService.renamed)
+    await editDialog.getByRole('button', { name: 'Salvar' }).click()
+    await expect(editDialog).toBeHidden()
+    await expect(page.getByText(retiredService.renamed, { exact: true })).toBeVisible()
+    page.once('dialog', (confirm) => void confirm.accept())
+    await page.getByRole('button', { name: `Excluir ${retiredService.renamed}` }).click()
+    await expect(page.getByText(retiredService.renamed, { exact: true })).toHaveCount(0)
+
+    // A tela esconde o botão; o backend também recusa excluir o "Outro" (400).
+    const services = await admin.json<Array<{ id: string; name: string }>>(admin.get('/services'))
+    const generic = services.find((service) => service.name === 'Outro')!
+    await expectStatus(await admin.delete(`/services/${generic.id}`), 400)
   })
 
   test('5. cadastro de equipe com novo colaborador', async () => {
@@ -123,7 +146,27 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.getByText(kitchenTeam.name, { exact: true }).first()).toBeVisible()
   })
 
-  test('6. criação de regra no motor de regras', async () => {
+  test('6. cadastros de apoio: colaboradores, inativação de equipe e papéis', async () => {
+    // O colaborador criado dentro do formulário de equipe aparece no cadastro próprio.
+    await navigateTo(page, 'Colaboradores', 'Colaboradores')
+    const collaboratorRow = page.getByRole('row').filter({ hasText: data.kitchenTeam.collaborator.name })
+    await expect(collaboratorRow).toContainText(data.kitchenTeam.collaborator.position)
+    await expect(collaboratorRow).toContainText('Ativo')
+
+    // Equipe inativada pela tela fica no histórico, mas não pode ser vinculada a eventos (passo 9).
+    await admin.json(admin.post('/teams', { name: data.supportTeam.name, specialty: data.supportTeam.specialty }), 201)
+    await navigateTo(page, 'Equipes', 'Equipes')
+    page.once('dialog', (confirm) => void confirm.accept())
+    await page.getByRole('button', { name: `Inativar ${data.supportTeam.name}` }).click()
+    await expect(page.getByRole('row').filter({ hasText: data.supportTeam.name })).toContainText('Inativa')
+    await expect(page.getByRole('button', { name: `Ativar ${data.supportTeam.name}` })).toBeVisible()
+
+    // Papéis criados pelo seed: o RBAC é por permissão, e cada papel tem a sua matriz.
+    await navigateTo(page, 'Papéis e permissões', 'Papéis')
+    for (const role of ['admin', 'gestor', 'colaborador']) await expect(page.getByRole('link', { name: role, exact: true })).toBeVisible()
+  })
+
+  test('7. criação de regra no motor de regras', async () => {
     const { rule } = data
     await navigateTo(page, 'Regras', 'Regras')
     await page.getByRole('button', { name: 'Nova regra' }).click()
@@ -143,9 +186,16 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await dialog.getByRole('button', { name: 'Salvar' }).click()
     await expect(dialog).toBeHidden()
     await expect(page.getByText(rule.name, { exact: true }).first()).toBeVisible()
+
+    // ADR 0010: a equipe responsável pela tarefa precisa estar entre os recursos exigidos pela regra (400).
+    await expectStatus(await admin.post('/rules', {
+      name: 'Regra com equipe fora dos recursos',
+      resourceRequirements: [{ specialty: 'COZINHA', minQuantity: 1 }],
+      taskTemplates: [{ title: 'Montar o bar', specialty: 'BAR' }],
+    }), 400)
   })
 
-  test('7. criação do evento e vínculo da equipe', async () => {
+  test('8. criação do evento e vínculo da equipe', async () => {
     const { event } = data
     await navigateTo(page, 'Eventos', 'Eventos')
     await page.getByRole('button', { name: 'Novo Evento' }).click()
@@ -157,6 +207,8 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await dialog.getByLabel('Tipo de serviço').selectOption({ label: event.type })
     await dialog.getByLabel('Número de convidados').fill(String(event.guests))
     await dialog.getByRole('checkbox', { name: data.service }).check()
+    // RF06: serviço excluído não é mais oferecido para novos eventos.
+    await expect(dialog.getByRole('checkbox', { name: data.retiredService.renamed })).toHaveCount(0)
     await dialog.getByRole('button', { name: 'Salvar' }).click()
     await expect(dialog).toBeHidden()
     await expect(eventRow(event.name)).toBeVisible()
@@ -180,7 +232,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.locator('.event-details-side').getByText(data.rule.name)).toBeVisible()
   })
 
-  test('8. fluxo alternativo: conflito de agenda da equipe e cancelamento de evento', async () => {
+  test('9. fluxo alternativo: conflito de agenda da equipe e cancelamento de evento', async () => {
     const { conflictingEvent } = data
     const clients = await admin.json<Array<{ id: string; name: string }>>(admin.get('/clients'))
     const client = clients.find((item) => item.name === data.client.name)!
@@ -193,6 +245,11 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
 
     // Regra de negócio: a mesma equipe não pode atender dois eventos no mesmo horário.
     await expectStatus(await admin.post(`/teams/${team.id}/events/${created.id}`), 409)
+    // Equipe inativa (passo 6) não recebe novos eventos.
+    const supportTeam = teams.find((item) => item.name === data.supportTeam.name)!
+    const inactiveAssignment = await admin.post(`/teams/${supportTeam.id}/events/${created.id}`)
+    await expectStatus(inactiveAssignment, 400)
+    expect(await inactiveAssignment.text()).toContain('Equipe inativa não pode ser atribuída')
 
     await openEventHub(conflictingEvent.name)
     await page.getByRole('button', { name: 'Mais ações' }).click()
@@ -202,7 +259,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect.poll(async () => (await findEvent(conflictingEvent.name)).status).toBe('CANCELADO')
   })
 
-  test('9. exclusão e restauração de um evento', async () => {
+  test('10. exclusão e restauração de um evento', async () => {
     const { conflictingEvent } = data
     await navigateTo(page, 'Eventos', 'Eventos')
     page.once('dialog', (dialog) => void dialog.accept())
@@ -217,9 +274,18 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await page.getByRole('button', { name: 'Ativos' }).click()
     await expect(eventRow(conflictingEvent.name)).toBeVisible()
     await expect.poll(async () => (await findEvent(conflictingEvent.name)).status).toBe('CANCELADO')
+
+    // Restaurar um evento que não está excluído é recusado (400) e a lista de excluídos fica vazia.
+    const restored = await findEvent(conflictingEvent.name)
+    await expectStatus(await admin.patch(`/events/${restored.id}/restore`), 400)
+    expect(await admin.json<unknown[]>(admin.get('/events/deleted'))).toEqual([])
+
+    // A restauração fica registrada no histórico da Central do evento (auditoria EVENT_RESTORED).
+    await openEventHub(conflictingEvent.name)
+    await expect(page.locator('.event-history-list').getByText(`Evento '${conflictingEvent.name}' restaurado`)).toBeVisible()
   })
 
-  test('10. confirmação do evento aplica as regras, gera as tarefas e atribui a equipe', async () => {
+  test('11. confirmação do evento aplica as regras, gera as tarefas e atribui a equipe', async () => {
     await openEventHub(data.event.name)
     await page.getByRole('button', { name: 'Confirmar', exact: true }).click()
 
@@ -238,7 +304,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     for (const task of data.rule.tasks) expect(generated.find((item) => item.title === task.title)?.assignedTeamId).toBe(kitchen.id)
   })
 
-  test('11. tarefa manual e tarefas da regra já atribuídas', async () => {
+  test('12. tarefa manual e tarefas da regra já atribuídas', async () => {
     const teamName = data.kitchenTeam.name
     await navigateTo(page, 'Tarefas', 'Tarefas')
 
@@ -258,7 +324,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     }
   })
 
-  test('12. execução: evento iniciado e tarefas concluídas', async () => {
+  test('13. execução: evento iniciado e tarefas concluídas', async () => {
     await openEventHub(data.event.name)
     await page.getByRole('button', { name: 'Iniciar evento' }).click()
     await expect(currentStep()).toContainText('Em andamento')
@@ -273,7 +339,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     }
   })
 
-  test('13. conclusão do evento', async () => {
+  test('14. conclusão do evento', async () => {
     await openEventHub(data.event.name)
     await expect(page.getByText('3 de 3')).toBeVisible()
     await page.getByRole('button', { name: 'Concluir', exact: true }).click()
@@ -282,7 +348,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect.poll(async () => (await findEvent(data.event.name)).status).toBe('CONCLUIDO')
   })
 
-  test('14. replicação do evento concluído como base de um novo evento (RF25)', async () => {
+  test('15. replicação do evento concluído como base de um novo evento (RF25)', async () => {
     const { replica } = data
     await openEventHub(data.event.name)
     await page.getByRole('button', { name: 'Replicar evento' }).click()
@@ -329,16 +395,29 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.getByRole('heading', { level: 1, name: data.event.name })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Eventos criados a partir deste' })).toBeVisible()
     await expect(page.getByRole('link', { name: replica.name })).toBeVisible()
+
+    // ADR 0008: replicar para uma data em que a equipe já está ocupada (a da réplica) recusa tudo com 409.
+    const source = await findEvent(data.event.name)
+    const teams = await admin.json<Array<{ id: string; name: string }>>(admin.get('/teams'))
+    const kitchen = teams.find((team) => team.name === data.kitchenTeam.name)!
+    const clients = await admin.json<Array<{ id: string; name: string }>>(admin.get('/clients'))
+    const conflict = await admin.post(`/events/${source.id}/replicate`, {
+      name: 'Réplica com equipe ocupada', eventDate: replica.date.toISOString(), endDate: null, location: data.event.location,
+      serviceType: 'CASAMENTO', guestsCount: replica.guests, observations: null, clientId: clients.find((client) => client.name === data.client.name)!.id,
+      teamIds: [kitchen.id],
+    })
+    await expectStatus(conflict, 409)
+    expect((await admin.json<Array<{ name: string }>>(admin.get('/events'))).map((event) => event.name)).not.toContain('Réplica com equipe ocupada')
   })
 
-  test('15. dashboard do gestor', async () => {
+  test('16. dashboard gerencial', async () => {
     await navigateTo(page, 'Dashboard', 'Dashboard')
     await expect(page.getByRole('heading', { name: 'Tarefas por Status' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Atividades recentes' })).toBeVisible()
     await expect(page.getByRole('alert')).toHaveCount(0)
   })
 
-  test('16. relatórios gerenciais e exportações', async () => {
+  test('17. relatórios gerenciais e exportações', async () => {
     await navigateTo(page, 'Relatórios', 'Relatórios')
     const period = page.getByRole('region', { name: 'Período' })
     await period.getByLabel('Data inicial').fill(toDateInput(daysFromNow(-1)))
@@ -364,7 +443,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(panel.getByRole('alert')).toHaveCount(0)
   })
 
-  test('17. redefinição de senha: administrador gera uma senha temporária para a gestora (ADR 0012)', async () => {
+  test('18. redefinição de senha: administrador gera uma senha temporária para a gestora (ADR 0012)', async () => {
     await navigateTo(page, 'Usuários', 'Usuários')
     // A senha de administradores protegidos não pode ser redefinida pela interface.
     await expect(page.getByRole('button', { name: 'Redefinir senha de Administrador' })).toBeDisabled()
@@ -378,9 +457,19 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(dialog.getByText(/não será exibida novamente/)).toBeVisible()
     await dialog.getByRole('button', { name: 'Concluir' }).click()
     await expect(dialog).toBeHidden()
+
+    // O backend também protege administradores (403), não só a tela.
+    const users = await admin.json<Array<{ id: string; email: string }>>(admin.get('/users'))
+    const adminUser = users.find((user) => user.email === e2eEnv.admin.email)!
+    await expectStatus(await admin.post(`/users/${adminUser.id}/reset-password`), 403)
+
+    // A senha anterior deixa de valer assim que a temporária é gerada.
+    const anonymous = await request.newContext({ baseURL: e2eEnv.backendUrl })
+    await expectStatus(await anonymous.post('/api/v1/auth/login', { data: { email: data.manager.email, password: data.manager.password } }), 400)
+    await anonymous.dispose()
   })
 
-  test('18. troca obrigatória: a gestora entra com a senha temporária e define uma nova', async () => {
+  test('19. troca obrigatória: a gestora entra com a senha temporária e define uma nova', async () => {
     await logout(page)
     await login(page, data.manager.email, temporaryPassword)
     await expect(page.getByRole('heading', { name: 'Defina uma nova senha' })).toBeVisible()
@@ -394,7 +483,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.getByRole('heading', { level: 1, name: 'Usuários' })).toBeVisible()
   })
 
-  test('19. controle de acesso: gestor vê apenas o que seu papel permite', async () => {
+  test('20. controle de acesso: gestor vê apenas o que seu papel permite', async () => {
     const menu = page.getByRole('navigation')
     await expect(menu.getByRole('link', { name: 'Usuários', exact: true })).toBeVisible()
     await expect(menu.getByRole('link', { name: 'Clientes', exact: true })).toBeVisible()
@@ -415,7 +504,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await manager.dispose()
   })
 
-  test('20. sessão: o botão Sair continua acessível em tela baixa e no celular', async () => {
+  test('21. sessão: o botão Sair continua acessível em tela baixa e no celular', async () => {
     // Regressão: a sidebar é fixa e não rolava; em telas baixas o rodapé com "Sair" ficava fora da tela,
     // e no celular o botão era escondido por CSS (não havia como encerrar a sessão).
     for (const viewport of [{ width: 1366, height: 600 }, { width: 390, height: 844 }]) {
