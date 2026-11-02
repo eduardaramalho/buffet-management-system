@@ -61,7 +61,8 @@ describe('UserService', () => {
     expect(result.email).toBe('alice@buffet.com');
   });
 
-  it('updates password only when provided and audits the action', async () => {
+  // ADR 0012: a senha só muda pela redefinição do administrador ou pela troca feita pelo próprio usuário.
+  it('never changes the password on update, even if one is sent, and audits the action', async () => {
     const repo: UserManagementRepository = {
       list: jest.fn(async () => []),
       findManagedById: jest.fn(async () => makeUser()),
@@ -74,10 +75,10 @@ describe('UserService', () => {
     const hasher = { hash: jest.fn(async () => 'new-hash'), compare: jest.fn(async () => true) };
     const service = new UserService(repo, hasher, audit);
 
-    await service.update('user-1', { name: 'Alicia', password: 'new-pass' }, 'actor-1');
+    await service.update('user-1', { name: 'Alicia', password: 'new-pass' } as Parameters<UserService['update']>[1], 'actor-1');
 
-    expect(hasher.hash).toHaveBeenCalledWith('new-pass');
-    expect(repo.update).toHaveBeenCalledWith('user-1', expect.objectContaining({ name: 'Alicia', passwordHash: 'new-hash' }));
+    expect(hasher.hash).not.toHaveBeenCalled();
+    expect(repo.update).toHaveBeenCalledWith('user-1', { name: 'Alicia', email: undefined });
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'USER_UPDATED' }));
   });
 
@@ -99,7 +100,7 @@ describe('UserService', () => {
     await expect(service.get('missing')).rejects.toThrow('Usuário não encontrado');
   });
 
-  it('updates name and email without hashing when no password is supplied', async () => {
+  it('updates name and email without touching the password', async () => {
     const user = makeUser();
     const users: UserManagementRepository = {
       list: jest.fn(async () => []),
@@ -115,7 +116,7 @@ describe('UserService', () => {
     await service.update('user-1', { email: ' Alice@Buffet.com ' }, 'actor-1');
 
     expect(hasher.hash).not.toHaveBeenCalled();
-    expect(users.update).toHaveBeenCalledWith('user-1', { name: undefined, email: 'alice@buffet.com', passwordHash: undefined });
+    expect(users.update).toHaveBeenCalledWith('user-1', { name: undefined, email: 'alice@buffet.com' });
   });
 
   it('activates, deactivates, and soft deletes users with audit records', async () => {
