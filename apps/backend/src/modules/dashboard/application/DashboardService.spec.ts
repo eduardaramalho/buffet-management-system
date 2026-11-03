@@ -8,7 +8,6 @@ const createPrisma = () => ({
   event: { count: mockFunction(), findMany: mockFunction() },
   task: { count: mockFunction(), findMany: mockFunction(), groupBy: mockFunction() },
   team: { count: mockFunction() },
-  auditLog: { findMany: mockFunction() },
 });
 
 describe("DashboardService", () => {
@@ -60,20 +59,9 @@ describe("DashboardService", () => {
     await expect(service.getTasksByStatus()).resolves.toEqual({ PENDENTE: 0, EM_ANDAMENTO: 0, CONCLUIDA: 0, CANCELADA: 0 });
   });
 
-  it("formats recent activity and returns an empty list when there are no audit logs", async () => {
-    const prisma = createPrisma();
-    prisma.auditLog.findMany.mockResolvedValueOnce([
-      { id: "audit-1", action: "EVENT_CREATED", entity: "Event", entityId: "event-1", changes: { name: "Casamento" }, createdAt: now },
-      { id: "audit-2", action: "TASK_STATUS_CHANGED", entity: "Task", entityId: "task-1", changes: { title: "Convites", after: "CONCLUIDA" }, createdAt: now },
-      { id: "audit-3", action: "UNKNOWN_ACTION", entity: "Team", entityId: "team-1", changes: null, createdAt: now },
-    ]).mockResolvedValueOnce([]);
-    const service = new DashboardService(prisma as never, () => now);
+  it("does not expose the audit log feed (recent activity card removed from the dashboard)", () => {
+    const service = new DashboardService(createPrisma() as never, () => now);
 
-    await expect(service.getRecentActivity()).resolves.toEqual([
-      { id: "audit-1", message: "Evento 'Casamento' criado", action: "EVENT_CREATED", entity: "Event", createdAt: now },
-      { id: "audit-2", message: "Tarefa 'Convites' marcada como CONCLUIDA", action: "TASK_STATUS_CHANGED", entity: "Task", createdAt: now },
-      { id: "audit-3", message: "UNKNOWN_ACTION em Team", action: "UNKNOWN_ACTION", entity: "Team", createdAt: now },
-    ]);
-    await expect(service.getRecentActivity()).resolves.toEqual([]);
+    expect("getRecentActivity" in service).toBe(false);
   });
 });

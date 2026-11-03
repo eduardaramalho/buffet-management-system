@@ -12,5 +12,4 @@ export class DashboardController {
   summary = async (_request: Request, response: Response) => response.json(await this.service.getSummary());
   upcomingEvents = async (request: Request, response: Response) => response.json(await this.service.getUpcomingEvents(queryLimit(request, 5)));
   tasksByStatus = async (_request: Request, response: Response) => response.json(await this.service.getTasksByStatus());
-  recentActivity = async (request: Request, response: Response) => response.json(await this.service.getRecentActivity(queryLimit(request, 10)));
 }
