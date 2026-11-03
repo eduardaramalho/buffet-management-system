@@ -10,4 +10,3 @@ export type DashboardSummary = {
 
 export type UpcomingEvent = { id: string; name: string; eventDate: string; location: string; status: EventStatus }
 export type TaskStatusCounts = Record<TaskStatus, number>
-export type RecentActivity = { id: string; message: string; action: string; entity: string; createdAt: string }
