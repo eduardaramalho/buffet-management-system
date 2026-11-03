@@ -76,7 +76,6 @@ const cases: ContractCase[] = [
   { name: 'dashboardApi.getUpcomingEvents (padrão)', call: () => dashboardApi.getUpcomingEvents(), verb: 'get', args: ['/api/v1/dashboard/upcoming-events', { params: { limit: 5 } }] },
   { name: 'dashboardApi.getUpcomingEvents', call: () => dashboardApi.getUpcomingEvents(3), verb: 'get', args: ['/api/v1/dashboard/upcoming-events', { params: { limit: 3 } }] },
   { name: 'dashboardApi.getTasksByStatus', call: () => dashboardApi.getTasksByStatus(), verb: 'get', args: ['/api/v1/dashboard/tasks-by-status'] },
-  { name: 'dashboardApi.getRecentActivity (padrão)', call: () => dashboardApi.getRecentActivity(), verb: 'get', args: ['/api/v1/dashboard/recent-activity', { params: { limit: 10 } }] },
   // events
   { name: 'eventsApi.listEvents', call: () => eventsApi.listEvents(filters as never), verb: 'get', args: ['/api/v1/events', { params: filters }] },
   { name: 'eventsApi.listEvents (sem filtros)', call: () => eventsApi.listEvents(), verb: 'get', args: ['/api/v1/events', { params: {} }] },

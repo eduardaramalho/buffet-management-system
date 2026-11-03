@@ -1,5 +1,4 @@
 import type { PrismaClient } from "../../../generated/client.js";
-import { formatAuditActivityMessage, toAuditChanges } from "../../../shared/auditActivity.js";
 
 const TASK_STATUSES = ["PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "CANCELADA"] as const;
 type TaskStatus = (typeof TASK_STATUSES)[number];
@@ -9,14 +8,6 @@ type DashboardSummary = {
   pendingTasks: number;
   activeTeams: number;
   completedOnTimePercentage: number | null;
-};
-
-type RecentActivity = {
-  id: string;
-  message: string;
-  action: string;
-  entity: string;
-  createdAt: Date;
 };
 
 export class DashboardService {
@@ -62,25 +53,5 @@ export class DashboardService {
     const result = Object.fromEntries(TASK_STATUSES.map((status) => [status, 0])) as Record<TaskStatus, number>;
     for (const item of grouped) result[item.status as TaskStatus] = item._count._all;
     return result;
-  }
-
-  async getRecentActivity(limit = 10): Promise<RecentActivity[]> {
-    const logs = await this.prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: limit });
-    return Promise.all(logs.map(async (log) => {
-      const changes = toAuditChanges(log.changes);
-      const after = typeof changes?.after === "object" ? changes.after : null;
-      let subject = changes?.name ?? changes?.title ?? after?.name ?? after?.title ?? changes?.eventName;
-      if (!subject && log.entityId && log.action === "TEAM_AUTO_ASSIGNED") {
-        const event = await this.prisma.event.findUnique({ where: { id: log.entityId }, select: { name: true } });
-        subject = event?.name;
-      }
-      if (!subject && log.entityId && log.action === "TASK_STATUS_CHANGED") {
-        const task = await this.prisma.task.findUnique({ where: { id: log.entityId }, select: { title: true } });
-        subject = task?.title;
-      }
-      subject ??= log.entityId ?? log.entity;
-      const message = formatAuditActivityMessage({ action: log.action, entity: log.entity, changes, subject });
-      return { id: log.id, message, action: log.action, entity: log.entity, createdAt: log.createdAt };
-    }));
   }
 }
