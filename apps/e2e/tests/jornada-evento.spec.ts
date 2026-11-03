@@ -415,7 +415,8 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
   test('16. dashboard gerencial', async () => {
     await navigateTo(page, 'Dashboard', 'Dashboard')
     await expect(page.getByRole('heading', { name: 'Tarefas por Status' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Atividades recentes' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Próximos Eventos' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Atividades recentes' })).toHaveCount(0)
     await expect(page.getByRole('alert')).toHaveCount(0)
   })
 
