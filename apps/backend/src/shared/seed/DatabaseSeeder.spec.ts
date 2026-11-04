@@ -96,9 +96,10 @@ describe("DatabaseSeeder", () => {
   });
 
   // Perfil operacional: acompanha eventos e move o status das tarefas, sem criar, editar ou excluir nada.
+  // Sem users:read: o próprio perfil (GET /auth/me) não exige permissão.
   it("gives the colaborador role read access to events and tasks plus task status updates only", () => {
     expect([...ROLE_PERMISSION_MATRIX.colaborador].sort()).toEqual(
-      ["events:list", "events:read", "tasks:list", "tasks:read", "tasks:update-status", "users:read"].sort()
+      ["events:list", "events:read", "tasks:list", "tasks:read", "tasks:update-status"].sort()
     );
   });
 
