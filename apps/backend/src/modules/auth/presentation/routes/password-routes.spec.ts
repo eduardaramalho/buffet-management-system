@@ -77,6 +77,18 @@ describe("pending password change", () => {
     expect(response.body.mustChangePassword).toBe(true);
   });
 
+  // ADR 0013 (atualização): o próprio perfil não exige permissão. Antes exigia users:read, que também abria GET /users/:id de qualquer pessoa.
+  it("serves the own profile without asking for any permission", async () => {
+    tokenFor(false);
+    const hasPermission = jest.spyOn(authService, "hasPermission");
+    jest.spyOn(authService, "me").mockResolvedValue({ id: "u1", name: "Bia", email: "bia@buffet.com", mustChangePassword: false, roles: [] });
+
+    const response = await request(buildApp()).get("/auth/me").set("Authorization", "Bearer t");
+
+    expect(response.status).toBe(200);
+    expect(hasPermission).not.toHaveBeenCalled();
+  });
+
   it("allows the password change and needs no extra permission", async () => {
     tokenFor(true);
     const hasPermission = jest.spyOn(authService, "hasPermission");
