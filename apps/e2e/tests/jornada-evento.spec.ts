@@ -574,6 +574,8 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expectStatus(await collaborator.get('/users'), 403)
     await expectStatus(await collaborator.get('/teams'), 403)
     const managerUser = (await admin.json<Array<{ id: string; email: string }>>(admin.get('/users'))).find((user) => user.email === data.manager.email)!
+    // O próprio perfil (GET /auth/me) não exige users:read, então o colaborador não lê outros usuários.
+    await expectStatus(await collaborator.get(`/users/${managerUser.id}`), 403)
     await expectStatus(await collaborator.patch(`/users/${managerUser.id}/deactivate`), 403)
     await collaborator.dispose()
     await logout(page)
