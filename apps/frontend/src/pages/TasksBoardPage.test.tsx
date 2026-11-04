@@ -133,6 +133,23 @@ describe('TasksBoardPage', () => {
     expect(within(screen.getByLabelText('Mover Sobra do evento')).getAllByRole('option').map((option) => option.textContent)).toEqual(['Mover para...', 'Cancelada'])
   })
 
+  it('flags open tasks past their deadline and counts them', async () => {
+    vi.mocked(listTasks).mockResolvedValue([
+      task({ id: 'task-1', title: 'Tarefa vencida', status: 'EM_ANDAMENTO', dueDate: '2020-01-01T12:00:00.000Z' }),
+      task({ id: 'task-2', title: 'Tarefa no prazo', status: 'PENDENTE', dueDate: '2999-01-01T12:00:00.000Z' }),
+      task({ id: 'task-3', title: 'Concluída com atraso', status: 'CONCLUIDA', dueDate: '2020-01-01T12:00:00.000Z' }),
+    ])
+    vi.mocked(listEvents).mockResolvedValue([event])
+    vi.mocked(listTeams).mockResolvedValue([team])
+
+    render(<TasksBoardPage />)
+    await screen.findByText('Tarefa vencida')
+
+    expect(screen.getByText(/• Atrasada/)).toHaveClass('overdue')
+    expect(screen.getAllByText(/• Atrasada/)).toHaveLength(1)
+    expect(screen.getByText('Atrasadas').previousElementSibling).toHaveTextContent('1')
+  })
+
   it('shows a visual indicator for a task with no assigned team', async () => {
     vi.mocked(listTasks).mockResolvedValue([task({ id: 'task-1', title: 'Confirmar decoração', assignedTeamId: null })])
     vi.mocked(listEvents).mockResolvedValue([event])

@@ -241,6 +241,20 @@ describe('EventDetailsPage: estados da Central do evento', () => {
     expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth' })
   })
 
+  // Mesma regra dos relatórios: aberta e com o prazo vencido. Concluída fora do prazo não é "atrasada".
+  it('destaca as tarefas abertas com o prazo vencido', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event())
+    mockReadyBlocks()
+    vi.mocked(listTasks).mockResolvedValue([
+      task({ id: 't1', title: 'Confirmar fornecedor', status: 'PENDENTE', dueDate: '2020-01-01T12:00:00.000Z' }),
+      task({ id: 't2', title: 'Fechar cardápio', status: 'CONCLUIDA', dueDate: '2020-01-01T12:00:00.000Z' }),
+    ])
+    renderPage()
+
+    expect(await screen.findByText(/Prazo .* • Atrasada/)).toHaveClass('overdue')
+    expect(screen.getAllByText(/Atrasada/)).toHaveLength(1)
+  })
+
   it('pluraliza o alerta quando há várias tarefas sem equipe', async () => {
     vi.mocked(getEvent).mockResolvedValue(event())
     mockReadyBlocks()
