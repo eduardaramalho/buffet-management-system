@@ -38,3 +38,11 @@ Além disso, o seed só adicionava permissões. Uma permissão retirada da matri
 - **Remover o papel colaborador:** mais simples, mas contradiz a RFC, e o gestor viraria o único a atualizar status.
 - **Vincular `User` a `Collaborator` e filtrar as tarefas pela equipe:** é o modelo certo, mas exige migration, regras e telas novas, fora do prazo de entrega.
 - **Liberar `teams:list` para o colaborador:** a tela de Equipes ficaria acessível com ações de criação e edição sem checagem de permissão na interface.
+
+## Atualização: perfil próprio sem `users:read` (03/11/2026)
+
+A decisão 1 dava `users:read` ao colaborador só porque `GET /auth/me` exigia essa permissão para carregar a sessão. O efeito colateral era que a mesma permissão liberava `GET /users/:id`, e o colaborador conseguia ler o e-mail e o papel de qualquer usuário. Isso vai contra a minimização de dados da LGPD.
+
+- `GET /auth/me` passa a exigir só autenticação, sem `authorize`, como `POST /auth/change-password` (ADR 0012). Ler o próprio perfil é uma operação sobre a própria conta.
+- `users:read` sai da matriz do colaborador. O seed a revoga nos bancos existentes no próximo deploy (decisão 2).
+- O colaborador continua carregando a sessão normalmente. `GET /users/:id` passa a responder 403 para ele (passo 22 da jornada E2E).
