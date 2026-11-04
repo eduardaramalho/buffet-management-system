@@ -333,6 +333,8 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
 
     await navigateTo(page, 'Tarefas', 'Tarefas')
     const titles = [...data.rule.tasks.map((task) => task.title), data.manualTask.title]
+    // ADR 0014: a tarefa precisa passar por "Em andamento" antes de ser concluída.
+    await expect(page.getByLabel(`Mover ${titles[0]}`).getByRole('option', { name: 'Concluída' })).toHaveCount(0)
     for (const title of titles) {
       await page.getByLabel(`Mover ${title}`).selectOption({ label: 'Em andamento' })
       await expect(page.getByRole('region', { name: 'Em andamento' }).getByText(title)).toBeVisible()
