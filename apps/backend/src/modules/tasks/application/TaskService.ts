@@ -8,6 +8,7 @@ import type {
   UpdateTaskDetailsInput,
   UpdateTaskInput,
 } from "../domain/task.types.js";
+import { canTransitionTaskStatus, TASK_STATUS_LABELS } from "../domain/task.statusTransitions.js";
 
 export class TaskManagementError extends Error {
   constructor(message: string) {
@@ -16,10 +17,8 @@ export class TaskManagementError extends Error {
   }
 }
 
-// Mirrors EventStatus's terminal-state convention: once a task reaches CONCLUIDA/CANCELADA it
-// can never return to a non-terminal status (no "reopening" a finished/cancelled task).
+// Mirrors EventStatus's terminal-state convention: a CONCLUIDA/CANCELADA task never changes again.
 const TERMINAL_TASK_STATUSES: TaskStatus[] = ["CONCLUIDA", "CANCELADA"];
-const NON_TERMINAL_TASK_STATUSES: TaskStatus[] = ["PENDENTE", "EM_ANDAMENTO"];
 const TERMINAL_EVENT_STATUSES = ["CONCLUIDO", "CANCELADO"];
 const ACTIVE_TEAM_STATUS = "ATIVA";
 const TEAM_NOT_ALLOCATED_MESSAGE = "Aloque a equipe ao evento antes de atribuí-la à tarefa";
@@ -142,11 +141,19 @@ export class TaskService {
   }
 
   async updateStatus(id: string, status: TaskStatus, actorId: string) {
-    const task = await this.tasks.findById(id);
-    if (!task) throw new TaskManagementError("Tarefa não encontrada");
-
-    if (TERMINAL_TASK_STATUSES.includes(task.status) && NON_TERMINAL_TASK_STATUSES.includes(status)) {
-      throw new TaskManagementError("Tarefas concluídas ou canceladas não podem retornar a um estado não terminal");
+    const task = await this.get(id);
+    // ADR 0014: the backend owns the lifecycle; the board only offers the next valid statuses.
+    if (TERMINAL_TASK_STATUSES.includes(task.status)) {
+      throw new TaskManagementError("Tarefas concluídas ou canceladas não podem mudar de status");
+    }
+    if (task.status === status) throw new TaskManagementError(`A tarefa já está em ${TASK_STATUS_LABELS[status]}`);
+    if (!canTransitionTaskStatus(task.status, status)) {
+      throw new TaskManagementError(`Transição de status inválida: de ${TASK_STATUS_LABELS[task.status]} para ${TASK_STATUS_LABELS[status]}`);
+    }
+    // A closed event only lets its leftover open tasks be cancelled, so they stop counting as open.
+    const event = await this.readers.events.findById(task.eventId);
+    if (event && TERMINAL_EVENT_STATUSES.includes(event.status) && status !== "CANCELADA") {
+      throw new TaskManagementError("Em eventos concluídos ou cancelados, as tarefas em aberto só podem ser canceladas");
     }
 
     const updated = await this.tasks.update(id, { status, completedAt: status === "CONCLUIDA" ? new Date() : null });

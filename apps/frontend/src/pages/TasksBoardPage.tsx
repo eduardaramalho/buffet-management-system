@@ -11,7 +11,7 @@ import { Icon } from '../components/Icon'
 import { TaskForm } from '../components/TaskForm'
 import { useAuth } from '../contexts/useAuth'
 import { StatCard } from '../components/StatCard'
-import { TASK_STATUSES, TERMINAL_TASK_STATUSES } from '../types/task'
+import { getTaskDestinations, TASK_STATUSES, TERMINAL_TASK_STATUSES } from '../types/task'
 import type { Task, TaskStatus } from '../types/task'
 import type { Event } from '../types/event'
 import type { Team } from '../types/team'
@@ -32,7 +32,8 @@ type TaskCardProps = {
 
 function TaskCard({ task, event, team, canEdit, canDelete, onMove, onEdit, onDelete }: TaskCardProps) {
   const isTerminal = TERMINAL_TASK_STATUSES.includes(task.status)
-  const destinations = TASK_STATUSES.filter((status) => status !== task.status)
+  // ADR 0014: only the next valid statuses; the backend enforces the same matrix.
+  const destinations = getTaskDestinations(task.status, event?.status)
   // O backend recusa editar/excluir tarefa terminal, então a interface nem oferece a ação.
   const showEdit = canEdit && !isTerminal
   const showDelete = canDelete && !isTerminal
@@ -52,7 +53,7 @@ function TaskCard({ task, event, team, canEdit, canDelete, onMove, onEdit, onDel
       Mover para...
       <select
         aria-label={`Mover ${task.title}`}
-        disabled={isTerminal}
+        disabled={destinations.length === 0}
         value=""
         onChange={(changeEvent) => {
           const nextStatus = changeEvent.target.value as TaskStatus | ''
@@ -60,7 +61,7 @@ function TaskCard({ task, event, team, canEdit, canDelete, onMove, onEdit, onDel
         }}
       >
         <option value="">Mover para...</option>
-        {!isTerminal && destinations.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}
+        {destinations.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}
       </select>
     </label>
     {(showEdit || showDelete) && <div className="task-actions row-actions">
