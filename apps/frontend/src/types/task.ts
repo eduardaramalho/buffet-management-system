@@ -5,6 +5,22 @@ export type TaskStatus = typeof TASK_STATUSES[number]
 // can never return to a non-terminal status.
 export const TERMINAL_TASK_STATUSES: TaskStatus[] = ['CONCLUIDA', 'CANCELADA']
 
+// ADR 0014: same matrix as the backend (task.statusTransitions.ts). The task must be started before it is concluded.
+export const TASK_STATUS_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
+  PENDENTE: ['EM_ANDAMENTO', 'CANCELADA'],
+  EM_ANDAMENTO: ['PENDENTE', 'CONCLUIDA', 'CANCELADA'],
+  CONCLUIDA: [],
+  CANCELADA: [],
+}
+
+const CLOSED_EVENT_STATUSES = ['CONCLUIDO', 'CANCELADO']
+
+/** Next statuses offered for a task. In a closed event the open tasks can only be cancelled. */
+export function getTaskDestinations(status: TaskStatus, eventStatus?: string): TaskStatus[] {
+  const destinations = TASK_STATUS_TRANSITIONS[status]
+  return eventStatus && CLOSED_EVENT_STATUSES.includes(eventStatus) ? destinations.filter((next) => next === 'CANCELADA') : destinations
+}
+
 export type Task = {
   id: string
   eventId: string

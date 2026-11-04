@@ -105,6 +105,34 @@ describe('TasksBoardPage', () => {
     expect(within(cancelledSelect).getAllByRole('option')).toHaveLength(1)
   })
 
+  // ADR 0014: a tarefa precisa passar por "Em andamento" antes de ser concluída.
+  it('offers only the next valid statuses', async () => {
+    vi.mocked(listTasks).mockResolvedValue([
+      task({ id: 'task-1', title: 'Tarefa pendente', status: 'PENDENTE' }),
+      task({ id: 'task-2', title: 'Tarefa em andamento', status: 'EM_ANDAMENTO' }),
+    ])
+    vi.mocked(listEvents).mockResolvedValue([event])
+    vi.mocked(listTeams).mockResolvedValue([team])
+
+    render(<TasksBoardPage />)
+    await screen.findByText('Tarefa pendente')
+
+    const optionsOf = (title: string) => within(screen.getByLabelText(`Mover ${title}`)).getAllByRole('option').map((option) => option.textContent)
+    expect(optionsOf('Tarefa pendente')).toEqual(['Mover para...', 'Em andamento', 'Cancelada'])
+    expect(optionsOf('Tarefa em andamento')).toEqual(['Mover para...', 'Pendente', 'Concluída', 'Cancelada'])
+  })
+
+  it('only offers cancelling the open tasks of a closed event', async () => {
+    vi.mocked(listTasks).mockResolvedValue([task({ id: 'task-1', title: 'Sobra do evento', status: 'EM_ANDAMENTO' })])
+    vi.mocked(listEvents).mockResolvedValue([{ ...event, status: 'CONCLUIDO' as const }])
+    vi.mocked(listTeams).mockResolvedValue([team])
+
+    render(<TasksBoardPage />)
+    await screen.findByText('Sobra do evento')
+
+    expect(within(screen.getByLabelText('Mover Sobra do evento')).getAllByRole('option').map((option) => option.textContent)).toEqual(['Mover para...', 'Cancelada'])
+  })
+
   it('shows a visual indicator for a task with no assigned team', async () => {
     vi.mocked(listTasks).mockResolvedValue([task({ id: 'task-1', title: 'Confirmar decoração', assignedTeamId: null })])
     vi.mocked(listEvents).mockResolvedValue([event])
