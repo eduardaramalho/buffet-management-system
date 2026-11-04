@@ -419,6 +419,8 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.getByRole('heading', { name: 'Tarefas por Status' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Próximos Eventos' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Atividades recentes' })).toHaveCount(0)
+    // Tarefas abertas com o prazo vencido (mesma regra dos relatórios).
+    await expect(page.getByText('Tarefas atrasadas', { exact: true })).toBeVisible()
     await expect(page.getByRole('alert')).toHaveCount(0)
   })
 
