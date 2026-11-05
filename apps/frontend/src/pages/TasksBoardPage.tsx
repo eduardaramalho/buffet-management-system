@@ -12,6 +12,7 @@ import { TaskForm } from '../components/TaskForm'
 import { useAuth } from '../contexts/useAuth'
 import { StatCard } from '../components/StatCard'
 import { getTaskDestinations, TASK_STATUSES, TERMINAL_TASK_STATUSES } from '../types/task'
+import { isTaskOverdue } from '../utils/taskSchedule'
 import type { Task, TaskStatus } from '../types/task'
 import type { Event } from '../types/event'
 import type { Team } from '../types/team'
@@ -32,6 +33,7 @@ type TaskCardProps = {
 
 function TaskCard({ task, event, team, canEdit, canDelete, onMove, onEdit, onDelete }: TaskCardProps) {
   const isTerminal = TERMINAL_TASK_STATUSES.includes(task.status)
+  const overdue = isTaskOverdue(task)
   // ADR 0014: only the next valid statuses; the backend enforces the same matrix.
   const destinations = getTaskDestinations(task.status, event?.status)
   // O backend recusa editar/excluir tarefa terminal, então a interface nem oferece a ação.
@@ -48,7 +50,7 @@ function TaskCard({ task, event, team, canEdit, canDelete, onMove, onEdit, onDel
       ? <p className="task-card-team">{team?.name ?? 'Equipe'}</p>
       : <p className="task-no-team" role="status"><Icon name="alert" />Sem equipe — ação necessária</p>}
     {!task.assignedTeamId && showEdit && <button type="button" className="secondary task-assign" aria-label={`Atribuir equipe a ${task.title}`} onClick={() => onEdit(task)}><Icon name="users" />Atribuir equipe</button>}
-    {task.dueDate && <p className="task-card-due">Prazo: {formatDate(task.dueDate)}</p>}
+    {task.dueDate && <p className={`task-card-due${overdue ? ' overdue' : ''}`}>Prazo: {formatDate(task.dueDate)}{overdue && ' • Atrasada'}</p>}
     <label className="task-move">
       Mover para...
       <select
@@ -117,6 +119,7 @@ export function TasksBoardPage() {
   }), [tasks, teamId, eventSearch, eventsById])
 
   const columns = TASK_STATUSES.map((status) => ({ status, items: filteredTasks.filter((task) => task.status === status) }))
+  const overdueCount = tasks.filter((task) => isTaskOverdue(task)).length
   const noTeamCount = tasks.filter((task) => !task.assignedTeamId && !TERMINAL_TASK_STATUSES.includes(task.status)).length
 
   const move = async (task: Task, status: TaskStatus) => {
@@ -152,6 +155,7 @@ export function TasksBoardPage() {
     <section className="summary">
       <StatCard icon="☰" value={tasks.length} label="Total de tarefas" tone="blue" />
       <StatCard icon="⚠" value={noTeamCount} label="Sem equipe — ação necessária" tone="gold" />
+      <StatCard icon="⚠" value={overdueCount} label="Atrasadas" tone="red" />
     </section>
     <section className="content-head">
       <input className="search" aria-label="Buscar por evento" placeholder="Buscar por nome do evento..." value={eventSearch} onChange={(changeEvent) => setEventSearch(changeEvent.target.value)} />

@@ -4,6 +4,8 @@ import type { TaskStatus } from './task'
 export type DashboardSummary = {
   eventsThisMonth: number
   pendingTasks: number
+  /** Open tasks past their deadline (same rule as the reports). */
+  overdueTasks: number
   activeTeams: number
   completedOnTimePercentage: number | null
 }

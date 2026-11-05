@@ -2,10 +2,13 @@ import type { PrismaClient } from "../../../generated/client.js";
 
 const TASK_STATUSES = ["PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "CANCELADA"] as const;
 type TaskStatus = (typeof TASK_STATUSES)[number];
+const OPEN_TASK_STATUSES: TaskStatus[] = ["PENDENTE", "EM_ANDAMENTO"];
 
 type DashboardSummary = {
   eventsThisMonth: number;
   pendingTasks: number;
+  /** Open tasks past their deadline: the "forgotten" tasks of the RFC hypothesis, same rule as the reports. */
+  overdueTasks: number;
   activeTeams: number;
   completedOnTimePercentage: number | null;
 };
@@ -20,9 +23,10 @@ export class DashboardService {
     const currentDate = this.clock();
     const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const nextMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
-    const [eventsThisMonth, pendingTasks, activeTeams, completedTasks] = await Promise.all([
+    const [eventsThisMonth, pendingTasks, overdueTasks, activeTeams, completedTasks] = await Promise.all([
       this.prisma.event.count({ where: { deletedAt: null, eventDate: { gte: monthStart, lt: nextMonthStart } } }),
-      this.prisma.task.count({ where: { deletedAt: null, status: { in: ["PENDENTE", "EM_ANDAMENTO"] } } }),
+      this.prisma.task.count({ where: { deletedAt: null, status: { in: OPEN_TASK_STATUSES } } }),
+      this.prisma.task.count({ where: { deletedAt: null, status: { in: OPEN_TASK_STATUSES }, dueDate: { lt: currentDate } } }),
       this.prisma.team.count({ where: { deletedAt: null, status: "ATIVA" } }),
       this.prisma.task.findMany({ where: { deletedAt: null, status: "CONCLUIDA", dueDate: { not: null } }, select: { completedAt: true, dueDate: true } }),
     ]);
@@ -32,7 +36,7 @@ export class DashboardService {
       ? null
       : (eligibleTasks.filter((task) => task.completedAt! <= task.dueDate!).length / eligibleTasks.length) * 100;
 
-    return { eventsThisMonth, pendingTasks, activeTeams, completedOnTimePercentage };
+    return { eventsThisMonth, pendingTasks, overdueTasks, activeTeams, completedOnTimePercentage };
   }
 
   getUpcomingEvents(limit = 5) {

@@ -6,7 +6,7 @@ import { getDashboardSummary, getTasksByStatus, getUpcomingEvents } from '../api
 
 vi.mock('../api/dashboardApi', () => ({ getDashboardSummary: vi.fn(), getUpcomingEvents: vi.fn(), getTasksByStatus: vi.fn() }))
 
-const summary = { eventsThisMonth: 2, pendingTasks: 4, activeTeams: 3, completedOnTimePercentage: 75 }
+const summary = { eventsThisMonth: 2, pendingTasks: 4, overdueTasks: 1, activeTeams: 3, completedOnTimePercentage: 75 }
 const statuses = { PENDENTE: 1, EM_ANDAMENTO: 2, CONCLUIDA: 3, CANCELADA: 0 } as const
 
 beforeEach(() => vi.clearAllMocks())
@@ -21,13 +21,14 @@ describe('DashboardPage', () => {
 
     expect(await screen.findByText('Casamento')).toBeInTheDocument()
     expect(screen.getByText('Eventos este mês').previousElementSibling).toHaveTextContent('2')
+    expect(screen.getByText('Tarefas atrasadas').previousElementSibling).toHaveTextContent('1')
     expect(screen.getByText('75.0%')).toBeInTheDocument()
     expect(screen.getByText('Concluída')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Atividades recentes' })).not.toBeInTheDocument()
   })
 
   it('renders empty states without breaking when the API has no data', async () => {
-    vi.mocked(getDashboardSummary).mockResolvedValue({ eventsThisMonth: 0, pendingTasks: 0, activeTeams: 0, completedOnTimePercentage: null })
+    vi.mocked(getDashboardSummary).mockResolvedValue({ eventsThisMonth: 0, pendingTasks: 0, overdueTasks: 0, activeTeams: 0, completedOnTimePercentage: null })
     vi.mocked(getUpcomingEvents).mockResolvedValue([])
     vi.mocked(getTasksByStatus).mockResolvedValue({ PENDENTE: 0, EM_ANDAMENTO: 0, CONCLUIDA: 0, CANCELADA: 0 })
 

@@ -14,7 +14,7 @@ describe("DashboardService", () => {
   it("returns the summary and null percentage when there are no eligible completed tasks", async () => {
     const prisma = createPrisma();
     prisma.event.count.mockResolvedValue(3);
-    prisma.task.count.mockResolvedValueOnce(4).mockResolvedValueOnce(0);
+    prisma.task.count.mockResolvedValueOnce(4).mockResolvedValueOnce(1);
     prisma.team.count.mockResolvedValue(2);
     prisma.task.findMany.mockResolvedValue([]);
     const service = new DashboardService(prisma as never, () => now);
@@ -22,6 +22,7 @@ describe("DashboardService", () => {
     await expect(service.getSummary()).resolves.toEqual({
       eventsThisMonth: 3,
       pendingTasks: 4,
+      overdueTasks: 1,
       activeTeams: 2,
       completedOnTimePercentage: null,
     });
@@ -32,8 +33,24 @@ describe("DashboardService", () => {
     await expect(service.getSummary()).resolves.toEqual({
       eventsThisMonth: 0,
       pendingTasks: 0,
+      overdueTasks: 0,
       activeTeams: 0,
       completedOnTimePercentage: null,
+    });
+  });
+
+  // Mesma definição de tarefa esquecida dos relatórios (report.metrics.ts): aberta e com o prazo vencido.
+  it("counts open tasks whose deadline has passed as overdue", async () => {
+    const prisma = createPrisma();
+    prisma.event.count.mockResolvedValue(0);
+    prisma.task.count.mockResolvedValue(0);
+    prisma.team.count.mockResolvedValue(0);
+    prisma.task.findMany.mockResolvedValue([]);
+
+    await new DashboardService(prisma as never, () => now).getSummary();
+
+    expect(prisma.task.count).toHaveBeenCalledWith({
+      where: { deletedAt: null, status: { in: ["PENDENTE", "EM_ANDAMENTO"] }, dueDate: { lt: now } },
     });
   });
 
