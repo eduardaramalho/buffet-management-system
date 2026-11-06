@@ -1,66 +1,178 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { getApiErrorMessage } from '../api/apiError'
 import { addTeamMember, createTeam, removeTeamMember, updateTeam } from '../api/teamsApi'
 import { listCollaborators } from '../api/collaboratorsApi'
-import { Button } from './Button'
+import { useToast } from '../contexts/toast'
+import { useFormValidation } from '../hooks/useFormValidation'
+import { initials } from '../utils/initials'
+import { TEAM_SPECIALTY_LABELS } from '../utils/labels'
+import { hasErrorIn } from '../validation/fieldErrors'
+import { teamFormSchema } from '../validation/teamSchema'
 import { CollaboratorForm } from './CollaboratorForm'
-import { Notice } from './Notice'
+import { Icon } from './Icon'
+import { FormModal, type FormModalSection } from './form/FormModal'
+import { FormSection } from './form/FormSection'
+import { SelectField, TextAreaField, TextField } from './form/TextField'
 import type { Collaborator } from '../types/collaborator'
 import type { Team, TeamSpecialty } from '../types/team'
 import { TEAM_SPECIALTIES } from '../types/team'
 
 type TeamFormProps = { team?: Team; onClose: () => void; onCreated: (team: Team) => void; onUpdated: (team: Team) => void }
-const specialtyLabels: Record<TeamSpecialty, string> = { COZINHA: 'Cozinha', SALAO: 'Salão', BAR: 'Bar', DECORACAO: 'Decoração', LIMPEZA: 'Limpeza', CERIMONIAL: 'Cerimonial', OUTRO: 'Outro' }
-type SelectedMember = { collaborator: Collaborator; isLeader: boolean }
+type SectionId = 'data' | 'members'
+const DATA_FIELDS = ['name', 'specialty', 'observations'] as const
+
+const memberCount = (count: number) => (count === 1 ? '1 membro' : `${count} membros`)
+
+/** Pessoa da lista: iniciais, nome e cargo (o cargo vem do cadastro do colaborador). */
+function Person({ collaborator, leader = false }: { collaborator: Collaborator; leader?: boolean }) {
+  return <>
+    <span className={`fm-avatar${leader ? ' leader' : ''}`} aria-hidden="true">{initials(collaborator.name)}</span>
+    <span className="fm-person"><strong>{collaborator.name}</strong><small>{collaborator.position}{leader ? ' · Líder da equipe' : ''}</small></span>
+  </>
+}
 
 export function TeamForm({ team, onClose, onCreated, onUpdated }: TeamFormProps) {
+  const toast = useToast()
+  const [section, setSection] = useState<SectionId>('data')
   const [name, setName] = useState(team?.name ?? '')
   const [specialty, setSpecialty] = useState<TeamSpecialty | ''>(team?.specialty ?? '')
   const [observations, setObservations] = useState(team?.observations ?? '')
-  const [collaborators, setCollaborators] = useState<Collaborator[]>([])
-  const [selected, setSelected] = useState<Record<string, SelectedMember>>(() => Object.fromEntries(team?.members.map((member) => [member.collaboratorId, { collaborator: member.collaborator, isLeader: member.isLeader }]) ?? []))
+  const [members, setMembers] = useState<Collaborator[]>(() => team?.members.map((member) => member.collaborator) ?? [])
+  const [leaderId, setLeaderId] = useState(() => team?.members.find((member) => member.isLeader)?.collaboratorId ?? '')
+  const [changingLeader, setChangingLeader] = useState(false)
   const [search, setSearch] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([])
+  const [apiError, setApiError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [newCollaboratorOpen, setNewCollaboratorOpen] = useState(false)
+  const validation = useFormValidation(teamFormSchema, { name, specialty: specialty as TeamSpecialty, observations })
 
-  const reloadCollaborators = () => listCollaborators({ search: search || undefined }).then(setCollaborators).catch((cause) => setError(getApiErrorMessage(cause, 'Não foi possível salvar a equipe')))
-  useEffect(() => { void reloadCollaborators() }, [search])
-  const toggleMember = (collaborator: Collaborator) => setSelected((current) => {
-    if (current[collaborator.id]) { const next = { ...current }; delete next[collaborator.id]; return next }
-    return { ...current, [collaborator.id]: { collaborator, isLeader: false } }
-  })
-  const toggleLeader = (collaboratorId: string) => setSelected((current) => {
-    if (!current[collaboratorId]) return current
-    const isLeader = current[collaboratorId].isLeader
-    if (!isLeader && Object.entries(current).some(([id, member]) => id !== collaboratorId && member.isLeader)) {
-      setError('A equipe pode ter apenas um líder.')
-      return current
-    }
-    return { ...current, [collaboratorId]: { ...current[collaboratorId], isLeader: !isLeader } }
-  })
-  const submit = async (formEvent: FormEvent) => {
-    formEvent.preventDefault(); setError('')
-    if (!name.trim()) return setError('Informe o nome da equipe.')
-    if (!specialty) return setError('Selecione a especialidade.')
-    setLoading(true)
-    try {
-      const input = { name: name.trim(), specialty, observations: observations.trim() || null }
-      const saved = team ? await updateTeam(team.id, input) : await createTeam(input)
-      const previous = new Map(team?.members.map((member) => [member.collaboratorId, member.isLeader]) ?? [])
-      let result = saved
-      for (const [collaboratorId, member] of Object.entries(selected)) {
-        if (!previous.has(collaboratorId)) result = await addTeamMember(saved.id, collaboratorId, member.isLeader)
-        else if (previous.get(collaboratorId) !== member.isLeader) {
-          await removeTeamMember(saved.id, collaboratorId)
-          result = await addTeamMember(saved.id, collaboratorId, member.isLeader)
-        }
+  useEffect(() => {
+    void listCollaborators({ search: search || undefined })
+      .then(setCollaborators)
+      .catch((cause) => setApiError(getApiErrorMessage(cause, 'Não foi possível carregar os colaboradores')))
+  }, [search])
+
+  const memberIds = new Set(members.map((member) => member.id))
+  const available = collaborators.filter((collaborator) => collaborator.status === 'ATIVO' && !memberIds.has(collaborator.id))
+  const leader = members.find((member) => member.id === leaderId)
+  const others = members.filter((member) => member.id !== leaderId)
+  const showLeaderCard = Boolean(leader) && !changingLeader
+
+  const addMember = (collaborator: Collaborator) => setMembers((current) => (current.some((member) => member.id === collaborator.id) ? current : [...current, collaborator]))
+  const removeMember = (collaboratorId: string) => setMembers((current) => current.filter((member) => member.id !== collaboratorId))
+  // O líder é escolhido num único controle: escolher outro substitui o atual, então nunca há dois líderes.
+  const chooseLeader = (collaboratorId: string) => { setLeaderId(collaboratorId); setChangingLeader(false) }
+
+  const dataInvalid = hasErrorIn(validation.errors, DATA_FIELDS)
+  const sections: FormModalSection[] = [
+    { id: 'data', label: 'Dados da equipe', description: name.trim() || 'Nome e especialidade', complete: !dataInvalid, invalid: validation.submitted && dataInvalid },
+    { id: 'members', label: 'Membros e líder', description: memberCount(members.length), complete: members.length > 0 },
+  ]
+
+  /**
+   * Sincroniza os membros com a API. A ordem importa: a API recusa um segundo líder (409), então quem deixa
+   * de liderar é rebaixado antes de o novo líder ser gravado, e o novo líder entra por último.
+   */
+  const persistMembers = async (teamId: string) => {
+    const previous = new Map(team?.members.map((member) => [member.collaboratorId, member.isLeader]) ?? [])
+    for (const collaboratorId of previous.keys()) if (!memberIds.has(collaboratorId)) await removeTeamMember(teamId, collaboratorId)
+    for (const [collaboratorId, wasLeader] of previous) {
+      if (wasLeader && memberIds.has(collaboratorId) && collaboratorId !== leaderId) {
+        await removeTeamMember(teamId, collaboratorId)
+        await addTeamMember(teamId, collaboratorId, false)
       }
-      for (const collaboratorId of previous.keys()) if (!selected[collaboratorId]) await removeTeamMember(saved.id, collaboratorId)
-      team ? onUpdated(result) : onCreated(result)
-      onClose()
-    } catch (cause) { setError(getApiErrorMessage(cause, 'Não foi possível salvar a equipe')) } finally { setLoading(false) }
+    }
+    for (const member of members) if (!previous.has(member.id) && member.id !== leaderId) await addTeamMember(teamId, member.id, false)
+    if (leaderId && previous.get(leaderId) !== true) {
+      if (previous.has(leaderId)) await removeTeamMember(teamId, leaderId)
+      await addTeamMember(teamId, leaderId, true)
+    }
   }
 
-  return <aside className="user-form-panel" role="dialog" aria-modal="true" aria-labelledby="team-form-title"><div className="form-wrap"><button type="button" className="link-button" onClick={onClose}>Voltar</button><h2 id="team-form-title">{team ? 'Editar equipe' : 'Nova equipe'}</h2><form onSubmit={submit}><label>Nome da equipe<input aria-label="Nome da equipe" value={name} onChange={(event) => setName(event.target.value)} /></label><label>Especialidade<select aria-label="Especialidade" value={specialty} onChange={(event) => setSpecialty(event.target.value as TeamSpecialty)}><option value="">Selecione</option>{TEAM_SPECIALTIES.map((value) => <option key={value} value={value}>{specialtyLabels[value]}</option>)}</select></label><label>Observações<textarea aria-label="Observações" value={observations} onChange={(event) => setObservations(event.target.value)} /></label><section><h3>Membros da equipe</h3><input aria-label="Buscar colaboradores" placeholder="Buscar colaboradores..." value={search} onChange={(event) => setSearch(event.target.value)} /><button type="button" className="link-button" onClick={() => setNewCollaboratorOpen(true)}>+ Novo colaborador</button><div className="service-checks">{collaborators.filter((collaborator) => collaborator.status === 'ATIVO').map((collaborator) => <label key={collaborator.id}><span><input type="checkbox" aria-label={collaborator.name} checked={Boolean(selected[collaborator.id])} onChange={() => toggleMember(collaborator)} /> {collaborator.name}</span>{selected[collaborator.id] && <button type="button" onClick={() => toggleLeader(collaborator.id)} aria-label={`${selected[collaborator.id].isLeader ? 'Remover líder' : 'Definir líder'} ${collaborator.name}`}>{selected[collaborator.id].isLeader ? 'Líder' : 'Definir líder'}</button>}</label>)}</div></section>{error && <Notice message={error} error />}<div className="form-actions"><Button type="button" className="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" className="primary" disabled={loading}>{loading ? 'Salvando...' : 'Salvar'}</Button></div></form>{/* Fora do <form> da equipe: <form> aninhado é HTML inválido e o submit do colaborador recarregava a página. */}{newCollaboratorOpen && <CollaboratorForm onClose={() => setNewCollaboratorOpen(false)} onCreated={(created) => { setCollaborators((current) => [created, ...current]); toggleMember(created); setNewCollaboratorOpen(false) }} onUpdated={() => setNewCollaboratorOpen(false)} />}</div></aside>
+  const submit = async () => {
+    setApiError('')
+    const data = validation.submit()
+    if (!data) { if (dataInvalid) setSection('data'); return }
+    setSubmitting(true)
+    try {
+      const input = { name: data.name, specialty: data.specialty, observations: data.observations || null }
+      const saved = team ? await updateTeam(team.id, input) : await createTeam(input)
+      await persistMembers(saved.id)
+      // A tela já sabe a composição final; assim a lista não depende de qual chamada respondeu por último.
+      const result: Team = { ...saved, members: members.map((member) => ({ collaboratorId: member.id, isLeader: member.id === leaderId, collaborator: member })) }
+      toast.success(team ? 'Equipe atualizada.' : 'Equipe criada.')
+      if (team) onUpdated(result)
+      else onCreated(result)
+      onClose()
+    } catch (cause) { setApiError(getApiErrorMessage(cause, 'Não foi possível salvar a equipe')) } finally { setSubmitting(false) }
+  }
+
+  const subtitle = name.trim() ? `${name.trim()}${specialty ? ` · ${TEAM_SPECIALTY_LABELS[specialty]}` : ''}` : 'Defina o grupo, os membros e quem lidera.'
+
+  return <>
+    <FormModal title={team ? 'Editar equipe' : 'Nova equipe'} subtitle={subtitle} icon={<Icon name="users" />}
+      onClose={onClose} onSubmit={submit} submitting={submitting} submitLabel="Salvar equipe" error={apiError} invalidAttempt={validation.invalidAttempt}
+      sections={sections} activeSection={section} onSectionChange={(id) => setSection(id as SectionId)}>
+      <FormSection title="Dados da equipe" description="A especialidade é usada pelo motor de regras para atribuir tarefas." active={section === 'data'}>
+        <div className="fm-row">
+          <TextField label="Nome da equipe" required value={name} maxLength={150} error={validation.errorFor('name')}
+            onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event.target)} />
+          <SelectField label="Especialidade" required value={specialty} error={validation.errorFor('specialty')}
+            onChange={(event) => setSpecialty(event.target.value as TeamSpecialty)} onBlur={(event) => validation.touch('specialty', event.target)}>
+            <option value="">Selecione</option>
+            {TEAM_SPECIALTIES.map((value) => <option key={value} value={value}>{TEAM_SPECIALTY_LABELS[value]}</option>)}
+          </SelectField>
+        </div>
+        <TextAreaField label="Observações" optional value={observations} maxLength={2000} placeholder="Ex.: turno da noite, uniforme preto" error={validation.errorFor('observations')}
+          onChange={(event) => setObservations(event.target.value)} onBlur={(event) => validation.touch('observations', event.target)} />
+      </FormSection>
+
+      <FormSection title="Membros e líder" description="Adicione colaboradores ativos e, se quiser, escolha um líder." active={section === 'members'}>
+        <div className="fm-columns">
+          <section className="fm-card" aria-labelledby="team-available-title">
+            <div className="fm-card-head"><h4 id="team-available-title">Colaboradores disponíveis</h4></div>
+            <span className="fm-input-wrap lead">
+              <Icon name="search" />
+              <input className="fm-input" aria-label="Buscar por nome ou cargo" placeholder="Buscar por nome ou cargo" value={search} onChange={(event) => setSearch(event.target.value)} />
+            </span>
+            {available.length > 0
+              ? <ul className="fm-list">{available.map((collaborator) => <li key={collaborator.id}>
+                <Person collaborator={collaborator} />
+                <button type="button" className="fm-btn fm-btn-secondary fm-btn-sm" aria-label={`Adicionar ${collaborator.name}`} onClick={() => addMember(collaborator)}><Icon name="plus" />Adicionar</button>
+              </li>)}</ul>
+              : <p className="fm-list fm-list-empty">Nenhum colaborador disponível.</p>}
+            <button type="button" className="fm-btn fm-btn-text fm-btn-sm" onClick={() => setNewCollaboratorOpen(true)}><Icon name="plus" />Cadastrar novo colaborador</button>
+          </section>
+
+          <section className="fm-card" aria-labelledby="team-members-title">
+            <div className="fm-card-head"><h4 id="team-members-title">Na equipe</h4><span className="fm-aside">{memberCount(members.length)}</span></div>
+            {showLeaderCard && leader
+              ? <div className="fm-leader set">
+                <Person collaborator={leader} leader />
+                <button type="button" className="fm-btn fm-btn-secondary fm-btn-sm" aria-label="Trocar líder" onClick={() => setChangingLeader(true)}>Trocar</button>
+              </div>
+              : <div className="fm-leader">
+                <span className="fm-leader-icon" aria-hidden="true"><Icon name="crown" /></span>
+                <select className="fm-input" aria-label="Líder da equipe" value={leaderId} disabled={members.length === 0} onChange={(event) => chooseLeader(event.target.value)}>
+                  <option value="">{members.length === 0 ? 'Adicione membros para escolher o líder' : 'Sem líder (opcional)'}</option>
+                  {members.map((member) => <option key={member.id} value={member.id}>{member.name} · {member.position}</option>)}
+                </select>
+              </div>}
+            {others.length > 0
+              ? <ul className="fm-list" aria-label="Membros da equipe">{others.map((member) => <li key={member.id}>
+                <Person collaborator={member} />
+                <button type="button" className="fm-icon-btn" aria-label={`Remover ${member.name}`} onClick={() => removeMember(member.id)}><Icon name="x" /></button>
+              </li>)}</ul>
+              : <p className="fm-list fm-list-empty">{members.length === 0 ? 'Adicione colaboradores pela lista ao lado.' : 'Nenhum outro membro.'}</p>}
+            <small className="fm-hint">A equipe tem no máximo um líder. "Trocar" escolhe outro membro no lugar dele.</small>
+          </section>
+        </div>
+      </FormSection>
+    </FormModal>
+    {/* Fora do modal da equipe (irmão, não filho): eventos de submit de um portal sobem pela árvore do React
+        e acionariam o formulário da equipe se o colaborador fosse renderizado dentro dele. */}
+    {newCollaboratorOpen && <CollaboratorForm onClose={() => setNewCollaboratorOpen(false)}
+      onCreated={(created) => { setCollaborators((current) => [created, ...current]); addMember(created) }} onUpdated={() => setNewCollaboratorOpen(false)} />}
+  </>
 }
