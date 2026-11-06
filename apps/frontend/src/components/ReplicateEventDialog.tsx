@@ -157,7 +157,7 @@ export function ReplicateEventDialog({ source, onClose, onReplicated }: Replicat
             <label>Nome do evento<input aria-label="Nome do evento" placeholder="Ex.: Casamento de Bruna" value={name} onChange={(e) => setName(e.target.value)} /></label>
             <label>Data do evento<input aria-label="Data do evento" type="datetime-local" value={eventDate} onChange={(e) => setEventDate(e.target.value)} /></label>
             <label>Local<input aria-label="Local" value={location} onChange={(e) => setLocation(e.target.value)} /></label>
-            <label>Tipo de serviço<select aria-label="Tipo de serviço" value={serviceType} onChange={(e) => setServiceType(e.target.value as EventType)}>{EVENT_TYPES.map((type) => <option key={type} value={type}>{EVENT_TYPE_LABELS[type]}</option>)}</select></label>
+            <label>Tipo de evento<select aria-label="Tipo de evento" value={serviceType} onChange={(e) => setServiceType(e.target.value as EventType)}>{EVENT_TYPES.map((type) => <option key={type} value={type}>{EVENT_TYPE_LABELS[type]}</option>)}</select></label>
             <label>Número de convidados<input aria-label="Número de convidados" type="number" min="1" value={guestsCount} onChange={(e) => setGuestsCount(e.target.value)} /></label>
             <label>Observações<textarea aria-label="Observações" value={observations} onChange={(e) => setObservations(e.target.value)} /></label>
           </section>

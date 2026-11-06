@@ -68,7 +68,7 @@ describe('ReportsPage', () => {
     expect(within(table).getByText('1/4')).toBeInTheDocument()
     expect(within(table).getByText('-')).toBeInTheDocument()
     expect(screen.getByRole('figure', { name: 'Eventos por status' })).toBeInTheDocument()
-    expect(screen.getByRole('figure', { name: 'Eventos por tipo de serviço' })).toBeInTheDocument()
+    expect(screen.getByRole('figure', { name: 'Eventos por tipo' })).toBeInTheDocument()
     expect(screen.getByText('Total de eventos')).toBeInTheDocument()
     expect(getEventsReport).toHaveBeenCalledWith(period, { status: '', serviceType: '', clientId: '' }, { page: 1, pageSize: 20 })
   })
