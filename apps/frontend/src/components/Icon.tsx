@@ -1,6 +1,6 @@
 import type { ReactNode, SVGProps } from 'react'
 
-export type IconName = 'home' | 'calendar' | 'tasks' | 'users' | 'user' | 'bolt' | 'shield' | 'eye' | 'pencil' | 'trash' | 'power' | 'plus' | 'x' | 'alert' | 'check' | 'logout' | 'chevron-left' | 'chevron-down' | 'contact' | 'chart' | 'download' | 'copy' | 'tag' | 'key' | 'mail' | 'lock' | 'eye-off' | 'clock'
+export type IconName = 'home' | 'calendar' | 'tasks' | 'users' | 'user' | 'bolt' | 'shield' | 'eye' | 'pencil' | 'trash' | 'power' | 'plus' | 'x' | 'alert' | 'check' | 'logout' | 'chevron-left' | 'chevron-down' | 'contact' | 'chart' | 'download' | 'copy' | 'tag' | 'key' | 'mail' | 'lock' | 'eye-off' | 'clock' | 'crown' | 'search'
 
 type IconProps = SVGProps<SVGSVGElement> & { name: IconName; title?: string }
 
@@ -31,6 +31,8 @@ const paths: Record<IconName, ReactNode> = {
   mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></>,
   lock: <><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></>,
   'eye-off': <><path d="M3 3l18 18" /><path d="M10.6 6.1A10.9 10.9 0 0 1 12 6c6.5 0 10 6 10 6a17.6 17.6 0 0 1-3.2 3.9M6.6 6.6C3.9 8.3 2 12 2 12s3.5 6 10 6a10.6 10.6 0 0 0 5.4-1.6" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></>,
+  crown: <path d="m3 8 4.5 4L12 5l4.5 7L21 8l-2 11H5Z" />,
+  search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
   clock: <><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2.5M9 2h6" /></>,
   contact: <><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="11" r="2.5" /><path d="M5.5 17a3.5 3.5 0 0 1 7 0M15 9h3M15 13h3" /></>,
 }
