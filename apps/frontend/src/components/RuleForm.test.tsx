@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { RuleForm } from './RuleForm'
 import { createRule, updateRule } from '../api/rulesApi'
 import { listServices } from '../api/servicesApi'
@@ -30,12 +30,18 @@ const createdRule: Rule = {
   taskTemplates: [],
 }
 
+// As seções inativas ficam ocultas (hidden); getByLabelText e fireEvent ainda alcançam os campos, mas ByRole não.
+const save = () => fireEvent.click(screen.getByRole('button', { name: 'Salvar regra' }))
+const openSection = (name: RegExp) => fireEvent.click(screen.getByRole('button', { name }))
+
 describe('RuleForm', () => {
+  beforeEach(() => vi.clearAllMocks())
+
   it('validates the required name before creating a rule', async () => {
     vi.mocked(listServices).mockResolvedValue([])
     render(<RuleForm onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    save()
 
     expect(await screen.findByText('Informe o nome da regra.')).toBeInTheDocument()
     expect(createRule).not.toHaveBeenCalled()
@@ -50,10 +56,11 @@ describe('RuleForm', () => {
     fireEvent.change(screen.getByLabelText('Nome da regra'), { target: { value: 'Casamento grande precisa de bar' } })
     fireEvent.click(screen.getByLabelText('Casamento'))
     fireEvent.change(screen.getByLabelText('Mínimo de convidados'), { target: { value: '100' } })
-    fireEvent.click(screen.getByRole('button', { name: '+ Adicionar recurso' }))
+    openSection(/Recursos exigidos/)
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar recurso' }))
     fireEvent.change(screen.getByLabelText('Especialidade 1'), { target: { value: 'BAR' } })
     fireEvent.change(screen.getByLabelText('Quantidade mínima 1'), { target: { value: '2' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    save()
 
     await waitFor(() => expect(createRule).toHaveBeenCalledWith({
       name: 'Casamento grande precisa de bar',
@@ -82,9 +89,9 @@ describe('RuleForm', () => {
     render(<RuleForm rule={existingRule} onClose={vi.fn()} onCreated={vi.fn()} onUpdated={onUpdated} />)
 
     expect(screen.getByLabelText('Casamento')).toBeChecked()
-    expect(screen.getByLabelText('Mínimo de convidados')).toHaveValue(50)
+    expect(screen.getByLabelText('Mínimo de convidados')).toHaveValue('50')
     fireEvent.change(screen.getByLabelText('Nome da regra'), { target: { value: 'Regra atualizada' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    save()
 
     await waitFor(() => expect(updateRule).toHaveBeenCalledWith('rule-1', expect.objectContaining({ name: 'Regra atualizada' })))
     expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ name: 'Regra atualizada' }))
@@ -96,22 +103,57 @@ describe('RuleForm', () => {
     render(<RuleForm onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
 
     fireEvent.change(screen.getByLabelText('Nome da regra'), { target: { value: 'Regra com tarefas' } })
-    fireEvent.click(screen.getByRole('button', { name: '+ Adicionar tarefa' }))
+    openSection(/Tarefas geradas/)
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar tarefa' }))
     fireEvent.change(screen.getByLabelText('Título da tarefa 1'), { target: { value: 'Confirmar fornecedor' } })
     fireEvent.change(screen.getByLabelText('Dias antes do evento 1'), { target: { value: '7' } })
     fireEvent.click(screen.getByRole('button', { name: 'Remover tarefa 1' }))
-    fireEvent.click(screen.getByRole('button', { name: '+ Adicionar tarefa' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar tarefa' }))
     fireEvent.change(screen.getByLabelText('Título da tarefa 1'), { target: { value: 'Separar materiais' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    save()
 
     await waitFor(() => expect(createRule).toHaveBeenCalledWith(expect.objectContaining({
       taskTemplates: [{ title: 'Separar materiais', description: null, daysBeforeEvent: null, specialty: null }],
     })))
   })
 
+  it('validates the guests range and the task titles, opening the first section with an error', async () => {
+    vi.mocked(listServices).mockResolvedValue([])
+    render(<RuleForm onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Nome da regra'), { target: { value: 'Regra' } })
+    fireEvent.change(screen.getByLabelText('Mínimo de convidados'), { target: { value: '300' } })
+    fireEvent.change(screen.getByLabelText('Máximo de convidados'), { target: { value: '1x00' } })
+    expect(screen.getByLabelText('Máximo de convidados')).toHaveValue('100')
+    openSection(/Tarefas geradas/)
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar tarefa' }))
+    save()
+
+    expect(await screen.findByText('O máximo de convidados não pode ser menor que o mínimo.')).toBeVisible()
+    expect(screen.getByLabelText('Máximo de convidados')).toHaveFocus()
+    expect(screen.getByText('Informe o título da tarefa.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Tarefas geradas/ })).toHaveTextContent('contém erros')
+    expect(createRule).not.toHaveBeenCalled()
+  })
+
+  it('summarizes who the rule applies to', async () => {
+    vi.mocked(listServices).mockResolvedValue([{ id: 's1', name: 'Buffet completo', isCustom: false, createdAt: '', deletedAt: null }])
+    render(<RuleForm onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
+    expect(screen.getByText('Vale para qualquer evento.')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('Casamento'))
+    fireEvent.click(screen.getByLabelText('Formatura'))
+    fireEvent.change(screen.getByLabelText('Mínimo de convidados'), { target: { value: '100' } })
+    fireEvent.click(await screen.findByLabelText('Buffet completo'))
+    expect(screen.getByText('Vale para: Casamento ou Formatura, a partir de 100 convidados, com Buffet completo.')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Máximo de convidados'), { target: { value: '300' } })
+    expect(screen.getByText(/100 a 300 convidados/)).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Mínimo de convidados'), { target: { value: '' } })
+    expect(screen.getByText(/até 300 convidados/)).toBeInTheDocument()
+  })
+
   describe('equipe responsável por tarefa (RFC 3.1, ADR 0010)', () => {
     const addBarRequirement = () => {
-      fireEvent.click(screen.getByRole('button', { name: '+ Adicionar recurso' }))
+      openSection(/Recursos exigidos/)
+      fireEvent.click(screen.getByRole('button', { name: 'Adicionar recurso' }))
       fireEvent.change(screen.getByLabelText('Especialidade 1'), { target: { value: 'BAR' } })
     }
 
@@ -120,7 +162,8 @@ describe('RuleForm', () => {
       vi.mocked(createRule).mockResolvedValue(createdRule)
       render(<RuleForm onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
       fireEvent.change(screen.getByLabelText('Nome da regra'), { target: { value: 'Casamento com bar' } })
-      fireEvent.click(screen.getByRole('button', { name: '+ Adicionar tarefa' }))
+      openSection(/Tarefas geradas/)
+      fireEvent.click(screen.getByRole('button', { name: 'Adicionar tarefa' }))
       fireEvent.change(screen.getByLabelText('Título da tarefa 1'), { target: { value: 'Montar o bar' } })
 
       const select = screen.getByLabelText('Equipe responsável 1')
@@ -128,10 +171,11 @@ describe('RuleForm', () => {
       expect(screen.getByText('Adicione um recurso exigido para atribuir as tarefas automaticamente.')).toBeInTheDocument()
 
       addBarRequirement()
+      openSection(/Tarefas geradas/)
       expect(select).toBeEnabled()
       expect(Array.from((select as HTMLSelectElement).options).map((option) => option.textContent)).toEqual(['Sem atribuição automática', 'Bar'])
       fireEvent.change(select, { target: { value: 'BAR' } })
-      fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+      save()
 
       await waitFor(() => expect(createRule).toHaveBeenCalledWith(expect.objectContaining({
         resourceRequirements: [{ specialty: 'BAR', minQuantity: 1 }],
@@ -142,7 +186,8 @@ describe('RuleForm', () => {
     it('clears the task specialty when the matching requirement is changed or removed', async () => {
       vi.mocked(listServices).mockResolvedValue([])
       render(<RuleForm onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
-      fireEvent.click(screen.getByRole('button', { name: '+ Adicionar tarefa' }))
+      openSection(/Tarefas geradas/)
+      fireEvent.click(screen.getByRole('button', { name: 'Adicionar tarefa' }))
       addBarRequirement()
       fireEvent.change(screen.getByLabelText('Equipe responsável 1'), { target: { value: 'BAR' } })
 

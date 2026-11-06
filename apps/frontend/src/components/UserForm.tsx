@@ -1,43 +1,78 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { getApiErrorMessage } from '../api/apiError'
 import { createUser, setUserActive, updateUser } from '../api/usersApi'
 import { listRoles } from '../api/rolesApi'
-import { Button } from './Button'
-import { FormField } from './FormField'
-import { Notice } from './Notice'
+import { useToast } from '../contexts/toast'
+import { useFormValidation } from '../hooks/useFormValidation'
+import { PASSWORD_MIN_LENGTH, userCreateFormSchema, userUpdateFormSchema } from '../validation/userSchema'
+import { Icon } from './Icon'
+import { ChoiceCard } from './form/ChoiceCard'
+import { FieldGroup } from './form/FieldGroup'
+import { FormModal } from './form/FormModal'
+import { PasswordField } from './form/PasswordField'
+import { Switch } from './form/Switch'
+import { TextField } from './form/TextField'
 import type { Role, User } from '../types'
 
 type UserFormProps = { user?: User; onClose: () => void; onCreated: (user: User) => void; onUpdated: (user: User) => void }
 
+/** Cadastro e edição de usuário. Na edição não há papel nem senha (ADR 0012): a senha só muda pelo reset do administrador. */
 export function UserForm({ user, onClose, onCreated, onUpdated }: UserFormProps) {
+  const toast = useToast()
   const [name, setName] = useState(user?.name ?? '')
   const [email, setEmail] = useState(user?.email ?? '')
   const [roleId, setRoleId] = useState('')
   const [password, setPassword] = useState('')
-  const [status, setStatus] = useState<'active' | 'inactive'>(user?.isActive === false ? 'inactive' : 'active')
+  const [active, setActive] = useState(user?.isActive !== false)
   const [roles, setRoles] = useState<Role[]>([])
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [apiError, setApiError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const createValidation = useFormValidation(userCreateFormSchema, { name, email, password, roleId })
+  const updateValidation = useFormValidation(userUpdateFormSchema, { name, email })
+  const validation = user ? updateValidation : createValidation
 
-  useEffect(() => { void listRoles().then(setRoles).catch((cause) => setError(getApiErrorMessage(cause, 'Não foi possível criar o usuário'))) }, [])
+  useEffect(() => {
+    if (user) return
+    void listRoles().then(setRoles).catch((cause) => setApiError(getApiErrorMessage(cause, 'Não foi possível carregar os papéis')))
+  }, [user])
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault()
-    setError('')
-    setLoading(true)
-    try {
-      if (user) {
-        const updatedUser = await updateUser(user.id, { name, email })
-        const finalUser = status === 'inactive' && updatedUser.isActive ? await setUserActive(updatedUser.id, false) : updatedUser
-        onUpdated(finalUser)
-      } else {
-        const createdUser = await createUser({ name, email, password, roleId })
-        const finalUser = status === 'inactive' ? await setUserActive(createdUser.id, false) : createdUser
-        onCreated(finalUser)
-      }
-      onClose()
-    } catch (cause) { setError(getApiErrorMessage(cause, 'Não foi possível criar o usuário')) } finally { setLoading(false) }
+  const save = async () => {
+    if (!user) return createUser({ name: name.trim(), email: email.trim(), password, roleId })
+    const updated = await updateUser(user.id, { name: name.trim(), email: email.trim() })
+    return active !== updated.isActive ? setUserActive(user.id, active) : updated
   }
 
-  return <aside className="user-form-panel" role="dialog" aria-modal="true" aria-labelledby="user-form-title"><div className="form-wrap"><button type="button" className="link-button" onClick={onClose}>Fechar</button><h2 id="user-form-title">{user ? 'Editar usuário' : 'Novo usuário'}</h2><p className="muted">{user ? 'Atualize os dados do usuário.' : 'Cadastre um novo integrante da operação.'}</p><form onSubmit={submit}><FormField label="Nome" value={name} onChange={(event) => setName(event.target.value)} required /><FormField label="E-mail" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />{!user && <><label>Papel<select aria-label="Papel" value={roleId} onChange={(event) => setRoleId(event.target.value)} required><option value="">Selecione um papel</option>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label><FormField label="Senha inicial" type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} required /></>}<label>Status<select aria-label="Status" value={status} onChange={(event) => setStatus(event.target.value as 'active' | 'inactive')}><option value="active">Ativo</option><option value="inactive">Inativo</option></select></label>{error && <Notice message={error} error />}<Button disabled={loading}>{loading ? 'Salvando...' : user ? 'Salvar alterações' : 'Criar usuário'}</Button></form></div></aside>
+  const submit = async () => {
+    setApiError('')
+    if (!validation.submit()) return
+    setSubmitting(true)
+    try {
+      const saved = await save()
+      toast.success(user ? 'Usuário atualizado.' : 'Usuário criado.')
+      if (user) onUpdated(saved)
+      else onCreated(saved)
+      onClose()
+    } catch (cause) { setApiError(getApiErrorMessage(cause, 'Não foi possível salvar o usuário')) } finally { setSubmitting(false) }
+  }
+
+  return <FormModal title={user ? 'Editar usuário' : 'Novo usuário'} subtitle={user ? user.email : 'Quem acessa o sistema e com qual papel.'} icon={<Icon name="user" />}
+    onClose={onClose} onSubmit={submit} submitting={submitting} submitLabel={user ? 'Salvar alterações' : 'Criar usuário'} error={apiError} invalidAttempt={validation.invalidAttempt}>
+    <div className="fm-row">
+      <TextField label="Nome" required value={name} maxLength={150} autoComplete="off" error={validation.errorFor('name')}
+        onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event)} />
+      <TextField label="E-mail" required type="email" value={email} maxLength={150} autoComplete="off" error={validation.errorFor('email')}
+        onChange={(event) => setEmail(event.target.value)} onBlur={(event) => validation.touch('email', event)} />
+    </div>
+    {!user && <>
+      <PasswordField label="Senha inicial" required className="fm-half" value={password} autoComplete="new-password" hint={`Mínimo de ${PASSWORD_MIN_LENGTH} caracteres.`}
+        error={createValidation.errorFor('password')} onChange={(event) => setPassword(event.target.value)} onBlur={(event) => createValidation.touch('password', event)} />
+      <FieldGroup label="Papel" required error={createValidation.errorFor('roleId')} hint="O usuário nasce ativo; ativar ou desativar fica só na edição.">
+        <div className="fm-choices" role="radiogroup" aria-label="Papel">
+          {roles.map((role) => <ChoiceCard key={role.id} type="radio" name="user-role" value={role.id} title={role.name} description={role.description ?? undefined}
+            checked={roleId === role.id} onChange={() => setRoleId(role.id)} aria-invalid={createValidation.errorFor('roleId') ? true : undefined} />)}
+        </div>
+      </FieldGroup>
+    </>}
+    {user && <Switch label="Usuário ativo" description="Usuários inativos não conseguem entrar no sistema." checked={active} onChange={setActive} />}
+  </FormModal>
 }

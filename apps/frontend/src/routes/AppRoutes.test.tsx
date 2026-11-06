@@ -9,8 +9,6 @@ const { authState, pageFailure } = vi.hoisted(() => ({ pageFailure: { roles: fal
 vi.mock('../contexts/useAuth', () => ({ useAuth: () => authState }))
 vi.mock('../pages/UsersListPage', () => ({ UsersListPage: () => <h1>Página de Usuários</h1> }))
 vi.mock('../pages/RolesListPage', () => ({ RolesListPage: () => { if (pageFailure.roles) throw new Error('falha de renderização'); return <h1>Página de Papéis</h1> } }))
-vi.mock('../pages/UserFormPage', () => ({ UserFormPage: () => <h1>Formulário de Usuário</h1> }))
-vi.mock('../pages/RoleFormPage', () => ({ RoleFormPage: () => <h1>Formulário de Papel</h1> }))
 vi.mock('../pages/EventsListPage', () => ({ EventsListPage: () => <h1>Página de Eventos</h1> }))
 vi.mock('../pages/LoginPage', () => ({ LoginPage: () => <h1>Login</h1> }))
 vi.mock('../pages/ChangePasswordPage', () => ({ ChangePasswordPage: () => <h1>Trocar senha</h1> }))

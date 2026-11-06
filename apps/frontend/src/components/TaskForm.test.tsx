@@ -23,6 +23,7 @@ const teams = [team('team-1', 'Equipe Cozinha A'), team('team-2', 'Equipe Bar'),
 const allocation = (teamId: string) => ({ eventId: 'event-1', teamId, assignedAt: '', assignedById: 'a' })
 const task = (overrides: Partial<Task> = {}): Task => ({ id: 'task-1', eventId: 'event-1', title: 'Confirmar decoração', description: 'Detalhes', dueDate: null, status: 'PENDENTE', assignedTeamId: null, assignedAt: null, sourceRuleId: null, createdAt: '', updatedAt: '', deletedAt: null, ...overrides })
 
+const save = () => fireEvent.click(screen.getByRole('button', { name: /^Salvar (tarefa|alterações)$/ }))
 const setup = (props: Partial<Parameters<typeof TaskForm>[0]> = {}) => {
   const onClose = vi.fn(); const onSaved = vi.fn()
   render(<TaskForm events={events} teams={teams} onClose={onClose} onSaved={onSaved} {...props} />)
@@ -46,20 +47,30 @@ describe('TaskForm', () => {
 
   it('exige evento e título antes de chamar a API', async () => {
     setup()
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    save()
     expect(await screen.findByText('Selecione o evento.')).toBeInTheDocument()
+    expect(screen.getByText('Informe o título da tarefa.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Evento')).toHaveFocus()
     fireEvent.change(screen.getByLabelText('Evento'), { target: { value: 'event-1' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    save()
     expect(await screen.findByText('Informe o título da tarefa.')).toBeInTheDocument()
     expect(createTask).not.toHaveBeenCalled()
+  })
+
+  it('mostra o sucesso só quando algo foi salvo', async () => {
+    vi.mocked(createTask).mockResolvedValue(task())
+    const { onSaved } = setup({ defaultEventId: 'event-1' })
+    fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Montar mesas' } })
+    save()
+    await waitFor(() => expect(onSaved).toHaveBeenCalled())
   })
 
   it('rejeita título acima de 150 caracteres', async () => {
     setup()
     fireEvent.change(screen.getByLabelText('Evento'), { target: { value: 'event-1' } })
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'a'.repeat(151) } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
-    expect(await screen.findByText('O título deve ter no máximo 150 caracteres.')).toBeInTheDocument()
+    save()
+    expect(await screen.findByText('Use no máximo 150 caracteres.')).toBeInTheDocument()
     expect(createTask).not.toHaveBeenCalled()
   })
 
@@ -106,7 +117,7 @@ describe('TaskForm', () => {
     fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: '' } })
     fireEvent.change(screen.getByLabelText('Prazo'), { target: { value: '2026-11-08' } })
     fireEvent.change(screen.getByLabelText('Equipe'), { target: { value: 'team-1' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    save()
 
     await waitFor(() => expect(createTask).toHaveBeenCalledTimes(1))
     const payload = vi.mocked(createTask).mock.calls[0][0]
@@ -122,7 +133,7 @@ describe('TaskForm', () => {
     vi.mocked(createTask).mockRejectedValue(new AxiosError('Request failed', 'ERR_BAD_REQUEST', undefined, undefined, { status: 400, data: { message: 'Aloque a equipe ao evento antes de atribuí-la à tarefa' } } as never))
     const { onSaved } = setup({ defaultEventId: 'event-1' })
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Montar mesas' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    save()
     expect(await screen.findByRole('alert')).toHaveTextContent('Aloque a equipe ao evento antes de atribuí-la à tarefa')
     expect(onSaved).not.toHaveBeenCalled()
   })
@@ -133,7 +144,7 @@ describe('TaskForm', () => {
     expect(screen.getByLabelText('Evento')).toBeDisabled()
     await screen.findByRole('option', { name: 'Equipe Cozinha A' })
     fireEvent.change(screen.getByLabelText('Equipe'), { target: { value: '' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    save()
     await waitFor(() => expect(updateTask).toHaveBeenCalledWith('task-1', { assignedTeamId: null }))
     expect(onSaved).toHaveBeenCalled()
   })
@@ -141,13 +152,15 @@ describe('TaskForm', () => {
   it('não altera o título de tarefa gerada por regra e explica o motivo', async () => {
     setup({ task: task({ sourceRuleId: 'rule-1' }) })
     expect(screen.getByLabelText('Título')).toBeDisabled()
-    expect(screen.getByText('Título gerado por regra não pode ser alterado')).toBeInTheDocument()
+    expect(screen.getByText('Tarefa gerada por regra: o evento e o título não podem ser alterados.')).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Editar tarefa' })).toHaveTextContent('Casamento Ana')
+    expect(screen.getByText('Pendente')).toBeInTheDocument()
   })
 
   it('fecha sem chamar a API quando nada mudou', async () => {
     const { onClose } = setup({ task: task() })
     await waitFor(() => expect(listTeamsByEvent).toHaveBeenCalled())
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    save()
     await waitFor(() => expect(onClose).toHaveBeenCalled())
     expect(updateTask).not.toHaveBeenCalled()
   })

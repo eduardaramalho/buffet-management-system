@@ -1,9 +1,14 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { getApiErrorMessage } from '../api/apiError'
 import { createTask, updateTask } from '../api/tasksApi'
 import { listTeamsByEvent } from '../api/teamsApi'
-import { Button } from './Button'
-import { Notice } from './Notice'
+import { useToast } from '../contexts/toast'
+import { useFormValidation } from '../hooks/useFormValidation'
+import { TASK_STATUS_LABELS } from '../utils/labels'
+import { taskFormSchema } from '../validation/taskSchema'
+import { Icon } from './Icon'
+import { FormModal } from './form/FormModal'
+import { SelectField, TextAreaField, TextField } from './form/TextField'
 import { TASK_TITLE_MAX_LENGTH } from '../types/task'
 import type { Task, UpdateTaskInput } from '../types/task'
 import type { Event } from '../types/event'
@@ -19,7 +24,6 @@ type TaskFormProps = {
 }
 
 const TERMINAL_EVENT_STATUSES: Event['status'][] = ['CONCLUIDO', 'CANCELADO']
-const GENERATED_TITLE_HINT = 'Título gerado por regra não pode ser alterado'
 
 // <input type="date"> trabalha com "yyyy-mm-dd" no fuso local; o prazo vai à API como instante ISO ao meio-dia local,
 // o que evita que o dia mude por conversão de fuso.
@@ -31,6 +35,7 @@ const toDateInput = (value?: string | null) => {
 const fromDateInput = (value: string) => new Date(`${value}T12:00:00`).toISOString()
 
 export function TaskForm({ task, events, teams, defaultEventId, onClose, onSaved }: TaskFormProps) {
+  const toast = useToast()
   const [eventId, setEventId] = useState(task?.eventId ?? defaultEventId ?? '')
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
@@ -38,12 +43,13 @@ export function TaskForm({ task, events, teams, defaultEventId, onClose, onSaved
   const [assignedTeamId, setAssignedTeamId] = useState(task?.assignedTeamId ?? '')
   // Guarda também o evento a que as equipes pertencem: trocar de evento invalida o resultado anterior sem setState no efeito.
   const [allocations, setAllocations] = useState<{ eventId: string; teamIds: string[] }>()
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [apiError, setApiError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  const selectableEvents = task ? events.filter((event) => event.id === task.eventId) : events.filter((event) => !TERMINAL_EVENT_STATUSES.includes(event.status))
   const isGenerated = Boolean(task?.sourceRuleId)
-
+  const validation = useFormValidation(taskFormSchema(isGenerated), { eventId, title, description, dueDate, assignedTeamId })
+  const selectableEvents = task ? events.filter((event) => event.id === task.eventId) : events.filter((event) => !TERMINAL_EVENT_STATUSES.includes(event.status))
+  const taskEvent = events.find((event) => event.id === task?.eventId)
   const allocatedTeamIds = allocations?.eventId === eventId ? allocations.teamIds : null
 
   useEffect(() => {
@@ -51,7 +57,7 @@ export function TaskForm({ task, events, teams, defaultEventId, onClose, onSaved
     let cancelled = false
     listTeamsByEvent(eventId)
       .then((result) => { if (!cancelled) setAllocations({ eventId, teamIds: result.map((allocation) => allocation.teamId) }) })
-      .catch((cause) => { if (!cancelled) { setAllocations({ eventId, teamIds: [] }); setError(getApiErrorMessage(cause, 'Não foi possível carregar as equipes do evento')) } })
+      .catch((cause) => { if (!cancelled) { setAllocations({ eventId, teamIds: [] }); setApiError(getApiErrorMessage(cause, 'Não foi possível carregar as equipes do evento')) } })
     return () => { cancelled = true }
   }, [eventId])
 
@@ -60,15 +66,6 @@ export function TaskForm({ task, events, teams, defaultEventId, onClose, onSaved
   const noAllocatedTeams = Boolean(eventId) && allocatedTeamIds !== null && !assignableTeams.some((team) => team.id !== task?.assignedTeamId)
 
   const changeEvent = (value: string) => { setEventId(value); setAssignedTeamId('') }
-
-  const validate = () => {
-    if (!task && !eventId) return 'Selecione o evento.'
-    if (!isGenerated) {
-      if (!title.trim()) return 'Informe o título da tarefa.'
-      if (title.trim().length > TASK_TITLE_MAX_LENGTH) return `O título deve ter no máximo ${TASK_TITLE_MAX_LENGTH} caracteres.`
-    }
-    return ''
-  }
 
   const buildChanges = (current: Task): UpdateTaskInput => {
     const changes: UpdateTaskInput = {}
@@ -79,51 +76,59 @@ export function TaskForm({ task, events, teams, defaultEventId, onClose, onSaved
     return changes
   }
 
-  const submit = async (formEvent: FormEvent) => {
-    formEvent.preventDefault(); setError('')
-    const validationError = validate()
-    if (validationError) return setError(validationError)
-    setLoading(true)
-    try {
-      if (task) {
-        const changes = buildChanges(task)
-        if (Object.keys(changes).length === 0) return onClose()
-        onSaved(await updateTask(task.id, changes))
-      } else {
-        onSaved(await createTask({
-          eventId,
-          title: title.trim(),
-          description: description.trim() || undefined,
-          dueDate: dueDate ? fromDateInput(dueDate) : undefined,
-          assignedTeamId: assignedTeamId || undefined,
-        }))
-      }
-      onClose()
-    } catch (cause) { setError(getApiErrorMessage(cause, 'Não foi possível salvar a tarefa')) } finally { setLoading(false) }
+  const save = async (): Promise<Task | null> => {
+    if (task) {
+      const changes = buildChanges(task)
+      return Object.keys(changes).length === 0 ? null : updateTask(task.id, changes)
+    }
+    return createTask({
+      eventId,
+      title: title.trim(),
+      description: description.trim() || undefined,
+      dueDate: dueDate ? fromDateInput(dueDate) : undefined,
+      assignedTeamId: assignedTeamId || undefined,
+    })
   }
 
-  return <aside className="user-form-panel" role="dialog" aria-modal="true" aria-labelledby="task-form-title"><div className="form-wrap">
-    <button type="button" className="link-button" onClick={onClose}>Voltar</button>
-    <h2 id="task-form-title">{task ? 'Editar tarefa' : 'Nova tarefa'}</h2>
-    <form onSubmit={submit}>
-      <label>Evento<select aria-label="Evento" value={eventId} disabled={Boolean(task)} onChange={(event) => changeEvent(event.target.value)}>
+  const submit = async () => {
+    setApiError('')
+    if (!validation.submit()) return
+    setSubmitting(true)
+    try {
+      const saved = await save()
+      if (saved) {
+        toast.success(task ? 'Tarefa atualizada.' : 'Tarefa criada.')
+        onSaved(saved)
+      }
+      onClose()
+    } catch (cause) { setApiError(getApiErrorMessage(cause, 'Não foi possível salvar a tarefa')) } finally { setSubmitting(false) }
+  }
+
+  const subtitle = task && taskEvent
+    ? <>{taskEvent.name} · {new Date(taskEvent.eventDate).toLocaleDateString('pt-BR')} · <span className="fm-tag">{TASK_STATUS_LABELS[task.status]}</span></>
+    : 'Atividade a ser feita para um evento.'
+
+  return <FormModal title={task ? 'Editar tarefa' : 'Nova tarefa'} subtitle={subtitle} icon={<Icon name="tasks" />}
+    onClose={onClose} onSubmit={submit} submitting={submitting} submitLabel={task ? 'Salvar alterações' : 'Salvar tarefa'} error={apiError} invalidAttempt={validation.invalidAttempt}>
+    {isGenerated && <p className="fm-callout"><Icon name="lock" />Tarefa gerada por regra: o evento e o título não podem ser alterados.</p>}
+    <div className="fm-row">
+      <SelectField label="Evento" required value={eventId} disabled={Boolean(task)} error={validation.errorFor('eventId')}
+        onChange={(event) => changeEvent(event.target.value)} onBlur={(event) => validation.touch('eventId', event)}>
         <option value="">Selecione</option>
         {selectableEvents.map((event) => <option key={event.id} value={event.id}>{event.name}</option>)}
-      </select></label>
-      <label>Título<input aria-label="Título" value={title} maxLength={TASK_TITLE_MAX_LENGTH + 1} disabled={isGenerated} onChange={(event) => setTitle(event.target.value)} /></label>
-      {isGenerated && <p className="field-hint">{GENERATED_TITLE_HINT}</p>}
-      <label>Descrição<textarea aria-label="Descrição" value={description} onChange={(event) => setDescription(event.target.value)} /></label>
-      <label>Prazo<input aria-label="Prazo" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></label>
-      <label>Equipe<select aria-label="Equipe" value={assignedTeamId} disabled={!eventId || allocatedTeamIds === null} onChange={(event) => setAssignedTeamId(event.target.value)}>
+      </SelectField>
+      <TextField label="Título" required value={title} maxLength={TASK_TITLE_MAX_LENGTH} disabled={isGenerated} error={validation.errorFor('title')}
+        onChange={(event) => setTitle(event.target.value)} onBlur={(event) => validation.touch('title', event)} />
+    </div>
+    <TextAreaField label="Descrição" optional value={description} placeholder="Detalhes para a equipe" onChange={(event) => setDescription(event.target.value)} />
+    <div className="fm-row">
+      <TextField label="Prazo" optional type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+      <SelectField label="Equipe" optional value={assignedTeamId} disabled={!eventId || allocatedTeamIds === null}
+        hint={noAllocatedTeams ? 'Nenhuma equipe ativa alocada a este evento.' : 'Só equipes ativas alocadas a este evento.'}
+        onChange={(event) => setAssignedTeamId(event.target.value)}>
         <option value="">Sem equipe</option>
         {assignableTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
-      </select></label>
-      {noAllocatedTeams && <p className="field-hint">Nenhuma equipe ativa alocada a este evento.</p>}
-      {error && <Notice message={error} error />}
-      <div className="form-actions">
-        <Button type="button" className="ghost" onClick={onClose}>Cancelar</Button>
-        <Button type="submit" className="primary" disabled={loading}>{loading ? 'Salvando...' : 'Salvar'}</Button>
-      </div>
-    </form>
-  </div></aside>
+      </SelectField>
+    </div>
+  </FormModal>
 }

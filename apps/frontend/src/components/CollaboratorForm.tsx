@@ -1,32 +1,72 @@
-import { useState, type FormEvent } from 'react'
-import { createCollaborator, setCollaboratorActive, updateCollaborator } from '../api/collaboratorsApi'
+import { useEffect, useMemo, useState } from 'react'
+import { createCollaborator, listCollaborators, setCollaboratorActive, updateCollaborator } from '../api/collaboratorsApi'
 import { getApiErrorMessage } from '../api/apiError'
-import { Button } from './Button'
-import { Notice } from './Notice'
+import { useToast } from '../contexts/toast'
+import { useFormValidation } from '../hooks/useFormValidation'
+import { initials } from '../utils/initials'
+import { maskPhone } from '../utils/masks'
+import { collaboratorFormSchema } from '../validation/collaboratorSchema'
+import { Icon } from './Icon'
+import { FormModal } from './form/FormModal'
+import { MaskedField } from './form/MaskedField'
+import { Switch } from './form/Switch'
+import { TextField } from './form/TextField'
 import type { Collaborator } from '../types/collaborator'
 
 type CollaboratorFormProps = { collaborator?: Collaborator; onClose: () => void; onCreated: (collaborator: Collaborator) => void; onUpdated: (collaborator: Collaborator) => void }
+const POSITION_SUGGESTIONS = 6
+
+/** Cargos mais usados no cadastro, para padronizar a escrita (ex.: sempre "Garçom", e não "garcom"). */
+const mostUsedPositions = (collaborators: Collaborator[]) => {
+  const counts = new Map<string, number>()
+  for (const { position } of collaborators) counts.set(position, (counts.get(position) ?? 0) + 1)
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, POSITION_SUGGESTIONS).map(([position]) => position)
+}
+
 export function CollaboratorForm({ collaborator, onClose, onCreated, onUpdated }: CollaboratorFormProps) {
+  const toast = useToast()
   const [name, setName] = useState(collaborator?.name ?? '')
-  const [phone, setPhone] = useState(collaborator?.phone ?? '')
+  const [phone, setPhone] = useState(collaborator?.phone ? maskPhone(collaborator.phone) : '')
   const [position, setPosition] = useState(collaborator?.position ?? '')
   const [active, setActive] = useState(collaborator ? collaborator.status === 'ATIVO' : true)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [known, setKnown] = useState<Collaborator[]>([])
+  const [apiError, setApiError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const validation = useFormValidation(collaboratorFormSchema, { name, phone, position })
 
-  const submit = async (formEvent: FormEvent) => {
-    formEvent.preventDefault(); setError('')
-    if (!name.trim()) return setError('Informe o nome do colaborador.')
-    if (!position.trim()) return setError('Informe a função do colaborador.')
-    setLoading(true)
+  // As sugestões são só uma ajuda: se a lista não carregar, o campo continua livre.
+  useEffect(() => { void listCollaborators().then(setKnown).catch(() => setKnown([])) }, [])
+  const suggestions = useMemo(() => mostUsedPositions(known).filter((item) => item !== position.trim()), [known, position])
+
+  const submit = async () => {
+    setApiError('')
+    if (!validation.submit()) return
+    setSubmitting(true)
     try {
       const input = { name: name.trim(), phone: phone.trim() || null, position: position.trim() }
       let saved = collaborator ? await updateCollaborator(collaborator.id, input) : await createCollaborator(input)
       if (collaborator && active !== (collaborator.status === 'ATIVO')) saved = await setCollaboratorActive(collaborator.id, active)
-      collaborator ? onUpdated(saved) : onCreated(saved)
+      toast.success(collaborator ? 'Colaborador atualizado.' : 'Colaborador cadastrado.')
+      if (collaborator) onUpdated(saved)
+      else onCreated(saved)
       onClose()
-    } catch (cause) { setError(getApiErrorMessage(cause, 'Não foi possível salvar o colaborador')) } finally { setLoading(false) }
+    } catch (cause) { setApiError(getApiErrorMessage(cause, 'Não foi possível salvar o colaborador')) } finally { setSubmitting(false) }
   }
 
-  return <aside className="user-form-panel" role="dialog" aria-modal="true" aria-labelledby="collaborator-form-title"><div className="form-wrap"><button type="button" className="link-button" onClick={onClose}>Voltar</button><h2 id="collaborator-form-title">{collaborator ? 'Editar colaborador' : 'Novo colaborador'}</h2><form onSubmit={submit}><label>Nome<input aria-label="Nome" value={name} onChange={(event) => setName(event.target.value)} /></label><label>Telefone<input aria-label="Telefone" value={phone ?? ''} onChange={(event) => setPhone(event.target.value)} /></label><label>Função<input aria-label="Função" value={position} onChange={(event) => setPosition(event.target.value)} /></label>{collaborator && <label><input type="checkbox" aria-label="Colaborador ativo" checked={active} onChange={(event) => setActive(event.target.checked)} /> Colaborador ativo</label>}{error && <Notice message={error} error />}<div className="form-actions"><Button type="button" className="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" className="primary" disabled={loading}>{loading ? 'Salvando...' : 'Salvar'}</Button></div></form></div></aside>
+  return <FormModal title={collaborator ? 'Editar colaborador' : 'Novo colaborador'} subtitle={collaborator ? collaborator.name : 'Pessoa da operação que pode compor equipes.'}
+    icon={collaborator ? initials(collaborator.name) : <Icon name="user" />} roundIcon={Boolean(collaborator)}
+    onClose={onClose} onSubmit={submit} submitting={submitting} submitLabel={collaborator ? 'Salvar alterações' : 'Salvar colaborador'} error={apiError} invalidAttempt={validation.invalidAttempt}>
+    <div className="fm-row">
+      <TextField label="Nome" required value={name} maxLength={150} error={validation.errorFor('name')}
+        onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event)} />
+      <TextField label="Cargo" required value={position} maxLength={100} placeholder="Ex.: Garçom" error={validation.errorFor('position')}
+        hint="Aparece ao lado do nome na montagem das equipes." onChange={(event) => setPosition(event.target.value)} onBlur={(event) => validation.touch('position', event)} />
+    </div>
+    {suggestions.length > 0 && <div className="fm-chips" role="group" aria-label="Cargos já usados">
+      {suggestions.map((item) => <button key={item} type="button" className="fm-chip-btn" aria-label={`Usar o cargo ${item}`} onClick={() => setPosition(item)}>{item}</button>)}
+    </div>}
+    <MaskedField label="Telefone" optional className="fm-half" value={phone} mask={maskPhone} placeholder="(47) 99999-9999" inputMode="tel"
+      error={validation.errorFor('phone')} onValueChange={setPhone} onBlur={(event) => validation.touch('phone', event)} />
+    {collaborator && <Switch label="Colaborador ativo" description="Inativos não aparecem na busca de membros." checked={active} onChange={setActive} />}
+  </FormModal>
 }

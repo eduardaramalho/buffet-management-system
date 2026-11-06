@@ -47,6 +47,34 @@ describe('UsersListPage creation flow', () => {
 
     expect(createUser).not.toHaveBeenCalled()
     expect(screen.getByLabelText('Nome')).toBeInvalid()
+    expect(screen.getByText('Informe o nome.')).toBeInTheDocument()
+    expect(screen.getByText('Selecione o papel do usuário.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Nome')).toHaveFocus()
+  })
+
+  it('requires a minimum password length, like the API', async () => {
+    renderPage()
+    await userEvent.click(screen.getByRole('button', { name: 'Novo usuário' }))
+    await userEvent.type(screen.getByLabelText('Senha inicial'), 'curta')
+    await userEvent.tab()
+
+    expect(screen.getByText('A senha precisa ter pelo menos 8 caracteres.')).toBeInTheDocument()
+  })
+
+  it('updates the user and its active status from the edit form', async () => {
+    const user = { id: 'user-1', name: 'Alice', email: 'alice@example.com', isActive: true, roles: [{ role: { id: 'role-1', name: 'Operador' } }] }
+    listUsers.mockResolvedValue([user])
+    updateUser.mockResolvedValue(user)
+    setUserActive.mockResolvedValue({ ...user, isActive: false })
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar Alice' }))
+    expect(screen.queryByLabelText('Senha inicial')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('switch', { name: /Usuário ativo/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+
+    expect(updateUser).toHaveBeenCalledWith('user-1', { name: 'Alice', email: 'alice@example.com' })
+    expect(setUserActive).toHaveBeenCalledWith('user-1', false)
+    expect(await screen.findByText('Inativo')).toBeInTheDocument()
   })
 
   it('creates a user and refreshes the list without reloading the page', async () => {
@@ -54,7 +82,7 @@ describe('UsersListPage creation flow', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Novo usuário' }))
     await userEvent.type(screen.getByLabelText('Nome'), 'Alice')
     await userEvent.type(screen.getByLabelText('E-mail'), 'alice@example.com')
-    await userEvent.selectOptions(screen.getByLabelText('Papel'), 'role-1')
+    await userEvent.click(await screen.findByRole('radio', { name: 'Administrador' }))
     await userEvent.type(screen.getByLabelText('Senha inicial'), 'secret123')
     await userEvent.click(screen.getByRole('button', { name: 'Criar usuário' }))
 
@@ -68,7 +96,7 @@ describe('UsersListPage creation flow', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Novo usuário' }))
     await userEvent.type(screen.getByLabelText('Nome'), 'Alice')
     await userEvent.type(screen.getByLabelText('E-mail'), 'alice@example.com')
-    await userEvent.selectOptions(screen.getByLabelText('Papel'), 'role-1')
+    await userEvent.click(await screen.findByRole('radio', { name: 'Administrador' }))
     await userEvent.type(screen.getByLabelText('Senha inicial'), 'secret123')
     await userEvent.click(screen.getByRole('button', { name: 'Criar usuário' }))
 

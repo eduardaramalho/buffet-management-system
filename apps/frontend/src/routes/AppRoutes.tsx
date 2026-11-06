@@ -4,9 +4,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth'
 import { ChangePasswordPage } from '../pages/ChangePasswordPage'
 import { LoginPage } from '../pages/LoginPage'
-import { RoleFormPage } from '../pages/RoleFormPage'
 import { RolesListPage } from '../pages/RolesListPage'
-import { UserFormPage } from '../pages/UserFormPage'
 import { UsersListPage } from '../pages/UsersListPage'
 import { EventsListPage } from '../pages/EventsListPage'
 import { TeamsListPage } from '../pages/TeamsListPage'
@@ -36,8 +34,6 @@ export function AppRoutes() {
 		<Route element={<ProtectedRoute />}>
 			<Route path="/" element={<ProtectedRoute permission="dashboard:view">{withNavigation(<DashboardPage />)}</ProtectedRoute>} />
 			<Route path="/users" element={<ProtectedRoute permission="users:list">{withNavigation(<UsersListPage />)}</ProtectedRoute>} />
-			<Route path="/users/new" element={<ProtectedRoute permission="users:create">{withNavigation(<UserFormPage />)}</ProtectedRoute>} />
-			<Route path="/users/:id/edit" element={<ProtectedRoute permission="users:update">{withNavigation(<UserFormPage />)}</ProtectedRoute>} />
 			<Route path="/events" element={<ProtectedRoute permission="events:list">{withNavigation(<EventsListPage />)}</ProtectedRoute>} />
 			<Route path="/events/:id" element={<ProtectedRoute permission="events:read">{withNavigation(<EventDetailsPage />)}</ProtectedRoute>} />
 			<Route path="/teams" element={<ProtectedRoute permission="teams:list">{withNavigation(<TeamsListPage />)}</ProtectedRoute>} />
@@ -48,8 +44,6 @@ export function AppRoutes() {
 			<Route path="/tasks" element={<ProtectedRoute permission="tasks:list">{withNavigation(<TasksBoardPage />)}</ProtectedRoute>} />
 			<Route path="/reports" element={<ProtectedRoute permission="reports:view">{withNavigation(<ReportsPage />)}</ProtectedRoute>} />
 			<Route path="/roles" element={<ProtectedRoute permission="roles:list">{withNavigation(<RolesListPage />)}</ProtectedRoute>} />
-			<Route path="/roles/new" element={<ProtectedRoute permission="roles:create">{withNavigation(<RoleFormPage />)}</ProtectedRoute>} />
-			<Route path="/roles/:id" element={<ProtectedRoute permission="roles:update">{withNavigation(<RoleFormPage />)}</ProtectedRoute>} />
 			<Route path={NO_ACCESS_PATH} element={withNavigation(<NoAccessPage />)} />
 		</Route>
 		<Route path="*" element={<Navigate to={user ? getHomePath(user) : '/login'} replace />} />

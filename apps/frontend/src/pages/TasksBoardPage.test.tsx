@@ -191,7 +191,7 @@ describe('TasksBoardPage', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Nova tarefa' }))
       fireEvent.change(screen.getByLabelText('Evento'), { target: { value: 'event-1' } })
       fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Montar mesas' } })
-      fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Salvar tarefa' }))
       await waitFor(() => expect(createTask).toHaveBeenCalledWith(expect.objectContaining({ eventId: 'event-1', title: 'Montar mesas' })))
       expect(within(await screen.findByRole('region', { name: 'Pendente' })).getByText('Montar mesas')).toBeInTheDocument()
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -203,7 +203,7 @@ describe('TasksBoardPage', () => {
       render(<TasksBoardPage />)
       fireEvent.click(await screen.findByRole('button', { name: 'Editar Confirmar decoração' }))
       fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: 'Nova descrição' } })
-      fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }))
       await waitFor(() => expect(updateTask).toHaveBeenCalledWith('task-1', { description: 'Nova descrição' }))
     })
 
