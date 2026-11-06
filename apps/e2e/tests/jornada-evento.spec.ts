@@ -64,7 +64,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     const dialog = page.getByRole('dialog', { name: 'Novo usuário' })
     await dialog.getByLabel('Nome').fill(data.manager.name)
     await dialog.getByLabel('E-mail').fill(data.manager.email)
-    await selectWhenLoaded(dialog.getByLabel('Papel'), data.manager.role)
+    await dialog.getByRole('radio', { name: data.manager.role, exact: true }).check()
     await dialog.getByLabel('Senha inicial').fill(data.manager.password)
     await dialog.getByRole('button', { name: 'Criar usuário' }).click()
     await expect(dialog).toBeHidden()
@@ -134,14 +134,21 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await dialog.getByLabel('Nome da equipe').fill(kitchenTeam.name)
     await dialog.getByLabel('Especialidade').selectOption({ label: kitchenTeam.specialty })
 
-    await dialog.getByRole('button', { name: '+ Novo colaborador' }).click()
+    // Modal em seções: os membros ficam na segunda seção.
+    await dialog.getByRole('button', { name: /Membros e líder/ }).click()
+    await dialog.getByRole('button', { name: 'Cadastrar novo colaborador' }).click()
     const collaboratorDialog = page.getByRole('dialog', { name: 'Novo colaborador' })
     await collaboratorDialog.getByLabel('Nome', { exact: true }).fill(kitchenTeam.collaborator.name)
-    await collaboratorDialog.getByLabel('Função').fill(kitchenTeam.collaborator.position)
-    await collaboratorDialog.getByRole('button', { name: 'Salvar' }).click()
+    await collaboratorDialog.getByLabel('Cargo', { exact: true }).fill(kitchenTeam.collaborator.position)
+    await collaboratorDialog.getByRole('button', { name: 'Salvar colaborador' }).click()
     await expect(collaboratorDialog).toBeHidden()
-    // O colaborador recém-criado já entra selecionado como membro.
-    await expect(dialog.getByRole('checkbox', { name: kitchenTeam.collaborator.name })).toBeChecked()
+    // O colaborador recém-criado já entra como membro, com o cargo ao lado do nome.
+    const members = dialog.getByRole('list', { name: 'Membros da equipe' })
+    await expect(members).toContainText(kitchenTeam.collaborator.name)
+    await expect(members).toContainText(kitchenTeam.collaborator.position)
+    // Líder único: um só controle, que lista apenas os membros.
+    await dialog.getByLabel('Líder da equipe').selectOption({ label: `${kitchenTeam.collaborator.name} · ${kitchenTeam.collaborator.position}` })
+    await expect(dialog.getByText(`${kitchenTeam.collaborator.position} · Líder da equipe`)).toBeVisible()
 
     await dialog.getByRole('button', { name: 'Salvar' }).click()
     await expect(dialog).toBeHidden()
@@ -165,7 +172,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
 
     // Papéis criados pelo seed: o RBAC é por permissão, e cada papel tem a sua matriz.
     await navigateTo(page, 'Papéis e permissões', 'Papéis')
-    for (const role of ['admin', 'gestor', 'colaborador']) await expect(page.getByRole('link', { name: role, exact: true })).toBeVisible()
+    for (const role of ['admin', 'gestor', 'colaborador']) await expect(page.getByRole('cell', { name: role, exact: true })).toBeVisible()
   })
 
   test('7. criação de regra no motor de regras', async () => {
@@ -174,16 +181,20 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await page.getByRole('button', { name: 'Nova regra' }).click()
     const dialog = page.getByRole('dialog', { name: 'Nova regra' })
     await dialog.getByLabel('Nome da regra').fill(rule.name)
+    await dialog.getByRole('button', { name: /Condições/ }).click()
     await dialog.getByRole('checkbox', { name: rule.eventType, exact: true }).check()
     await dialog.getByLabel('Mínimo de convidados').fill(String(rule.minGuests))
+    await dialog.getByRole('button', { name: /Tarefas geradas/ }).click()
     for (const [index, task] of rule.tasks.entries()) {
-      await dialog.getByRole('button', { name: '+ Adicionar tarefa' }).click()
+      await dialog.getByRole('button', { name: 'Adicionar tarefa' }).click()
       await dialog.getByLabel(`Título da tarefa ${index + 1}`).fill(task.title)
       await dialog.getByLabel(`Dias antes do evento ${index + 1}`).fill(String(task.daysBefore))
     }
-    await dialog.getByRole('button', { name: '+ Adicionar recurso' }).click()
+    await dialog.getByRole('button', { name: /Recursos exigidos/ }).click()
+    await dialog.getByRole('button', { name: 'Adicionar recurso' }).click()
     await dialog.getByLabel('Especialidade 1').selectOption({ label: rule.specialty })
     // RFC 3.1 (ADR 0010): each generated task goes to the allocated team of this specialty.
+    await dialog.getByRole('button', { name: /Tarefas geradas/ }).click()
     for (const index of rule.tasks.keys()) await dialog.getByLabel(`Equipe responsável ${index + 1}`).selectOption({ label: rule.specialty })
     await dialog.getByRole('button', { name: 'Salvar' }).click()
     await expect(dialog).toBeHidden()
@@ -201,13 +212,15 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     const { event } = data
     await navigateTo(page, 'Eventos', 'Eventos')
     await page.getByRole('button', { name: 'Novo Evento' }).click()
-    const dialog = page.getByRole('dialog', { name: 'Novo Evento' })
+    const dialog = page.getByRole('dialog', { name: 'Novo evento' })
     await selectWhenLoaded(dialog.getByLabel('Cliente'), data.client.name)
     await dialog.getByLabel('Nome do evento').fill(event.name)
-    await dialog.getByLabel('Data do evento').fill(toDateTimeLocal(event.date))
-    await dialog.getByLabel('Local').fill(event.location)
+    await dialog.getByLabel('Data e hora').fill(toDateTimeLocal(event.date))
     await dialog.getByLabel('Tipo de evento').selectOption({ label: event.type })
-    await dialog.getByLabel('Número de convidados').fill(String(event.guests))
+    await dialog.getByRole('button', { name: 'Próxima seção' }).click()
+    await dialog.getByLabel('Local', { exact: true }).fill(event.location)
+    await dialog.getByLabel('Convidados', { exact: true }).fill(String(event.guests))
+    await dialog.getByRole('button', { name: /^Serviços/ }).click()
     await dialog.getByRole('checkbox', { name: data.service }).check()
     // RF06: serviço excluído não é mais oferecido para novos eventos.
     await expect(dialog.getByRole('checkbox', { name: data.retiredService.renamed })).toHaveCount(0)
@@ -219,8 +232,9 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await page.getByRole('button', { name: `Editar ${event.name}` }).click()
     const editDialog = page.getByRole('dialog', { name: 'Editar evento' })
     // A edição precisa mostrar o mesmo horário cadastrado (sem conversão para UTC).
-    await expect(editDialog.getByLabel('Data do evento')).toHaveValue(toDateTimeLocal(event.date))
-    await selectWhenLoaded(editDialog.getByLabel('Equipe para adicionar'), data.kitchenTeam.name)
+    await expect(editDialog.getByLabel('Data e hora')).toHaveValue(toDateTimeLocal(event.date))
+    await editDialog.getByRole('button', { name: /^Equipes/ }).click()
+    await selectWhenLoaded(editDialog.getByLabel('Equipe para vincular'), data.kitchenTeam.name)
     await editDialog.getByRole('button', { name: 'Vincular equipe' }).click()
     await expect(editDialog.getByRole('button', { name: `Desvincular ${data.kitchenTeam.name}` })).toBeVisible()
     await editDialog.getByRole('button', { name: 'Cancelar' }).click()
