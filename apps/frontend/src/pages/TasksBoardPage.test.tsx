@@ -150,6 +150,23 @@ describe('TasksBoardPage', () => {
     expect(screen.getByText('Atrasadas').previousElementSibling).toHaveTextContent('1')
   })
 
+  // RFC 3.1.1: a sequência de execução vem do prazo de cada tarefa.
+  it('orders each column by deadline, with tasks without a deadline last', async () => {
+    vi.mocked(listTasks).mockResolvedValue([
+      task({ id: 'task-1', title: 'Sem prazo', dueDate: null }),
+      task({ id: 'task-2', title: 'Prazo depois', dueDate: '2026-11-09T12:00:00.000Z' }),
+      task({ id: 'task-3', title: 'Prazo antes', dueDate: '2026-11-05T12:00:00.000Z' }),
+    ])
+    vi.mocked(listEvents).mockResolvedValue([event])
+    vi.mocked(listTeams).mockResolvedValue([team])
+
+    render(<TasksBoardPage />)
+    await screen.findByText('Sem prazo')
+
+    const titles = within(screen.getByRole('region', { name: 'Pendente' })).getAllByRole('heading', { level: 4 }).map((heading) => heading.textContent)
+    expect(titles).toEqual(['Prazo antes', 'Prazo depois', 'Sem prazo'])
+  })
+
   it('shows a visual indicator for a task with no assigned team', async () => {
     vi.mocked(listTasks).mockResolvedValue([task({ id: 'task-1', title: 'Confirmar decoração', assignedTeamId: null })])
     vi.mocked(listEvents).mockResolvedValue([event])

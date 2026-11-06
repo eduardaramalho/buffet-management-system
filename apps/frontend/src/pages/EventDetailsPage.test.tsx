@@ -255,6 +255,21 @@ describe('EventDetailsPage: estados da Central do evento', () => {
     expect(screen.getAllByText(/Atrasada/)).toHaveLength(1)
   })
 
+  it('lista as tarefas na ordem de execução: prazo mais próximo primeiro e sem prazo no fim', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event())
+    mockReadyBlocks()
+    vi.mocked(listTasks).mockResolvedValue([
+      task({ id: 't1', title: 'Sem prazo', dueDate: null }),
+      task({ id: 't2', title: 'Prazo depois', dueDate: '2999-11-09T12:00:00.000Z' }),
+      task({ id: 't3', title: 'Prazo antes', dueDate: '2999-11-05T12:00:00.000Z' }),
+    ])
+    renderPage()
+
+    await screen.findByText('Sem prazo', { selector: 'strong' })
+    const titles = Array.from(document.querySelectorAll('.event-task-row strong')).map((title) => title.textContent)
+    expect(titles).toEqual(['Prazo antes', 'Prazo depois', 'Sem prazo'])
+  })
+
   it('pluraliza o alerta quando há várias tarefas sem equipe', async () => {
     vi.mocked(getEvent).mockResolvedValue(event())
     mockReadyBlocks()
