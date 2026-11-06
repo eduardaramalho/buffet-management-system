@@ -28,7 +28,7 @@ A RFC afirma, na Tabela 1, que a solução gera relatórios, e a seção 4 lista
 
 - A consulta SQL bruta não é verificada pelo compilador; os testes cobrem a montagem e o mapeamento, e a execução real é validada no MySQL local.
 - Uma nova dependência de runtime (`pdfkit`).
-- Tempo de atribuição limitado pelo modelo atual: o motor não atribui equipe à tarefa e `assignedAt` guarda só a última atribuição.
+- Tempo de atribuição limitado pelo modelo atual: `assignedAt` guarda só a última atribuição. Desde o ADR 0010, o motor atribui a equipe na criação da tarefa, então as tarefas geradas por regra entram na média com tempo próximo de zero.
 
 ## Alternativas descartadas
 

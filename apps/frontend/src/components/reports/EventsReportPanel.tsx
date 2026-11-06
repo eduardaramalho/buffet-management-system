@@ -36,7 +36,7 @@ export function EventsReportPanel({ period }: { period: ApiPeriod | null }) {
       <label>Status do evento<select value={filters.status} onChange={(event) => changeFilter({ status: event.target.value as Filters['status'] })}>
         <option value="">Todos</option>{EVENT_STATUSES.map((status) => <option key={status} value={status}>{EVENT_STATUS_LABELS[status]}</option>)}
       </select></label>
-      <label>Tipo de serviço<select value={filters.serviceType} onChange={(event) => changeFilter({ serviceType: event.target.value as Filters['serviceType'] })}>
+      <label>Tipo de evento<select value={filters.serviceType} onChange={(event) => changeFilter({ serviceType: event.target.value as Filters['serviceType'] })}>
         <option value="">Todos</option>{EVENT_TYPES.map((type) => <option key={type} value={type}>{EVENT_TYPE_LABELS[type]}</option>)}
       </select></label>
       {clients && <label>Cliente<select value={filters.clientId} onChange={(event) => changeFilter({ clientId: event.target.value })}>
@@ -54,7 +54,7 @@ export function EventsReportPanel({ period }: { period: ApiPeriod | null }) {
       </section>
       <div className="report-charts">
         <BarChart title="Eventos por status" items={EVENT_STATUSES.map((status) => ({ label: EVENT_STATUS_LABELS[status], value: data.summary.byStatus[status], color: EVENT_STATUS_COLORS[status] }))} />
-        <BarChart title="Eventos por tipo de serviço" items={EVENT_TYPES.map((type) => ({ label: EVENT_TYPE_LABELS[type], value: data.summary.byServiceType[type] }))} />
+        <BarChart title="Eventos por tipo" items={EVENT_TYPES.map((type) => ({ label: EVENT_TYPE_LABELS[type], value: data.summary.byServiceType[type] }))} />
       </div>
       <Table headers={['Data', 'Evento', 'Cliente', 'Tipo', 'Status', 'Convidados', 'Tarefas concluídas']}>{data.items.map((item) => <tr key={item.id}>
         <td>{formatDateTime(item.eventDate)}</td>

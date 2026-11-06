@@ -82,7 +82,7 @@ describe('EventForm', () => {
     fireEvent.change(await screen.findByLabelText('Nome do evento'), { target: { value: 'Novo evento' } })
     fireEvent.change(screen.getByLabelText('Data do evento'), { target: { value: '2026-10-10T15:00' } })
     fireEvent.change(screen.getByLabelText('Local'), { target: { value: 'Salao' } })
-    fireEvent.change(screen.getByLabelText('Tipo de serviço'), { target: { value: 'CASAMENTO' } })
+    fireEvent.change(screen.getByLabelText('Tipo de evento'), { target: { value: 'CASAMENTO' } })
     fireEvent.change(screen.getByLabelText('Número de convidados'), { target: { value: '50' } })
     await screen.findByRole('option', { name: 'Buffet Alegria Ltda' })
     fireEvent.change(screen.getByLabelText('Cliente'), { target: { value: 'client-2' } })
@@ -127,7 +127,7 @@ describe('EventForm', () => {
     fireEvent.change(await screen.findByLabelText('Nome do evento'), { target: { value: 'Novo evento' } })
     fireEvent.change(screen.getByLabelText('Data do evento'), { target: { value: '2026-10-10T15:00' } })
     fireEvent.change(screen.getByLabelText('Local'), { target: { value: 'Salao' } })
-    fireEvent.change(screen.getByLabelText('Tipo de serviço'), { target: { value: 'CASAMENTO' } })
+    fireEvent.change(screen.getByLabelText('Tipo de evento'), { target: { value: 'CASAMENTO' } })
     fireEvent.change(screen.getByLabelText('Número de convidados'), { target: { value: '50' } })
     fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
 
