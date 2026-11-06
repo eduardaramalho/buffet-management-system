@@ -12,7 +12,7 @@ import { TaskForm } from '../components/TaskForm'
 import { useAuth } from '../contexts/useAuth'
 import { StatCard } from '../components/StatCard'
 import { getTaskDestinations, TASK_STATUSES, TERMINAL_TASK_STATUSES } from '../types/task'
-import { isTaskOverdue } from '../utils/taskSchedule'
+import { isTaskOverdue, sortTasksBySchedule } from '../utils/taskSchedule'
 import type { Task, TaskStatus } from '../types/task'
 import type { Event } from '../types/event'
 import type { Team } from '../types/team'
@@ -118,7 +118,8 @@ export function TasksBoardPage() {
     return true
   }), [tasks, teamId, eventSearch, eventsById])
 
-  const columns = TASK_STATUSES.map((status) => ({ status, items: filteredTasks.filter((task) => task.status === status) }))
+  // Each column follows the execution order: earliest deadline first (RFC 3.1.1).
+  const columns = TASK_STATUSES.map((status) => ({ status, items: sortTasksBySchedule(filteredTasks.filter((task) => task.status === status)) }))
   const overdueCount = tasks.filter((task) => isTaskOverdue(task)).length
   const noTeamCount = tasks.filter((task) => !task.assignedTeamId && !TERMINAL_TASK_STATUSES.includes(task.status)).length
 
