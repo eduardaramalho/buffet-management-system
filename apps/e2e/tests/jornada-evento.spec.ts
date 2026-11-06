@@ -206,7 +206,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await dialog.getByLabel('Nome do evento').fill(event.name)
     await dialog.getByLabel('Data do evento').fill(toDateTimeLocal(event.date))
     await dialog.getByLabel('Local').fill(event.location)
-    await dialog.getByLabel('Tipo de serviço').selectOption({ label: event.type })
+    await dialog.getByLabel('Tipo de evento').selectOption({ label: event.type })
     await dialog.getByLabel('Número de convidados').fill(String(event.guests))
     await dialog.getByRole('checkbox', { name: data.service }).check()
     // RF06: serviço excluído não é mais oferecido para novos eventos.
