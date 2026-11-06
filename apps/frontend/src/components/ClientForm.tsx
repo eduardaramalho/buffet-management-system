@@ -1,52 +1,74 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { createClient, updateClient } from '../api/clientsApi'
 import { getApiErrorMessage } from '../api/apiError'
-import { formatDocument } from '../utils/document'
-import { Button } from './Button'
-import { Notice } from './Notice'
+import { useToast } from '../contexts/toast'
+import { useFormValidation } from '../hooks/useFormValidation'
+import { maskCnpj, maskCpf, maskPhone } from '../utils/masks'
+import { clientFormSchema } from '../validation/clientSchema'
+import { Icon } from './Icon'
+import { FormModal } from './form/FormModal'
+import { MaskedField } from './form/MaskedField'
+import { SegmentedControl } from './form/SegmentedControl'
+import { TextAreaField, TextField } from './form/TextField'
 import { CLIENT_TYPE_LABELS, CLIENT_TYPES, type Client, type ClientType } from '../types/client'
 
 type ClientFormProps = { client?: Client; onClose: () => void; onSaved: (client: Client) => void }
-const EMAIL_PATTERN = /^\S+@\S+\.\S+$/
 const optional = (value: string) => value.trim() || null
+const TYPE_OPTIONS = CLIENT_TYPES.map((value) => ({ value, label: CLIENT_TYPE_LABELS[value] }))
 
 export function ClientForm({ client, onClose, onSaved }: ClientFormProps) {
+  const toast = useToast()
   const [type, setType] = useState<ClientType>(client?.type ?? 'PF')
   const [name, setName] = useState(client?.name ?? '')
-  const [documentNumber, setDocumentNumber] = useState(client?.document ? formatDocument(client.document) : '')
+  const [documentNumber, setDocumentNumber] = useState(() => {
+    if (!client?.document) return ''
+    return client.type === 'PJ' ? maskCnpj(client.document) : maskCpf(client.document)
+  })
   const [email, setEmail] = useState(client?.email ?? '')
-  const [phone, setPhone] = useState(client?.phone ?? '')
+  const [phone, setPhone] = useState(client?.phone ? maskPhone(client.phone) : '')
   const [notes, setNotes] = useState(client?.notes ?? '')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [apiError, setApiError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const validation = useFormValidation(clientFormSchema, { type, name, document: documentNumber, email, phone, notes })
   const isCompany = type === 'PJ'
-  const title = client ? 'Editar cliente' : 'Novo cliente'
 
-  const submit = async (formEvent: FormEvent) => {
-    formEvent.preventDefault(); setError('')
-    if (!name.trim()) return setError('Informe o nome do cliente.')
-    if (email.trim() && !EMAIL_PATTERN.test(email.trim())) return setError('Informe um e-mail válido.')
-    setLoading(true)
-    try {
-      // The API normalizes and validates the document (check digits), so it is sent as typed.
-      const input = { type, name: name.trim(), document: optional(documentNumber), email: optional(email), phone: optional(phone), notes: optional(notes) }
-      onSaved(client ? await updateClient(client.id, input) : await createClient(input))
-      onClose()
-    } catch (cause) { setError(getApiErrorMessage(cause, 'Não foi possível salvar o cliente')) } finally { setLoading(false) }
+  // Trocar o tipo reaplica a máscara: um CPF digitado não vira CNPJ pela metade.
+  const changeType = (next: ClientType) => {
+    setType(next)
+    setDocumentNumber((current) => (next === 'PJ' ? maskCnpj(current) : maskCpf(current)))
   }
 
-  return <aside className="user-form-panel" role="dialog" aria-modal="true" aria-labelledby="client-form-title"><div className="form-wrap">
-    <button type="button" className="link-button" onClick={onClose}>Voltar</button>
-    <h2 id="client-form-title">{title}</h2>
-    <form onSubmit={submit} noValidate>
-      <label>Tipo de cliente<select aria-label="Tipo de cliente" value={type} onChange={(event) => setType(event.target.value as ClientType)}>{CLIENT_TYPES.map((value) => <option key={value} value={value}>{CLIENT_TYPE_LABELS[value]}</option>)}</select></label>
-      <label>{isCompany ? 'Razão social' : 'Nome'}<input aria-label={isCompany ? 'Razão social' : 'Nome'} value={name} maxLength={150} onChange={(event) => setName(event.target.value)} /></label>
-      <label>{isCompany ? 'CNPJ' : 'CPF'}<input aria-label={isCompany ? 'CNPJ' : 'CPF'} value={documentNumber} maxLength={18} placeholder="Opcional" onChange={(event) => setDocumentNumber(event.target.value)} /></label>
-      <label>E-mail<input aria-label="E-mail" type="email" value={email} maxLength={150} onChange={(event) => setEmail(event.target.value)} /></label>
-      <label>Telefone<input aria-label="Telefone" value={phone} maxLength={30} onChange={(event) => setPhone(event.target.value)} /></label>
-      <label>Observações<textarea aria-label="Observações" value={notes} maxLength={2000} onChange={(event) => setNotes(event.target.value)} /></label>
-      {error && <Notice message={error} error />}
-      <div className="form-actions"><Button type="button" className="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" className="primary" disabled={loading}>{loading ? 'Salvando...' : 'Salvar'}</Button></div>
-    </form>
-  </div></aside>
+  const submit = async () => {
+    setApiError('')
+    if (!validation.submit()) return
+    setSubmitting(true)
+    try {
+      // The API normalizes the document (removes punctuation) and checks it again, so it is sent as typed.
+      const input = { type, name: name.trim(), document: optional(documentNumber), email: optional(email), phone: optional(phone), notes: optional(notes) }
+      const saved = client ? await updateClient(client.id, input) : await createClient(input)
+      toast.success(client ? 'Cliente atualizado.' : 'Cliente cadastrado.')
+      onSaved(saved)
+      onClose()
+    } catch (cause) { setApiError(getApiErrorMessage(cause, 'Não foi possível salvar o cliente')) } finally { setSubmitting(false) }
+  }
+
+  return <FormModal title={client ? 'Editar cliente' : 'Novo cliente'} subtitle="Pessoa ou empresa que contrata o evento." icon={<Icon name="user" />}
+    onClose={onClose} onSubmit={submit} submitting={submitting} submitLabel="Salvar cliente" error={apiError} invalidAttempt={validation.invalidAttempt}>
+    <SegmentedControl label="Tipo de cliente" value={type} options={TYPE_OPTIONS} onChange={changeType} />
+    <div className="fm-row">
+      <TextField label={isCompany ? 'Razão social' : 'Nome'} required value={name} maxLength={150} error={validation.errorFor('name')}
+        onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event.target)} />
+      <MaskedField label={isCompany ? 'CNPJ' : 'CPF'} optional value={documentNumber} mask={isCompany ? maskCnpj : maskCpf}
+        placeholder={isCompany ? '00.000.000/0000-00' : '000.000.000-00'} inputMode={isCompany ? 'text' : 'numeric'} error={validation.errorFor('document')}
+        onValueChange={setDocumentNumber} onBlur={(event) => validation.touch('document', event.target)} />
+    </div>
+    <div className="fm-row">
+      <TextField label="E-mail" optional type="email" value={email} maxLength={150} placeholder="nome@empresa.com" error={validation.errorFor('email')}
+        onChange={(event) => setEmail(event.target.value)} onBlur={(event) => validation.touch('email', event.target)} />
+      <MaskedField label="Telefone" optional value={phone} mask={maskPhone} placeholder="(47) 99999-9999" inputMode="tel" error={validation.errorFor('phone')}
+        onValueChange={setPhone} onBlur={(event) => validation.touch('phone', event.target)} />
+    </div>
+    <TextAreaField label="Observações" optional value={notes} maxLength={2000} error={validation.errorFor('notes')}
+      onChange={(event) => setNotes(event.target.value)} onBlur={(event) => validation.touch('notes', event.target)} />
+  </FormModal>
 }

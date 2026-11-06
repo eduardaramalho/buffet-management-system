@@ -20,20 +20,31 @@ describe('ServiceForm (RF06)', () => {
 
     expect(screen.getByRole('dialog', { name: 'Novo serviço' })).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Nome do serviço'), { target: { value: '  Bar  ' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar serviço' }))
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(bar))
     expect(createService).toHaveBeenCalledWith('Bar')
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('requires a name', async () => {
+  it('marks the name as required and shows the error next to it', async () => {
     render(<ServiceForm onClose={vi.fn()} onSaved={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    const input = screen.getByLabelText('Nome do serviço')
+    expect(input).toHaveAttribute('aria-required', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar serviço' }))
 
     expect(await screen.findByText('Informe o nome do serviço.')).toBeInTheDocument()
+    expect(input).toHaveAttribute('aria-invalid', 'true')
+    expect(input).toHaveAccessibleDescription(expect.stringContaining('Informe o nome do serviço.'))
+    expect(input).toHaveFocus()
     expect(createService).not.toHaveBeenCalled()
+  })
+
+  it('counts the characters against the API limit', () => {
+    render(<ServiceForm onClose={vi.fn()} onSaved={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Nome do serviço'), { target: { value: 'Bar' } })
+    expect(screen.getByText('3/100')).toBeInTheDocument()
   })
 
   it('renames an existing service', async () => {
@@ -44,7 +55,7 @@ describe('ServiceForm (RF06)', () => {
     expect(screen.getByRole('dialog', { name: 'Editar serviço' })).toBeInTheDocument()
     expect(screen.getByLabelText('Nome do serviço')).toHaveValue('Bar')
     fireEvent.change(screen.getByLabelText('Nome do serviço'), { target: { value: 'Bar premium' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar serviço' }))
 
     await waitFor(() => expect(updateService).toHaveBeenCalledWith('service-bar', 'Bar premium'))
     expect(onSaved).toHaveBeenCalledWith({ ...bar, name: 'Bar premium' })
@@ -62,18 +73,18 @@ describe('ServiceForm (RF06)', () => {
     render(<ServiceForm onClose={onClose} onSaved={vi.fn()} />)
 
     fireEvent.change(screen.getByLabelText('Nome do serviço'), { target: { value: 'Bar' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar serviço' }))
 
-    expect(await screen.findByText('Já existe um serviço com este nome')).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Já existe um serviço com este nome')
     expect(onClose).not.toHaveBeenCalled()
   })
 
-  it('closes on cancel and on back', () => {
+  it('closes on cancel and on the close button', () => {
     const onClose = vi.fn()
     render(<ServiceForm onClose={onClose} onSaved={vi.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Voltar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar' }))
 
     expect(onClose).toHaveBeenCalledTimes(2)
   })
