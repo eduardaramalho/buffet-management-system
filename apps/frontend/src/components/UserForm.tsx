@@ -59,13 +59,13 @@ export function UserForm({ user, onClose, onCreated, onUpdated }: UserFormProps)
     onClose={onClose} onSubmit={submit} submitting={submitting} submitLabel={user ? 'Salvar alterações' : 'Criar usuário'} error={apiError} invalidAttempt={validation.invalidAttempt}>
     <div className="fm-row">
       <TextField label="Nome" required value={name} maxLength={150} autoComplete="off" error={validation.errorFor('name')}
-        onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event.target)} />
+        onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event)} />
       <TextField label="E-mail" required type="email" value={email} maxLength={150} autoComplete="off" error={validation.errorFor('email')}
-        onChange={(event) => setEmail(event.target.value)} onBlur={(event) => validation.touch('email', event.target)} />
+        onChange={(event) => setEmail(event.target.value)} onBlur={(event) => validation.touch('email', event)} />
     </div>
     {!user && <>
       <PasswordField label="Senha inicial" required className="fm-half" value={password} autoComplete="new-password" hint={`Mínimo de ${PASSWORD_MIN_LENGTH} caracteres.`}
-        error={createValidation.errorFor('password')} onChange={(event) => setPassword(event.target.value)} onBlur={(event) => createValidation.touch('password', event.target)} />
+        error={createValidation.errorFor('password')} onChange={(event) => setPassword(event.target.value)} onBlur={(event) => createValidation.touch('password', event)} />
       <FieldGroup label="Papel" required error={createValidation.errorFor('roleId')} hint="O usuário nasce ativo; ativar ou desativar fica só na edição.">
         <div className="fm-choices" role="radiogroup" aria-label="Papel">
           {roles.map((role) => <ChoiceCard key={role.id} type="radio" name="user-role" value={role.id} title={role.name} description={role.description ?? undefined}

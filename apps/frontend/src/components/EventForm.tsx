@@ -153,19 +153,19 @@ export function EventForm({ event, onClose, onCreated, onUpdated }: EventFormPro
     <FormSection title="Cliente e data" active={section === 'client'}>
       <div className="fm-row">
         <SelectField label="Cliente" required value={clientId} error={validation.errorFor('clientId')}
-          onChange={(e) => setClientId(e.target.value)} onBlur={(e) => validation.touch('clientId', e.target)}>
+          onChange={(e) => setClientId(e.target.value)} onBlur={(e) => validation.touch('clientId', e)}>
           <option value="">Selecione o cliente</option>
           {linkedInactiveClient && <option value={linkedInactiveClient.id}>{linkedInactiveClient.name} (inativo)</option>}
           {clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}
         </SelectField>
         <TextField label="Nome do evento" required value={name} maxLength={150} placeholder="Ex.: Casamento de Bruna" error={validation.errorFor('name')}
-          onChange={(e) => setName(e.target.value)} onBlur={(e) => validation.touch('name', e.target)} />
+          onChange={(e) => setName(e.target.value)} onBlur={(e) => validation.touch('name', e)} />
       </div>
       <div className="fm-row">
         <TextField label="Data e hora" required type="datetime-local" value={eventDate} error={validation.errorFor('eventDate')}
-          onChange={(e) => setEventDate(e.target.value)} onBlur={(e) => validation.touch('eventDate', e.target)} />
+          onChange={(e) => setEventDate(e.target.value)} onBlur={(e) => validation.touch('eventDate', e)} />
         <SelectField label="Tipo de evento" required value={serviceType} error={validation.errorFor('serviceType')}
-          onChange={(e) => setServiceType(e.target.value as EventType)} onBlur={(e) => validation.touch('serviceType', e.target)}>
+          onChange={(e) => setServiceType(e.target.value as EventType)} onBlur={(e) => validation.touch('serviceType', e)}>
           <option value="">Selecione</option>
           {EVENT_TYPES.map((value) => <option key={value} value={value}>{EVENT_TYPE_LABELS[value]}</option>)}
         </SelectField>
@@ -175,12 +175,12 @@ export function EventForm({ event, onClose, onCreated, onUpdated }: EventFormPro
     <FormSection title="Local e convidados" description="O número de convidados é usado pelas regras que dependem de faixa." active={section === 'place'}>
       <div className="fm-row">
         <TextField label="Local" required value={location} maxLength={200} error={validation.errorFor('location')}
-          onChange={(e) => setLocation(e.target.value)} onBlur={(e) => validation.touch('location', e.target)} />
+          onChange={(e) => setLocation(e.target.value)} onBlur={(e) => validation.touch('location', e)} />
         <MaskedField label="Convidados" required value={guestsCount} mask={maskGuests} inputMode="numeric" hint={`De 1 a ${GUESTS_MAX}.`} error={validation.errorFor('guestsCount')}
-          onValueChange={setGuestsCount} onBlur={(e) => validation.touch('guestsCount', e.target)} />
+          onValueChange={setGuestsCount} onBlur={(e) => validation.touch('guestsCount', e)} />
       </div>
       <TextAreaField label="Observações" optional value={observations} maxLength={2000} placeholder="Restrições alimentares, horários especiais..." error={validation.errorFor('observations')}
-        onChange={(e) => setObservations(e.target.value)} onBlur={(e) => validation.touch('observations', e.target)} />
+        onChange={(e) => setObservations(e.target.value)} onBlur={(e) => validation.touch('observations', e)} />
     </FormSection>
 
     <FormSection title="Serviços contratados" description="Os serviços marcados entram nas condições das regras." active={section === 'services'}>
@@ -192,7 +192,7 @@ export function EventForm({ event, onClose, onCreated, onUpdated }: EventFormPro
       </FieldGroup>
       {otherService && customSelected && <TextField label='Qual serviço é o "Outro"?' required className="fm-half" value={selected[otherService.id]} maxLength={255} placeholder="Ex.: Fotógrafo"
         error={validation.errorFor('customLabel')} onChange={(e) => setSelected((current) => ({ ...current, [otherService.id]: e.target.value }))}
-        onBlur={(e) => validation.touch('customLabel', e.target)} />}
+        onBlur={(e) => validation.touch('customLabel', e)} />}
     </FormSection>
 
     {event && <FormSection title="Equipes designadas" description="Vincular e desvincular é imediato, sem precisar salvar." active={section === 'teams'}>

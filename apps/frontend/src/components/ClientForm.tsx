@@ -57,18 +57,18 @@ export function ClientForm({ client, onClose, onSaved }: ClientFormProps) {
     <SegmentedControl label="Tipo de cliente" value={type} options={TYPE_OPTIONS} onChange={changeType} />
     <div className="fm-row">
       <TextField label={isCompany ? 'Razão social' : 'Nome'} required value={name} maxLength={150} error={validation.errorFor('name')}
-        onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event.target)} />
+        onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event)} />
       <MaskedField label={isCompany ? 'CNPJ' : 'CPF'} optional value={documentNumber} mask={isCompany ? maskCnpj : maskCpf}
         placeholder={isCompany ? '00.000.000/0000-00' : '000.000.000-00'} inputMode={isCompany ? 'text' : 'numeric'} error={validation.errorFor('document')}
-        onValueChange={setDocumentNumber} onBlur={(event) => validation.touch('document', event.target)} />
+        onValueChange={setDocumentNumber} onBlur={(event) => validation.touch('document', event)} />
     </div>
     <div className="fm-row">
       <TextField label="E-mail" optional type="email" value={email} maxLength={150} placeholder="nome@empresa.com" error={validation.errorFor('email')}
-        onChange={(event) => setEmail(event.target.value)} onBlur={(event) => validation.touch('email', event.target)} />
+        onChange={(event) => setEmail(event.target.value)} onBlur={(event) => validation.touch('email', event)} />
       <MaskedField label="Telefone" optional value={phone} mask={maskPhone} placeholder="(47) 99999-9999" inputMode="tel" error={validation.errorFor('phone')}
-        onValueChange={setPhone} onBlur={(event) => validation.touch('phone', event.target)} />
+        onValueChange={setPhone} onBlur={(event) => validation.touch('phone', event)} />
     </div>
     <TextAreaField label="Observações" optional value={notes} maxLength={2000} error={validation.errorFor('notes')}
-      onChange={(event) => setNotes(event.target.value)} onBlur={(event) => validation.touch('notes', event.target)} />
+      onChange={(event) => setNotes(event.target.value)} onBlur={(event) => validation.touch('notes', event)} />
   </FormModal>
 }

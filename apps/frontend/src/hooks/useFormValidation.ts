@@ -22,11 +22,19 @@ export function useFormValidation<Schema extends z.ZodType>(schema: Schema, valu
     invalidAttempt,
     errorFor: (field: string) => (submitted || touched[field] ? errors[field] : undefined),
     /**
-     * Marca o campo como visitado (chamado no blur). Um blur causado por trocar de seção não conta:
-     * o campo some da tela sem a pessoa ter terminado de preenchê-lo.
+     * Marca o campo como visitado (chamado no blur). Não conta o blur que não foi a pessoa saindo do campo:
+     * - trocar de seção (o campo some da tela, dentro de um elemento hidden);
+     * - o foco indo para fora do modal, como quando o modal fecha e devolve o foco a quem o abriu
+     *   (no modo de desenvolvimento o StrictMode monta o modal duas vezes e provoca esse blur ao abrir).
      */
-    touch: (field: string, target?: EventTarget | null) => {
-      if (target instanceof Element && target.closest('[hidden]')) return
+    touch: (field: string, event?: { target: EventTarget | null; relatedTarget?: EventTarget | null }) => {
+      const target = event?.target
+      if (target instanceof Element) {
+        if (target.closest('[hidden]')) return
+        const dialog = target.closest('[role="dialog"]')
+        const next = event?.relatedTarget
+        if (dialog && next instanceof Node && !dialog.contains(next)) return
+      }
       setTouched((current) => (current[field] ? current : { ...current, [field]: true }))
     },
     /** Marca a tentativa de envio e devolve os dados válidos, ou null quando há erro. */

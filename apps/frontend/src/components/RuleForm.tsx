@@ -135,9 +135,9 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
     railFooter={<p className="fm-summary"><Icon name="bolt" />{describeConditions(serviceTypes, minGuests, maxGuests, serviceNames)}</p>}>
     <FormSection title="Identificação" active={section === 'identification'}>
       <TextField label="Nome da regra" required value={name} maxLength={150} error={validation.errorFor('name')}
-        onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event.target)} />
+        onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event)} />
       <TextAreaField label="Descrição" optional value={description ?? ''} maxLength={2000} placeholder="Para que serve esta regra" error={validation.errorFor('description')}
-        onChange={(event) => setDescription(event.target.value)} onBlur={(event) => validation.touch('description', event.target)} />
+        onChange={(event) => setDescription(event.target.value)} onBlur={(event) => validation.touch('description', event)} />
     </FormSection>
 
     <FormSection title="Condições" description="Deixe uma condição em branco para que ela combine com qualquer evento." active={section === 'conditions'}>
@@ -147,10 +147,10 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
       <FieldGroup label="Faixa de convidados" optional error={validation.errorFor('minGuests') ?? validation.errorFor('maxGuests')}>
         <div className="fm-range">
           <MaskedInput aria-label="Mínimo de convidados" placeholder="Mínimo" inputMode="numeric" value={minGuests} mask={maskGuests} onValueChange={setMinGuests}
-            aria-invalid={validation.errorFor('minGuests') ? true : undefined} onBlur={(event) => validation.touch('minGuests', event.target)} />
+            aria-invalid={validation.errorFor('minGuests') ? true : undefined} onBlur={(event) => validation.touch('minGuests', event)} />
           <span>até</span>
           <MaskedInput aria-label="Máximo de convidados" placeholder="Máximo" inputMode="numeric" value={maxGuests} mask={maskGuests} onValueChange={setMaxGuests}
-            aria-invalid={validation.errorFor('maxGuests') ? true : undefined} onBlur={(event) => validation.touch('maxGuests', event.target)} />
+            aria-invalid={validation.errorFor('maxGuests') ? true : undefined} onBlur={(event) => validation.touch('maxGuests', event)} />
         </div>
       </FieldGroup>
       <FieldGroup label="Serviços obrigatórios" optional>
@@ -172,7 +172,7 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
               </select>
               <MaskedInput aria-label={`Quantidade mínima ${index + 1}`} inputMode="numeric" value={requirement.minQuantity} mask={maskQuantity}
                 aria-invalid={quantityError ? true : undefined} aria-describedby={quantityError ? `requirement-${index}-error` : undefined}
-                onValueChange={(value) => updateRequirement(index, { minQuantity: value })} onBlur={(event) => validation.touch(`resourceRequirements.${index}.minQuantity`, event.target)} />
+                onValueChange={(value) => updateRequirement(index, { minQuantity: value })} onBlur={(event) => validation.touch(`resourceRequirements.${index}.minQuantity`, event)} />
               <button type="button" className="fm-icon-btn" aria-label={`Remover recurso ${index + 1}`} onClick={() => removeRequirement(index)}><Icon name="trash" /></button>
             </div>
             <FieldError id={`requirement-${index}-error`} message={quantityError} />
@@ -193,9 +193,9 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
         </div>
         <div className="fm-task-grid">
           <TextField label="Título" required aria-label={`Título da tarefa ${index + 1}`} value={template.title} maxLength={150} error={rowError(`taskTemplates.${index}.title`)}
-            onChange={(event) => updateTaskTemplate(index, { title: event.target.value })} onBlur={(event) => validation.touch(`taskTemplates.${index}.title`, event.target)} />
+            onChange={(event) => updateTaskTemplate(index, { title: event.target.value })} onBlur={(event) => validation.touch(`taskTemplates.${index}.title`, event)} />
           <MaskedField label="Dias antes" aria-label={`Dias antes do evento ${index + 1}`} inputMode="numeric" value={template.daysBeforeEvent} mask={maskDays} error={rowError(`taskTemplates.${index}.daysBeforeEvent`)}
-            onValueChange={(value) => updateTaskTemplate(index, { daysBeforeEvent: value })} onBlur={(event) => validation.touch(`taskTemplates.${index}.daysBeforeEvent`, event.target)} />
+            onValueChange={(value) => updateTaskTemplate(index, { daysBeforeEvent: value })} onBlur={(event) => validation.touch(`taskTemplates.${index}.daysBeforeEvent`, event)} />
           <SelectField label="Equipe responsável" aria-label={`Equipe responsável ${index + 1}`} value={template.specialty} disabled={requiredSpecialties.length === 0}
             onChange={(event) => updateTaskTemplate(index, { specialty: event.target.value as TeamSpecialty | '' })}>
             <option value="">Sem atribuição automática</option>

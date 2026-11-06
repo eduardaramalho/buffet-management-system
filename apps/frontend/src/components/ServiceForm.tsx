@@ -37,6 +37,6 @@ export function ServiceForm({ service, onClose, onSaved }: ServiceFormProps) {
     {service?.isCustom && <p className="fm-callout"><Icon name="alert" />Serviço genérico: ao contratá-lo, o evento informa um rótulo livre (por exemplo, "Fotógrafo"). Ele pode ser renomeado, mas não excluído.</p>}
     <TextField label="Nome do serviço" required value={name} maxLength={SERVICE_NAME_MAX} aside={`${name.length}/${SERVICE_NAME_MAX}`}
       hint="O nome precisa ser único no catálogo." error={validation.errorFor('name')}
-      onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event.target)} />
+      onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event)} />
   </FormModal>
 }

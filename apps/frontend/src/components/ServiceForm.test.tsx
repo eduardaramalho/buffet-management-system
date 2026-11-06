@@ -1,3 +1,4 @@
+import { StrictMode } from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ServiceForm } from './ServiceForm'
@@ -39,6 +40,20 @@ describe('ServiceForm (RF06)', () => {
     expect(input).toHaveAccessibleDescription(expect.stringContaining('Informe o nome do serviço.'))
     expect(input).toHaveFocus()
     expect(createService).not.toHaveBeenCalled()
+  })
+
+  // Regressão do E2E: em modo de desenvolvimento o StrictMode monta o modal duas vezes; a devolução do foco
+  // a quem abriu tirava o foco do primeiro campo e o marcava como visitado, mostrando erro antes de digitar.
+  it('does not show errors right after opening in StrictMode', () => {
+    const opener = document.createElement('button')
+    document.body.appendChild(opener)
+    opener.focus()
+    render(<StrictMode><ServiceForm onClose={vi.fn()} onSaved={vi.fn()} /></StrictMode>)
+
+    expect(screen.getByLabelText('Nome do serviço')).toHaveFocus()
+    expect(screen.getByLabelText('Nome do serviço')).not.toHaveAttribute('aria-invalid')
+    expect(screen.queryByText('Informe o nome do serviço.')).not.toBeInTheDocument()
+    opener.remove()
   })
 
   it('counts the characters against the API limit', () => {

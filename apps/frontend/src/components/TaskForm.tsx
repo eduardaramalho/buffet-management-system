@@ -113,12 +113,12 @@ export function TaskForm({ task, events, teams, defaultEventId, onClose, onSaved
     {isGenerated && <p className="fm-callout"><Icon name="lock" />Tarefa gerada por regra: o evento e o título não podem ser alterados.</p>}
     <div className="fm-row">
       <SelectField label="Evento" required value={eventId} disabled={Boolean(task)} error={validation.errorFor('eventId')}
-        onChange={(event) => changeEvent(event.target.value)} onBlur={(event) => validation.touch('eventId', event.target)}>
+        onChange={(event) => changeEvent(event.target.value)} onBlur={(event) => validation.touch('eventId', event)}>
         <option value="">Selecione</option>
         {selectableEvents.map((event) => <option key={event.id} value={event.id}>{event.name}</option>)}
       </SelectField>
       <TextField label="Título" required value={title} maxLength={TASK_TITLE_MAX_LENGTH} disabled={isGenerated} error={validation.errorFor('title')}
-        onChange={(event) => setTitle(event.target.value)} onBlur={(event) => validation.touch('title', event.target)} />
+        onChange={(event) => setTitle(event.target.value)} onBlur={(event) => validation.touch('title', event)} />
     </div>
     <TextAreaField label="Descrição" optional value={description} placeholder="Detalhes para a equipe" onChange={(event) => setDescription(event.target.value)} />
     <div className="fm-row">

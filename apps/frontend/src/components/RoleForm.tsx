@@ -35,8 +35,8 @@ export function RoleForm({ role, onClose, onSaved }: RoleFormProps) {
   return <FormModal title={role ? 'Editar papel' : 'Novo papel'} subtitle="Agrupa permissões que serão atribuídas aos usuários." icon={<Icon name="shield" />}
     onClose={onClose} onSubmit={submit} submitting={submitting} submitLabel="Salvar papel" error={apiError} invalidAttempt={validation.invalidAttempt}>
     <TextField label="Nome" required value={name} maxLength={50} placeholder="Ex.: Supervisor de salão" error={validation.errorFor('name')}
-      onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event.target)} />
+      onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event)} />
     <TextAreaField label="Descrição" optional value={description} maxLength={ROLE_DESCRIPTION_MAX} aside={`${description.length}/${ROLE_DESCRIPTION_MAX}`}
-      placeholder="O que este papel pode fazer" error={validation.errorFor('description')} onChange={(event) => setDescription(event.target.value)} onBlur={(event) => validation.touch('description', event.target)} />
+      placeholder="O que este papel pode fazer" error={validation.errorFor('description')} onChange={(event) => setDescription(event.target.value)} onBlur={(event) => validation.touch('description', event)} />
   </FormModal>
 }

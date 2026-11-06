@@ -117,15 +117,15 @@ export function TeamForm({ team, onClose, onCreated, onUpdated }: TeamFormProps)
       <FormSection title="Dados da equipe" description="A especialidade é usada pelo motor de regras para atribuir tarefas." active={section === 'data'}>
         <div className="fm-row">
           <TextField label="Nome da equipe" required value={name} maxLength={150} error={validation.errorFor('name')}
-            onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event.target)} />
+            onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event)} />
           <SelectField label="Especialidade" required value={specialty} error={validation.errorFor('specialty')}
-            onChange={(event) => setSpecialty(event.target.value as TeamSpecialty)} onBlur={(event) => validation.touch('specialty', event.target)}>
+            onChange={(event) => setSpecialty(event.target.value as TeamSpecialty)} onBlur={(event) => validation.touch('specialty', event)}>
             <option value="">Selecione</option>
             {TEAM_SPECIALTIES.map((value) => <option key={value} value={value}>{TEAM_SPECIALTY_LABELS[value]}</option>)}
           </SelectField>
         </div>
         <TextAreaField label="Observações" optional value={observations} maxLength={2000} placeholder="Ex.: turno da noite, uniforme preto" error={validation.errorFor('observations')}
-          onChange={(event) => setObservations(event.target.value)} onBlur={(event) => validation.touch('observations', event.target)} />
+          onChange={(event) => setObservations(event.target.value)} onBlur={(event) => validation.touch('observations', event)} />
       </FormSection>
 
       <FormSection title="Membros e líder" description="Adicione colaboradores ativos e, se quiser, escolha um líder." active={section === 'members'}>

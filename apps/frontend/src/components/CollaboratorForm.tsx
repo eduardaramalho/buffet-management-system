@@ -58,15 +58,15 @@ export function CollaboratorForm({ collaborator, onClose, onCreated, onUpdated }
     onClose={onClose} onSubmit={submit} submitting={submitting} submitLabel={collaborator ? 'Salvar alterações' : 'Salvar colaborador'} error={apiError} invalidAttempt={validation.invalidAttempt}>
     <div className="fm-row">
       <TextField label="Nome" required value={name} maxLength={150} error={validation.errorFor('name')}
-        onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event.target)} />
+        onChange={(event) => setName(event.target.value)} onBlur={(event) => validation.touch('name', event)} />
       <TextField label="Cargo" required value={position} maxLength={100} placeholder="Ex.: Garçom" error={validation.errorFor('position')}
-        hint="Aparece ao lado do nome na montagem das equipes." onChange={(event) => setPosition(event.target.value)} onBlur={(event) => validation.touch('position', event.target)} />
+        hint="Aparece ao lado do nome na montagem das equipes." onChange={(event) => setPosition(event.target.value)} onBlur={(event) => validation.touch('position', event)} />
     </div>
     {suggestions.length > 0 && <div className="fm-chips" role="group" aria-label="Cargos já usados">
       {suggestions.map((item) => <button key={item} type="button" className="fm-chip-btn" aria-label={`Usar o cargo ${item}`} onClick={() => setPosition(item)}>{item}</button>)}
     </div>}
     <MaskedField label="Telefone" optional className="fm-half" value={phone} mask={maskPhone} placeholder="(47) 99999-9999" inputMode="tel"
-      error={validation.errorFor('phone')} onValueChange={setPhone} onBlur={(event) => validation.touch('phone', event.target)} />
+      error={validation.errorFor('phone')} onValueChange={setPhone} onBlur={(event) => validation.touch('phone', event)} />
     {collaborator && <Switch label="Colaborador ativo" description="Inativos não aparecem na busca de membros." checked={active} onChange={setActive} />}
   </FormModal>
 }
