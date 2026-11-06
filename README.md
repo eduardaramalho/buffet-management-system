@@ -35,7 +35,7 @@ O EventosPro centraliza clientes, eventos, serviços contratados, equipes e tare
 
 | Camada | Tecnologias |
 |---|---|
-| Frontend | React 19, TypeScript, Vite, React Router, Axios |
+| Frontend | React 19, TypeScript, Vite, React Router, Axios, Zod (validação dos formulários) |
 | Backend | Node.js 24, Express 5, TypeScript, Prisma 7, Zod, Pino |
 | Banco de dados | MySQL 8 |
 | Testes | Jest, Supertest, Vitest, Testing Library, Playwright |
