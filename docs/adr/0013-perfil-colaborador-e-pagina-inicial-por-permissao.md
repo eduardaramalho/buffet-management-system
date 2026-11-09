@@ -46,3 +46,7 @@ A decisão 1 dava `users:read` ao colaborador só porque `GET /auth/me` exigia e
 - `GET /auth/me` passa a exigir só autenticação, sem `authorize`, como `POST /auth/change-password` (ADR 0012). Ler o próprio perfil é uma operação sobre a própria conta.
 - `users:read` sai da matriz do colaborador. O seed a revoga nos bancos existentes no próximo deploy (decisão 2).
 - O colaborador continua carregando a sessão normalmente. `GET /users/:id` passa a responder 403 para ele (passo 22 da jornada E2E).
+
+## Atualização: comentários nas tarefas (08/11/2026)
+
+O colaborador recebe `tasks:comment` (ADR 0017): ele comenta nas tarefas que executa, sem ganhar `tasks:update`. O seed concede a permissão nos bancos existentes no próximo deploy.

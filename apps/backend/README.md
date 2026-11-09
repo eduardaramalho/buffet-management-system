@@ -324,6 +324,8 @@ Todos os endpoints abaixo exigem `Authorization: Bearer <access-token>`. Uma `Ta
 | `PUT` | `/api/v1/tasks/:id` | `tasks:update` |
 | `DELETE` | `/api/v1/tasks/:id` | `tasks:delete` |
 | `PATCH` | `/api/v1/tasks/:id/status` | `tasks:update-status` |
+| `GET` | `/api/v1/tasks/:id/comments` | `tasks:read` |
+| `POST` | `/api/v1/tasks/:id/comments` | `tasks:comment` |
 
 As permissões `tasks:create`, `tasks:update` e `tasks:delete` são concedidas ao perfil administrador pelo seed.
 
@@ -366,6 +368,8 @@ Campos aceitos: `title`, `description` (`string | null`), `dueDate` (`string | n
 #### Status
 
 `PATCH /api/v1/tasks/:id/status` recebe `{"status": "EM_ANDAMENTO"}`. `CONCLUIDA` preenche `completedAt`. Tarefas em `CONCLUIDA` ou `CANCELADA` não voltam a `PENDENTE` nem a `EM_ANDAMENTO`.
+
+`GET /api/v1/tasks/:id/comments` lista os comentários da tarefa, do mais antigo para o mais novo, com `authorName`. `POST /api/v1/tasks/:id/comments` recebe `{"body": "texto"}` (1 a 2000 caracteres, sem espaços nas pontas) e responde `201`. Tarefas concluídas e canceladas também aceitam comentário. Cada comentário gera auditoria `TASK_COMMENTED` (ADR 0017).
 
 #### Regras de negócio
 
