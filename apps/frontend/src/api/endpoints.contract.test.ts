@@ -109,6 +109,8 @@ const cases: ContractCase[] = [
   { name: 'rulesApi.listEventRuleApplications', call: () => rulesApi.listEventRuleApplications('e1'), verb: 'get', args: ['/api/v1/events/e1/rule-applications'] },
   { name: 'rulesApi.applyEventRules', call: () => rulesApi.applyEventRules('e1'), verb: 'post', args: ['/api/v1/events/e1/apply-rules', {}] },
   // tasks
+  { name: 'tasksApi.listTaskComments', call: () => tasksApi.listTaskComments('t1'), verb: 'get', args: ['/api/v1/tasks/t1/comments'] },
+  { name: 'tasksApi.createTaskComment', call: () => tasksApi.createTaskComment('t1', 'Cliente confirmou'), verb: 'post', args: ['/api/v1/tasks/t1/comments', { body: 'Cliente confirmou' }] },
   { name: 'tasksApi.listTasks', call: () => tasksApi.listTasks(filters as never), verb: 'get', args: ['/api/v1/tasks', { params: filters }] },
   { name: 'tasksApi.listTasks (sem filtros)', call: () => tasksApi.listTasks(), verb: 'get', args: ['/api/v1/tasks', { params: {} }] },
   { name: 'tasksApi.getTask', call: () => tasksApi.getTask('t1'), verb: 'get', args: ['/api/v1/tasks/t1'] },
