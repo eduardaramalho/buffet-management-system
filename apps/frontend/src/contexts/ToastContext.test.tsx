@@ -5,7 +5,10 @@ import { useToast } from './toast'
 
 function Trigger() {
   const toast = useToast()
-  return <button type="button" onClick={() => toast.success('Equipe criada.')}>Salvar</button>
+  return <>
+    <button type="button" onClick={() => toast.success('Equipe criada.')}>Salvar</button>
+    <button type="button" onClick={() => toast.error('Movimento não permitido.')}>Falhar</button>
+  </>
 }
 
 describe('ToastProvider', () => {
@@ -32,5 +35,15 @@ describe('ToastProvider', () => {
   it('does nothing outside the provider', () => {
     render(<Trigger />)
     expect(() => fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))).not.toThrow()
+    expect(() => fireEvent.click(screen.getByRole('button', { name: 'Falhar' }))).not.toThrow()
+  })
+
+  // KAN-77: feedback de um movimento recusado no quadro, com aparência de erro.
+  it('shows an error toast with the error style', () => {
+    render(<ToastProvider><Trigger /></ToastProvider>)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Falhar' }))
+
+    expect(screen.getByText('Movimento não permitido.').closest('.toast')).toHaveClass('toast-error')
   })
 })

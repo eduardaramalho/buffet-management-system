@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../Icon'
 import { Notice } from '../Notice'
+import { useModalDialog } from '../../hooks/useModalDialog'
 
 export type FormModalSection = {
   id: string
@@ -35,7 +36,6 @@ type FormModalProps = {
 }
 
 const FIELD_SELECTOR = 'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])'
-const FOCUSABLE_SELECTOR = `a[href], button:not([disabled]), ${FIELD_SELECTOR}, [tabindex]:not([tabindex="-1"])`
 
 const visibleIn = (root: HTMLElement | null, selector: string) =>
   Array.from(root?.querySelectorAll<HTMLElement>(selector) ?? []).filter((element) => !element.closest('[hidden]'))
@@ -52,15 +52,7 @@ export function FormModal({ title, subtitle, icon, roundIcon = false, onClose, o
   const bodyRef = useRef<HTMLDivElement>(null)
   const activeIndex = sections ? Math.max(0, sections.findIndex((section) => section.id === activeSection)) : 0
 
-  useEffect(() => {
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = previousOverflow
-      if (opener?.isConnected) opener.focus()
-    }
-  }, [])
+  const handleKeyDown = useModalDialog(dialogRef, { onClose, locked: submitting })
 
   // Ao abrir e ao trocar de seção, o foco vai para o primeiro campo visível.
   useEffect(() => {
@@ -74,22 +66,6 @@ export function FormModal({ title, subtitle, icon, roundIcon = false, onClose, o
     const [firstInvalid] = visibleIn(bodyRef.current, '[aria-invalid="true"]')
     firstInvalid?.focus()
   }, [invalidAttempt])
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Escape') {
-      event.stopPropagation()
-      if (!submitting) onClose()
-      return
-    }
-    if (event.key !== 'Tab') return
-    event.stopPropagation()
-    const focusable = visibleIn(dialogRef.current, FOCUSABLE_SELECTOR)
-    if (focusable.length === 0) return
-    const first = focusable[0]
-    const last = focusable[focusable.length - 1]
-    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
-    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
-  }
 
   const goTo = (index: number) => sections && onSectionChange?.(sections[index].id)
 
