@@ -334,10 +334,12 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(dialog).toBeHidden()
     await expect(page.getByRole('region', { name: 'Pendente' }).getByText(data.manualTask.title)).toBeVisible()
 
-    // As tarefas da regra já foram atribuídas automaticamente na confirmação.
+    // As tarefas da regra já foram atribuídas automaticamente na confirmação: o card mostra a equipe, sem o aviso "Sem equipe".
     for (const task of data.rule.tasks) {
-      await expect(page.getByRole('region', { name: 'Pendente' }).getByText(task.title, { exact: true })).toBeVisible()
-      await expect(page.getByRole('button', { name: `Atribuir equipe a ${task.title}` })).toHaveCount(0)
+      const card = page.getByRole('region', { name: 'Pendente' }).getByRole('article').filter({ hasText: task.title })
+      await expect(card).toBeVisible()
+      await expect(card.getByText(teamName)).toBeVisible()
+      await expect(card.getByText('Sem equipe', { exact: true })).toHaveCount(0)
     }
   })
 
@@ -348,14 +350,32 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
 
     await navigateTo(page, 'Tarefas', 'Tarefas')
     const titles = [...data.rule.tasks.map((task) => task.title), data.manualTask.title]
-    // ADR 0014: a tarefa precisa passar por "Em andamento" antes de ser concluída.
-    await expect(page.getByLabel(`Mover ${titles[0]}`).getByRole('option', { name: 'Concluída' })).toHaveCount(0)
-    for (const title of titles) {
-      await page.getByLabel(`Mover ${title}`).selectOption({ label: 'Em andamento' })
-      await expect(page.getByRole('region', { name: 'Em andamento' }).getByText(title)).toBeVisible()
-      await page.getByLabel(`Mover ${title}`).selectOption({ label: 'Concluída' })
-      await expect(page.getByRole('region', { name: 'Concluída' }).getByText(title)).toBeVisible()
+    // KAN-77: o status muda pelo detalhe da tarefa ("Mover para"), a alternativa acessível ao arraste.
+    const moveTo = async (title: string, status: string) => {
+      await page.getByRole('button', { name: title, exact: true }).click()
+      const detail = page.getByRole('dialog', { name: title })
+      await detail.getByRole('group', { name: 'Mover para' }).getByRole('button', { name: status, exact: true }).click()
+      await expect(detail.getByText(status, { exact: true }).first()).toBeVisible()
+      await detail.getByRole('button', { name: 'Fechar detalhe' }).click()
+      await expect(page.getByRole('region', { name: status }).getByText(title, { exact: true })).toBeVisible()
     }
+    // ADR 0014: a tarefa precisa passar por "Em andamento" antes de ser concluída.
+    await page.getByRole('button', { name: titles[0], exact: true }).click()
+    await expect(page.getByRole('dialog', { name: titles[0] }).getByRole('group', { name: 'Mover para' }).getByRole('button', { name: 'Concluída' })).toHaveCount(0)
+    await page.getByRole('dialog', { name: titles[0] }).getByRole('button', { name: 'Fechar detalhe' }).click()
+    for (const title of titles) {
+      await moveTo(title, 'Em andamento')
+      await moveTo(title, 'Concluída')
+    }
+
+    // KAN-77: comentário no detalhe da tarefa (ADR 0017).
+    await page.getByRole('button', { name: titles[0], exact: true }).click()
+    const detail = page.getByRole('dialog', { name: titles[0] })
+    await detail.getByLabel('Novo comentário').fill('Tudo pronto para o evento.')
+    await detail.getByRole('button', { name: 'Comentar' }).click()
+    await expect(detail.getByText('Tudo pronto para o evento.')).toBeVisible()
+    await expect(detail.getByRole('heading', { name: 'Comentários (1)' })).toBeVisible()
+    await detail.getByRole('button', { name: 'Fechar detalhe' }).click()
   })
 
   test('14. conclusão do evento', async () => {
@@ -575,18 +595,29 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expect(page.getByRole('button', { name: 'Iniciar evento' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Replicar evento' })).toHaveCount(0)
 
-    // Quadro de tarefas: move o status, sem criar, editar ou excluir.
+    // Quadro de tarefas: move o status e comenta pelo detalhe (ADR 0017), sem criar, editar ou excluir.
     await navigateTo(page, 'Tarefas', 'Tarefas')
     await expect(page.getByRole('button', { name: 'Nova tarefa' })).toHaveCount(0)
-    await page.getByLabel('Buscar por evento').fill(replica.name)
+    await page.getByLabel('Buscar por evento ou tarefa').fill(replica.name)
     const [task] = data.rule.tasks
-    await page.getByLabel(`Mover ${task.title}`).selectOption({ label: 'Em andamento' })
+    await page.getByRole('region', { name: 'Pendente' }).getByRole('button', { name: task.title, exact: true }).click()
+    const detail = page.getByRole('dialog', { name: task.title })
+    await expect(detail.getByRole('button', { name: 'Editar tarefa' })).toHaveCount(0)
+    await expect(detail.getByRole('button', { name: 'Excluir tarefa' })).toHaveCount(0)
+    await expect(detail.getByRole('button', { name: /descrição/ })).toHaveCount(0)
+    await detail.getByRole('group', { name: 'Mover para' }).getByRole('button', { name: 'Em andamento', exact: true }).click()
+    await detail.getByLabel('Novo comentário').fill('Comecei a preparação.')
+    await detail.getByRole('button', { name: 'Comentar' }).click()
+    await expect(detail.getByText('Comecei a preparação.')).toBeVisible()
+    await detail.getByRole('button', { name: 'Fechar detalhe' }).click()
     await expect(page.getByRole('region', { name: 'Em andamento' }).getByText(task.title, { exact: true })).toBeVisible()
-    await expect(page.getByRole('button', { name: `Editar ${task.title}` })).toHaveCount(0)
 
     // O backend recusa tudo o que o papel não permite.
     const replicaEvent = await findEvent(replica.name)
     await expectStatus(await collaborator.post('/tasks', { eventId: replicaEvent.id, title: 'Tarefa indevida' }), 403)
+    // Comentar não dá direito a editar a tarefa (tasks:comment sem tasks:update).
+    const replicaTask = (await collaborator.json<Array<{ id: string; title: string }>>(collaborator.get(`/tasks?eventId=${replicaEvent.id}`))).find((item) => item.title === task.title)!
+    await expectStatus(await collaborator.put(`/tasks/${replicaTask.id}`, { description: 'Edição indevida' }), 403)
     await expectStatus(await collaborator.put(`/events/${replicaEvent.id}`, { name: 'Edição indevida' }), 403)
     await expectStatus(await collaborator.get('/users'), 403)
     await expectStatus(await collaborator.get('/teams'), 403)

@@ -9,10 +9,13 @@ import { EventTeamService } from "../../../teams/application/EventTeamService.js
 import { ruleEngineService } from "../../../rules/infrastructure/factories/rule.factory.js";
 import { RuleEngineExecutionService } from "../../application/RuleEngineExecutionService.js";
 import { TaskService } from "../../application/TaskService.js";
+import { TaskCommentService } from "../../application/TaskCommentService.js";
 import { TaskController } from "../../presentation/controllers/TaskController.js";
+import { TaskCommentController } from "../../presentation/controllers/TaskCommentController.js";
 import { RuleApplicationController } from "../../presentation/controllers/RuleApplicationController.js";
 import { RuleApplicationQueryService } from "../../application/RuleApplicationQueryService.js";
 import { PrismaTaskRepository } from "../repositories/PrismaTaskRepository.js";
+import { PrismaTaskCommentRepository } from "../repositories/PrismaTaskCommentRepository.js";
 import { PrismaRuleApplicationRepository } from "../repositories/PrismaRuleApplicationRepository.js";
 import { PrismaRuleTaskTemplateRepository } from "../repositories/PrismaRuleTaskTemplateRepository.js";
 
@@ -45,5 +48,8 @@ export const ruleEngineExecutionService = new RuleEngineExecutionService(
   transactionRunner,
 );
 export const taskController = new TaskController(taskService);
+export const taskCommentController = new TaskCommentController(
+  new TaskCommentService(new PrismaTaskCommentRepository(prisma), taskRepository, auditService),
+);
 export const ruleApplicationQueryService = new RuleApplicationQueryService(eventReader, ruleApplicationRepository);
 export const ruleApplicationController = new RuleApplicationController(ruleEngineExecutionService, ruleApplicationQueryService);

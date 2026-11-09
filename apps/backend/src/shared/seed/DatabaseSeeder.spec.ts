@@ -97,10 +97,15 @@ describe("DatabaseSeeder", () => {
 
   // Perfil operacional: acompanha eventos e move o status das tarefas, sem criar, editar ou excluir nada.
   // Sem users:read: o próprio perfil (GET /auth/me) não exige permissão.
-  it("gives the colaborador role read access to events and tasks plus task status updates only", () => {
+  // ADR 0017: o colaborador também comenta nas tarefas, sem editar descrição ou outros campos.
+  it("gives the colaborador role read access to events and tasks plus task status updates and comments only", () => {
     expect([...ROLE_PERMISSION_MATRIX.colaborador].sort()).toEqual(
-      ["events:list", "events:read", "tasks:list", "tasks:read", "tasks:update-status"].sort()
+      ["events:list", "events:read", "tasks:list", "tasks:read", "tasks:update-status", "tasks:comment"].sort()
     );
+  });
+
+  it("lets the admin comment on tasks", () => {
+    expect(ROLE_PERMISSION_MATRIX.admin).toContain("tasks:comment");
   });
 
   it("creates the generic service only when the active catalog has none", async () => {
