@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { authService } from "../../../auth/infrastructure/factories/auth.factory.js";
 import { authorize } from "../../../auth/presentation/middlewares/authorize.js";
 
-const permissionKeys = ["tasks:list", "tasks:read", "tasks:update-status", "tasks:create", "tasks:update", "tasks:delete", "rules:apply", "rules:read"] as const;
+const permissionKeys = ["tasks:list", "tasks:read", "tasks:update-status", "tasks:create", "tasks:update", "tasks:delete", "tasks:comment", "rules:apply", "rules:read"] as const;
 
 afterEach(() => { jest.restoreAllMocks(); });
 
