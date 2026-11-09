@@ -32,6 +32,7 @@ model User {
   createdTeams          Team[]         @relation("TeamCreator")
   assignedEventTeams    EventTeam[]    @relation("TeamAssigner")
   createdRules          Rule[]         @relation("RuleCreator")
+  taskComments          TaskComment[]  @relation("TaskCommentAuthor")
 
   @@index([deletedAt])
   @@map("users")
@@ -384,6 +385,7 @@ model Task {
   sourceRule     Rule?      @relation(fields: [sourceRuleId], references: [id], onDelete: SetNull)
   sourceTask     Task?      @relation("TaskReplication", fields: [sourceTaskId], references: [id], onDelete: Restrict)
   replicas       Task[]     @relation("TaskReplication")
+  comments       TaskComment[]
 
   @@index([eventId])
   @@index([assignedTeamId])
@@ -392,6 +394,24 @@ model Task {
   @@index([status])
   @@index([deletedAt])
   @@map("tasks")
+}
+
+// ADR 0017: comments on a task (KAN-77). Append-only for now: no edit or delete endpoint yet,
+// deletedAt keeps the soft-delete convention for when that arrives.
+model TaskComment {
+  id        String    @id @default(uuid()) @db.Char(36)
+  taskId    String    @map("task_id") @db.Char(36)
+  authorId  String    @map("author_id") @db.Char(36)
+  body      String    @db.Text
+  createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author    User      @relation("TaskCommentAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([taskId, createdAt])
+  @@index([authorId])
+  @@index([deletedAt])
+  @@map("task_comments")
 }
 
 // Idempotency guard: a Rule can only generate tasks for a given Event once, unless the prior

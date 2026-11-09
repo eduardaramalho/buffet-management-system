@@ -132,6 +132,11 @@ export type RuleTaskTemplate = Prisma.RuleTaskTemplateModel
  */
 export type Task = Prisma.TaskModel
 /**
+ * Model TaskComment
+ * 
+ */
+export type TaskComment = Prisma.TaskCommentModel
+/**
  * Model RuleApplication
  * 
  */

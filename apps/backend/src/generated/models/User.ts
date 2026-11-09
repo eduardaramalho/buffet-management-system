@@ -230,6 +230,7 @@ export type UserWhereInput = {
   createdTeams?: Prisma.TeamListRelationFilter
   assignedEventTeams?: Prisma.EventTeamListRelationFilter
   createdRules?: Prisma.RuleListRelationFilter
+  taskComments?: Prisma.TaskCommentListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -251,6 +252,7 @@ export type UserOrderByWithRelationInput = {
   createdTeams?: Prisma.TeamOrderByRelationAggregateInput
   assignedEventTeams?: Prisma.EventTeamOrderByRelationAggregateInput
   createdRules?: Prisma.RuleOrderByRelationAggregateInput
+  taskComments?: Prisma.TaskCommentOrderByRelationAggregateInput
   _relevance?: Prisma.UserOrderByRelevanceInput
 }
 
@@ -276,6 +278,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   createdTeams?: Prisma.TeamListRelationFilter
   assignedEventTeams?: Prisma.EventTeamListRelationFilter
   createdRules?: Prisma.RuleListRelationFilter
+  taskComments?: Prisma.TaskCommentListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -329,6 +332,7 @@ export type UserCreateInput = {
   createdTeams?: Prisma.TeamCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamCreateNestedManyWithoutAssignedByInput
   createdRules?: Prisma.RuleCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentCreateNestedManyWithoutAuthorInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -350,6 +354,7 @@ export type UserUncheckedCreateInput = {
   createdTeams?: Prisma.TeamUncheckedCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutAssignedByInput
   createdRules?: Prisma.RuleUncheckedCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentUncheckedCreateNestedManyWithoutAuthorInput
 }
 
 export type UserUpdateInput = {
@@ -371,6 +376,7 @@ export type UserUpdateInput = {
   createdTeams?: Prisma.TeamUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUpdateManyWithoutAssignedByNestedInput
   createdRules?: Prisma.RuleUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -392,6 +398,7 @@ export type UserUncheckedUpdateInput = {
   createdTeams?: Prisma.TeamUncheckedUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUncheckedUpdateManyWithoutAssignedByNestedInput
   createdRules?: Prisma.RuleUncheckedUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -604,6 +611,20 @@ export type UserUpdateOneRequiredWithoutCreatedRulesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCreatedRulesInput, Prisma.UserUpdateWithoutCreatedRulesInput>, Prisma.UserUncheckedUpdateWithoutCreatedRulesInput>
 }
 
+export type UserCreateNestedOneWithoutTaskCommentsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutTaskCommentsInput, Prisma.UserUncheckedCreateWithoutTaskCommentsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutTaskCommentsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutTaskCommentsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutTaskCommentsInput, Prisma.UserUncheckedCreateWithoutTaskCommentsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutTaskCommentsInput
+  upsert?: Prisma.UserUpsertWithoutTaskCommentsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutTaskCommentsInput, Prisma.UserUpdateWithoutTaskCommentsInput>, Prisma.UserUncheckedUpdateWithoutTaskCommentsInput>
+}
+
 export type UserCreateNestedOneWithoutAuditLogsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutAuditLogsInput, Prisma.UserUncheckedCreateWithoutAuditLogsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutAuditLogsInput
@@ -638,6 +659,7 @@ export type UserCreateWithoutCreatedEventsInput = {
   createdTeams?: Prisma.TeamCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamCreateNestedManyWithoutAssignedByInput
   createdRules?: Prisma.RuleCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentCreateNestedManyWithoutAuthorInput
 }
 
 export type UserUncheckedCreateWithoutCreatedEventsInput = {
@@ -658,6 +680,7 @@ export type UserUncheckedCreateWithoutCreatedEventsInput = {
   createdTeams?: Prisma.TeamUncheckedCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutAssignedByInput
   createdRules?: Prisma.RuleUncheckedCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentUncheckedCreateNestedManyWithoutAuthorInput
 }
 
 export type UserCreateOrConnectWithoutCreatedEventsInput = {
@@ -694,6 +717,7 @@ export type UserUpdateWithoutCreatedEventsInput = {
   createdTeams?: Prisma.TeamUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUpdateManyWithoutAssignedByNestedInput
   createdRules?: Prisma.RuleUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedEventsInput = {
@@ -714,6 +738,7 @@ export type UserUncheckedUpdateWithoutCreatedEventsInput = {
   createdTeams?: Prisma.TeamUncheckedUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUncheckedUpdateManyWithoutAssignedByNestedInput
   createdRules?: Prisma.RuleUncheckedUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserCreateWithoutCreatedTeamsInput = {
@@ -734,6 +759,7 @@ export type UserCreateWithoutCreatedTeamsInput = {
   createdEvents?: Prisma.EventCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamCreateNestedManyWithoutAssignedByInput
   createdRules?: Prisma.RuleCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentCreateNestedManyWithoutAuthorInput
 }
 
 export type UserUncheckedCreateWithoutCreatedTeamsInput = {
@@ -754,6 +780,7 @@ export type UserUncheckedCreateWithoutCreatedTeamsInput = {
   createdEvents?: Prisma.EventUncheckedCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutAssignedByInput
   createdRules?: Prisma.RuleUncheckedCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentUncheckedCreateNestedManyWithoutAuthorInput
 }
 
 export type UserCreateOrConnectWithoutCreatedTeamsInput = {
@@ -790,6 +817,7 @@ export type UserUpdateWithoutCreatedTeamsInput = {
   createdEvents?: Prisma.EventUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUpdateManyWithoutAssignedByNestedInput
   createdRules?: Prisma.RuleUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedTeamsInput = {
@@ -810,6 +838,7 @@ export type UserUncheckedUpdateWithoutCreatedTeamsInput = {
   createdEvents?: Prisma.EventUncheckedUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUncheckedUpdateManyWithoutAssignedByNestedInput
   createdRules?: Prisma.RuleUncheckedUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserCreateWithoutAssignedEventTeamsInput = {
@@ -830,6 +859,7 @@ export type UserCreateWithoutAssignedEventTeamsInput = {
   createdEvents?: Prisma.EventCreateNestedManyWithoutCreatedByInput
   createdTeams?: Prisma.TeamCreateNestedManyWithoutCreatedByInput
   createdRules?: Prisma.RuleCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentCreateNestedManyWithoutAuthorInput
 }
 
 export type UserUncheckedCreateWithoutAssignedEventTeamsInput = {
@@ -850,6 +880,7 @@ export type UserUncheckedCreateWithoutAssignedEventTeamsInput = {
   createdEvents?: Prisma.EventUncheckedCreateNestedManyWithoutCreatedByInput
   createdTeams?: Prisma.TeamUncheckedCreateNestedManyWithoutCreatedByInput
   createdRules?: Prisma.RuleUncheckedCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentUncheckedCreateNestedManyWithoutAuthorInput
 }
 
 export type UserCreateOrConnectWithoutAssignedEventTeamsInput = {
@@ -886,6 +917,7 @@ export type UserUpdateWithoutAssignedEventTeamsInput = {
   createdEvents?: Prisma.EventUpdateManyWithoutCreatedByNestedInput
   createdTeams?: Prisma.TeamUpdateManyWithoutCreatedByNestedInput
   createdRules?: Prisma.RuleUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssignedEventTeamsInput = {
@@ -906,6 +938,7 @@ export type UserUncheckedUpdateWithoutAssignedEventTeamsInput = {
   createdEvents?: Prisma.EventUncheckedUpdateManyWithoutCreatedByNestedInput
   createdTeams?: Prisma.TeamUncheckedUpdateManyWithoutCreatedByNestedInput
   createdRules?: Prisma.RuleUncheckedUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserCreateWithoutRolesInput = {
@@ -926,6 +959,7 @@ export type UserCreateWithoutRolesInput = {
   createdTeams?: Prisma.TeamCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamCreateNestedManyWithoutAssignedByInput
   createdRules?: Prisma.RuleCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentCreateNestedManyWithoutAuthorInput
 }
 
 export type UserUncheckedCreateWithoutRolesInput = {
@@ -946,6 +980,7 @@ export type UserUncheckedCreateWithoutRolesInput = {
   createdTeams?: Prisma.TeamUncheckedCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutAssignedByInput
   createdRules?: Prisma.RuleUncheckedCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentUncheckedCreateNestedManyWithoutAuthorInput
 }
 
 export type UserCreateOrConnectWithoutRolesInput = {
@@ -971,6 +1006,7 @@ export type UserCreateWithoutAssignedRolesInput = {
   createdTeams?: Prisma.TeamCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamCreateNestedManyWithoutAssignedByInput
   createdRules?: Prisma.RuleCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentCreateNestedManyWithoutAuthorInput
 }
 
 export type UserUncheckedCreateWithoutAssignedRolesInput = {
@@ -991,6 +1027,7 @@ export type UserUncheckedCreateWithoutAssignedRolesInput = {
   createdTeams?: Prisma.TeamUncheckedCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutAssignedByInput
   createdRules?: Prisma.RuleUncheckedCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentUncheckedCreateNestedManyWithoutAuthorInput
 }
 
 export type UserCreateOrConnectWithoutAssignedRolesInput = {
@@ -1027,6 +1064,7 @@ export type UserUpdateWithoutRolesInput = {
   createdTeams?: Prisma.TeamUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUpdateManyWithoutAssignedByNestedInput
   createdRules?: Prisma.RuleUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRolesInput = {
@@ -1047,6 +1085,7 @@ export type UserUncheckedUpdateWithoutRolesInput = {
   createdTeams?: Prisma.TeamUncheckedUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUncheckedUpdateManyWithoutAssignedByNestedInput
   createdRules?: Prisma.RuleUncheckedUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserUpsertWithoutAssignedRolesInput = {
@@ -1078,6 +1117,7 @@ export type UserUpdateWithoutAssignedRolesInput = {
   createdTeams?: Prisma.TeamUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUpdateManyWithoutAssignedByNestedInput
   createdRules?: Prisma.RuleUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssignedRolesInput = {
@@ -1098,6 +1138,7 @@ export type UserUncheckedUpdateWithoutAssignedRolesInput = {
   createdTeams?: Prisma.TeamUncheckedUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUncheckedUpdateManyWithoutAssignedByNestedInput
   createdRules?: Prisma.RuleUncheckedUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserCreateWithoutRefreshTokensInput = {
@@ -1118,6 +1159,7 @@ export type UserCreateWithoutRefreshTokensInput = {
   createdTeams?: Prisma.TeamCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamCreateNestedManyWithoutAssignedByInput
   createdRules?: Prisma.RuleCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentCreateNestedManyWithoutAuthorInput
 }
 
 export type UserUncheckedCreateWithoutRefreshTokensInput = {
@@ -1138,6 +1180,7 @@ export type UserUncheckedCreateWithoutRefreshTokensInput = {
   createdTeams?: Prisma.TeamUncheckedCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutAssignedByInput
   createdRules?: Prisma.RuleUncheckedCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentUncheckedCreateNestedManyWithoutAuthorInput
 }
 
 export type UserCreateOrConnectWithoutRefreshTokensInput = {
@@ -1174,6 +1217,7 @@ export type UserUpdateWithoutRefreshTokensInput = {
   createdTeams?: Prisma.TeamUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUpdateManyWithoutAssignedByNestedInput
   createdRules?: Prisma.RuleUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRefreshTokensInput = {
@@ -1194,6 +1238,7 @@ export type UserUncheckedUpdateWithoutRefreshTokensInput = {
   createdTeams?: Prisma.TeamUncheckedUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUncheckedUpdateManyWithoutAssignedByNestedInput
   createdRules?: Prisma.RuleUncheckedUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserCreateWithoutCreatedRulesInput = {
@@ -1214,6 +1259,7 @@ export type UserCreateWithoutCreatedRulesInput = {
   createdEvents?: Prisma.EventCreateNestedManyWithoutCreatedByInput
   createdTeams?: Prisma.TeamCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamCreateNestedManyWithoutAssignedByInput
+  taskComments?: Prisma.TaskCommentCreateNestedManyWithoutAuthorInput
 }
 
 export type UserUncheckedCreateWithoutCreatedRulesInput = {
@@ -1234,6 +1280,7 @@ export type UserUncheckedCreateWithoutCreatedRulesInput = {
   createdEvents?: Prisma.EventUncheckedCreateNestedManyWithoutCreatedByInput
   createdTeams?: Prisma.TeamUncheckedCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutAssignedByInput
+  taskComments?: Prisma.TaskCommentUncheckedCreateNestedManyWithoutAuthorInput
 }
 
 export type UserCreateOrConnectWithoutCreatedRulesInput = {
@@ -1270,6 +1317,7 @@ export type UserUpdateWithoutCreatedRulesInput = {
   createdEvents?: Prisma.EventUpdateManyWithoutCreatedByNestedInput
   createdTeams?: Prisma.TeamUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUpdateManyWithoutAssignedByNestedInput
+  taskComments?: Prisma.TaskCommentUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedRulesInput = {
@@ -1290,6 +1338,107 @@ export type UserUncheckedUpdateWithoutCreatedRulesInput = {
   createdEvents?: Prisma.EventUncheckedUpdateManyWithoutCreatedByNestedInput
   createdTeams?: Prisma.TeamUncheckedUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUncheckedUpdateManyWithoutAssignedByNestedInput
+  taskComments?: Prisma.TaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
+}
+
+export type UserCreateWithoutTaskCommentsInput = {
+  id?: string
+  name: string
+  email: string
+  passwordHash: string
+  isActive?: boolean
+  mustChangePassword?: boolean
+  tempPasswordExpiresAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
+  assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignedByUserInput
+  createdEvents?: Prisma.EventCreateNestedManyWithoutCreatedByInput
+  createdTeams?: Prisma.TeamCreateNestedManyWithoutCreatedByInput
+  assignedEventTeams?: Prisma.EventTeamCreateNestedManyWithoutAssignedByInput
+  createdRules?: Prisma.RuleCreateNestedManyWithoutCreatedByInput
+}
+
+export type UserUncheckedCreateWithoutTaskCommentsInput = {
+  id?: string
+  name: string
+  email: string
+  passwordHash: string
+  isActive?: boolean
+  mustChangePassword?: boolean
+  tempPasswordExpiresAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
+  assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignedByUserInput
+  createdEvents?: Prisma.EventUncheckedCreateNestedManyWithoutCreatedByInput
+  createdTeams?: Prisma.TeamUncheckedCreateNestedManyWithoutCreatedByInput
+  assignedEventTeams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutAssignedByInput
+  createdRules?: Prisma.RuleUncheckedCreateNestedManyWithoutCreatedByInput
+}
+
+export type UserCreateOrConnectWithoutTaskCommentsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutTaskCommentsInput, Prisma.UserUncheckedCreateWithoutTaskCommentsInput>
+}
+
+export type UserUpsertWithoutTaskCommentsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutTaskCommentsInput, Prisma.UserUncheckedUpdateWithoutTaskCommentsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutTaskCommentsInput, Prisma.UserUncheckedCreateWithoutTaskCommentsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutTaskCommentsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutTaskCommentsInput, Prisma.UserUncheckedUpdateWithoutTaskCommentsInput>
+}
+
+export type UserUpdateWithoutTaskCommentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mustChangePassword?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  tempPasswordExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
+  assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignedByUserNestedInput
+  createdEvents?: Prisma.EventUpdateManyWithoutCreatedByNestedInput
+  createdTeams?: Prisma.TeamUpdateManyWithoutCreatedByNestedInput
+  assignedEventTeams?: Prisma.EventTeamUpdateManyWithoutAssignedByNestedInput
+  createdRules?: Prisma.RuleUpdateManyWithoutCreatedByNestedInput
+}
+
+export type UserUncheckedUpdateWithoutTaskCommentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mustChangePassword?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  tempPasswordExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
+  assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignedByUserNestedInput
+  createdEvents?: Prisma.EventUncheckedUpdateManyWithoutCreatedByNestedInput
+  createdTeams?: Prisma.TeamUncheckedUpdateManyWithoutCreatedByNestedInput
+  assignedEventTeams?: Prisma.EventTeamUncheckedUpdateManyWithoutAssignedByNestedInput
+  createdRules?: Prisma.RuleUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutAuditLogsInput = {
@@ -1310,6 +1459,7 @@ export type UserCreateWithoutAuditLogsInput = {
   createdTeams?: Prisma.TeamCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamCreateNestedManyWithoutAssignedByInput
   createdRules?: Prisma.RuleCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentCreateNestedManyWithoutAuthorInput
 }
 
 export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -1330,6 +1480,7 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   createdTeams?: Prisma.TeamUncheckedCreateNestedManyWithoutCreatedByInput
   assignedEventTeams?: Prisma.EventTeamUncheckedCreateNestedManyWithoutAssignedByInput
   createdRules?: Prisma.RuleUncheckedCreateNestedManyWithoutCreatedByInput
+  taskComments?: Prisma.TaskCommentUncheckedCreateNestedManyWithoutAuthorInput
 }
 
 export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -1366,6 +1517,7 @@ export type UserUpdateWithoutAuditLogsInput = {
   createdTeams?: Prisma.TeamUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUpdateManyWithoutAssignedByNestedInput
   createdRules?: Prisma.RuleUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -1386,6 +1538,7 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   createdTeams?: Prisma.TeamUncheckedUpdateManyWithoutCreatedByNestedInput
   assignedEventTeams?: Prisma.EventTeamUncheckedUpdateManyWithoutAssignedByNestedInput
   createdRules?: Prisma.RuleUncheckedUpdateManyWithoutCreatedByNestedInput
+  taskComments?: Prisma.TaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
 }
 
 
@@ -1402,6 +1555,7 @@ export type UserCountOutputType = {
   createdTeams: number
   assignedEventTeams: number
   createdRules: number
+  taskComments: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1413,6 +1567,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   createdTeams?: boolean | UserCountOutputTypeCountCreatedTeamsArgs
   assignedEventTeams?: boolean | UserCountOutputTypeCountAssignedEventTeamsArgs
   createdRules?: boolean | UserCountOutputTypeCountCreatedRulesArgs
+  taskComments?: boolean | UserCountOutputTypeCountTaskCommentsArgs
 }
 
 /**
@@ -1481,6 +1636,13 @@ export type UserCountOutputTypeCountCreatedRulesArgs<ExtArgs extends runtime.Typ
   where?: Prisma.RuleWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountTaskCommentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TaskCommentWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1501,6 +1663,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   createdTeams?: boolean | Prisma.User$createdTeamsArgs<ExtArgs>
   assignedEventTeams?: boolean | Prisma.User$assignedEventTeamsArgs<ExtArgs>
   createdRules?: boolean | Prisma.User$createdRulesArgs<ExtArgs>
+  taskComments?: boolean | Prisma.User$taskCommentsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1529,6 +1692,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   createdTeams?: boolean | Prisma.User$createdTeamsArgs<ExtArgs>
   assignedEventTeams?: boolean | Prisma.User$assignedEventTeamsArgs<ExtArgs>
   createdRules?: boolean | Prisma.User$createdRulesArgs<ExtArgs>
+  taskComments?: boolean | Prisma.User$taskCommentsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 
@@ -1543,6 +1707,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     createdTeams: Prisma.$TeamPayload<ExtArgs>[]
     assignedEventTeams: Prisma.$EventTeamPayload<ExtArgs>[]
     createdRules: Prisma.$RulePayload<ExtArgs>[]
+    taskComments: Prisma.$TaskCommentPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1903,6 +2068,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   createdTeams<T extends Prisma.User$createdTeamsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$createdTeamsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TeamPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   assignedEventTeams<T extends Prisma.User$assignedEventTeamsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$assignedEventTeamsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EventTeamPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   createdRules<T extends Prisma.User$createdRulesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$createdRulesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  taskComments<T extends Prisma.User$taskCommentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$taskCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2479,6 +2645,30 @@ export type User$createdRulesArgs<ExtArgs extends runtime.Types.Extensions.Inter
   take?: number
   skip?: number
   distinct?: Prisma.RuleScalarFieldEnum | Prisma.RuleScalarFieldEnum[]
+}
+
+/**
+ * User.taskComments
+ */
+export type User$taskCommentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TaskComment
+   */
+  select?: Prisma.TaskCommentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TaskComment
+   */
+  omit?: Prisma.TaskCommentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TaskCommentInclude<ExtArgs> | null
+  where?: Prisma.TaskCommentWhereInput
+  orderBy?: Prisma.TaskCommentOrderByWithRelationInput | Prisma.TaskCommentOrderByWithRelationInput[]
+  cursor?: Prisma.TaskCommentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TaskCommentScalarFieldEnum | Prisma.TaskCommentScalarFieldEnum[]
 }
 
 /**

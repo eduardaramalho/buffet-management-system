@@ -69,6 +69,7 @@ export const ModelName = {
   RuleResourceRequirement: 'RuleResourceRequirement',
   RuleTaskTemplate: 'RuleTaskTemplate',
   Task: 'Task',
+  TaskComment: 'TaskComment',
   RuleApplication: 'RuleApplication',
   AuditLog: 'AuditLog'
 } as const
@@ -322,6 +323,18 @@ export const TaskScalarFieldEnum = {
 export type TaskScalarFieldEnum = (typeof TaskScalarFieldEnum)[keyof typeof TaskScalarFieldEnum]
 
 
+export const TaskCommentScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  authorId: 'authorId',
+  body: 'body',
+  createdAt: 'createdAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type TaskCommentScalarFieldEnum = (typeof TaskCommentScalarFieldEnum)[keyof typeof TaskCommentScalarFieldEnum]
+
+
 export const RuleApplicationScalarFieldEnum = {
   id: 'id',
   eventId: 'eventId',
@@ -559,6 +572,16 @@ export const TaskOrderByRelevanceFieldEnum = {
 } as const
 
 export type TaskOrderByRelevanceFieldEnum = (typeof TaskOrderByRelevanceFieldEnum)[keyof typeof TaskOrderByRelevanceFieldEnum]
+
+
+export const TaskCommentOrderByRelevanceFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  authorId: 'authorId',
+  body: 'body'
+} as const
+
+export type TaskCommentOrderByRelevanceFieldEnum = (typeof TaskCommentOrderByRelevanceFieldEnum)[keyof typeof TaskCommentOrderByRelevanceFieldEnum]
 
 
 export const RuleApplicationOrderByRelevanceFieldEnum = {
