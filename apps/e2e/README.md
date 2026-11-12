@@ -3,7 +3,7 @@
 Jornada completa do sistema em um navegador real, contra um backend e um banco **dedicados**:
 
 1. Login do administrador ("Esqueceu a senha?" orienta procurar o administrador)
-2. Cadastro de usuário (gestor)
+2. Cadastro de usuário (gestor); o papel admin não é oferecido (ADR 0018)
 3. Cadastro de cliente
 4. Catálogo de serviços (RF06): cadastro, nome duplicado (409), edição, exclusão lógica e "Outro" protegido na tela e na API (400)
 5. Cadastro de equipe com colaborador
@@ -20,8 +20,8 @@ Jornada completa do sistema em um navegador real, contra um backend e um banco *
 16. Dashboard gerencial
 17. Relatórios (eventos, tarefas, desempenho das equipes) e exportação CSV/PDF
 18. Redefinição de senha pelo administrador: admin protegido (403) e senha anterior invalidada (ADR 0012)
-19. Troca obrigatória da senha temporária; a gestora abre em Clientes, a primeira tela permitida (ADR 0013)
-20. Controle de acesso (RBAC) do gestor na interface e no backend
+19. Troca obrigatória da senha temporária; a gestora abre no Dashboard, a primeira tela permitida (ADR 0013 e 0018)
+20. Gestor com acesso completo exceto gestão de papéis; admin protegido, conta própria travada (403) e usuário inexistente (404) (ADR 0018)
 21. Sessão: botão Sair acessível em tela baixa e no celular
 22. Colaborador: abre em Eventos, só consulta eventos e move o status das tarefas; o backend recusa o resto (ADR 0013)
 
