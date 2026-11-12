@@ -24,7 +24,7 @@ describe('UsersListPage creation flow', () => {
 
   beforeEach(() => {
     listUsers.mockResolvedValue([])
-    listRoles.mockResolvedValue([{ id: 'role-1', name: 'Administrador', isProtected: true }])
+    listRoles.mockResolvedValue([{ id: 'role-admin', name: 'admin', isProtected: true }, { id: 'role-1', name: 'gestor', isProtected: false }])
     createUser.mockResolvedValue({ id: 'user-1', name: 'Alice', email: 'alice@example.com', isActive: true, roles: [{ role: { id: 'role-1', name: 'qualquer nome', isProtected: true } }] })
     setUserActive.mockResolvedValue(undefined)
     updateUser.mockResolvedValue(undefined)
@@ -82,7 +82,7 @@ describe('UsersListPage creation flow', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Novo usuário' }))
     await userEvent.type(screen.getByLabelText('Nome'), 'Alice')
     await userEvent.type(screen.getByLabelText('E-mail'), 'alice@example.com')
-    await userEvent.click(await screen.findByRole('radio', { name: 'Administrador' }))
+    await userEvent.click(await screen.findByRole('radio', { name: 'gestor' }))
     await userEvent.type(screen.getByLabelText('Senha inicial'), 'secret123')
     await userEvent.click(screen.getByRole('button', { name: 'Criar usuário' }))
 
@@ -96,7 +96,7 @@ describe('UsersListPage creation flow', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Novo usuário' }))
     await userEvent.type(screen.getByLabelText('Nome'), 'Alice')
     await userEvent.type(screen.getByLabelText('E-mail'), 'alice@example.com')
-    await userEvent.click(await screen.findByRole('radio', { name: 'Administrador' }))
+    await userEvent.click(await screen.findByRole('radio', { name: 'gestor' }))
     await userEvent.type(screen.getByLabelText('Senha inicial'), 'secret123')
     await userEvent.click(screen.getByRole('button', { name: 'Criar usuário' }))
 
@@ -186,5 +186,29 @@ describe('UsersListPage creation flow', () => {
     // Sem users:create o botão levaria a um 403.
     expect(screen.queryByRole('button', { name: 'Novo usuário' })).not.toBeInTheDocument()
     authState.user = previous
+  })
+
+  // ADR 0018: o admin é a conta protegida do dono; o backend recusa o papel com 403.
+  it('does not offer the protected admin role when creating a user', async () => {
+    renderPage()
+    await userEvent.click(screen.getByRole('button', { name: 'Novo usuário' }))
+
+    expect(await screen.findByRole('radio', { name: 'gestor' })).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'admin' })).not.toBeInTheDocument()
+  })
+
+  // ADR 0018: ninguém se desativa nem redefine a própria senha pela tela de usuários.
+  it('disables deactivation and password reset on the own account but keeps editing', async () => {
+    const own = { id: 'me', name: 'Gestora', email: 'gestora@buffet.com', isActive: true, roles: [{ role: { id: 'role-1', name: 'gestor', isProtected: false } }] }
+    listUsers.mockResolvedValue([own])
+    renderPage()
+
+    expect(await screen.findByRole('button', { name: 'Desativar Gestora' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Desativar Gestora' })).toHaveAttribute('title', 'Você não pode desativar a própria conta')
+    expect(screen.getByRole('button', { name: 'Redefinir senha de Gestora' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Editar Gestora' })).toBeEnabled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Editar Gestora' }))
+    expect(screen.getByRole('switch', { name: /Usuário ativo/ })).toBeDisabled()
   })
 })
