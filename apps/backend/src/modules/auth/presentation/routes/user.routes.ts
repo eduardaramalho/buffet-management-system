@@ -12,5 +12,5 @@ userRoutes.put("/:id", authorize("users:update"), userController.update);
 userRoutes.delete("/:id", authorize("users:delete"), userController.remove);
 userRoutes.patch("/:id/activate", authorize("users:update"), userController.setActive(true));
 userRoutes.patch("/:id/deactivate", authorize("users:update"), userController.setActive(false));
-// ADR 0012: o administrador gera uma senha temporária; o usuário é obrigado a trocá-la no próximo login.
+// ADR 0012: admin ou gestor (ADR 0018) gera uma senha temporária; o usuário é obrigado a trocá-la no próximo login.
 userRoutes.post("/:id/reset-password", authorize("users:reset-password"), userPasswordController.reset);

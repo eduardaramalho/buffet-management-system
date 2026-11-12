@@ -13,8 +13,12 @@ export type ManagedUser = {
   roles: Array<{ role: { id: string; name: string; isProtected: boolean } }>;
 };
 
+export type AssignableRole = { id: string; isProtected: boolean };
+
 export interface UserManagementRepository {
   list(filter: UserListFilter): Promise<ManagedUser[]>;
+  /** Papel ativo (não excluído) que se quer atribuir na criação do usuário. */
+  findRoleById(id: string): Promise<AssignableRole | null>;
   findManagedById(id: string): Promise<ManagedUser | null>;
   create(input: { name: string; email: string; passwordHash: string; roleId: string }): Promise<ManagedUser>;
   update(id: string, input: { name?: string; email?: string }): Promise<ManagedUser>;

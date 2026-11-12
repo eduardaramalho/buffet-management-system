@@ -33,6 +33,8 @@ export class UserPasswordService {
     if (user.roles.some(({ role }) => role.isProtected)) {
       throw new UserManagementError("A senha de usuários administradores não pode ser redefinida pela interface");
     }
+    // ADR 0018: a própria senha muda pela troca do próprio usuário, que exige a senha atual.
+    if (user.id === actorId) throw new UserManagementError("Você não pode redefinir a própria senha pela tela de usuários");
     if (!user.isActive) throw new UserPasswordConflictError("Reative o usuário antes de redefinir a senha");
 
     const temporaryPassword = this.generator.generate();

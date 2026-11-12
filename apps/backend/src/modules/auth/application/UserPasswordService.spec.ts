@@ -79,4 +79,14 @@ describe('UserPasswordService.resetByAdmin', () => {
     await expect(service.resetByAdmin('user-2', 'admin-1')).rejects.toBeInstanceOf(UserPasswordConflictError);
     expect(users.setTemporaryPassword).not.toHaveBeenCalled();
   });
+
+  // ADR 0018: a própria senha muda pela troca do próprio usuário, não pela tela de usuários.
+  it('refuses to reset the own password', async () => {
+    const { service, users, audit } = makeService(makeUser({ id: 'manager-1' }));
+
+    await expect(service.resetByAdmin('manager-1', 'manager-1')).rejects.toThrow('Você não pode redefinir a própria senha pela tela de usuários');
+    await expect(service.resetByAdmin('manager-1', 'manager-1')).rejects.toBeInstanceOf(UserManagementError);
+    expect(users.setTemporaryPassword).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalled();
+  });
 });
