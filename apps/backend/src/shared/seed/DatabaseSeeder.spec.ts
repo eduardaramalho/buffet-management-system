@@ -108,6 +108,15 @@ describe("DatabaseSeeder", () => {
     expect(ROLE_PERMISSION_MATRIX.admin).toContain("tasks:comment");
   });
 
+  // ADR 0018: o gestor opera o sistema inteiro (RFC 3.1); só a gestão de papéis fica com o admin.
+  it("gives the gestor every admin permission except role management", () => {
+    const roleManagement = ["roles:create", "roles:update", "roles:delete", "roles:manage-permissions"];
+    const expected = ROLE_PERMISSION_MATRIX.admin.filter((key) => !roleManagement.includes(key));
+
+    expect([...ROLE_PERMISSION_MATRIX.gestor].sort()).toEqual([...expected].sort());
+    expect(ROLE_PERMISSION_MATRIX.gestor).toEqual(expect.arrayContaining(["dashboard:view", "reports:view", "users:create", "users:reset-password", "roles:list"]));
+  });
+
   it("creates the generic service only when the active catalog has none", async () => {
     await seeder.run({ adminInitialPassword: "Strong-pass-1" });
     await seeder.run({ adminInitialPassword: "Strong-pass-1" });
