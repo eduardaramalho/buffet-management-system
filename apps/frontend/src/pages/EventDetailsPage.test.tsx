@@ -316,8 +316,8 @@ describe('EventDetailsPage: estados da Central do evento', () => {
     vi.mocked(getEvent).mockResolvedValue(event())
     mockReadyBlocks()
     vi.mocked(getEventHistory).mockResolvedValue([
-      { id: 'h1', action: 'CREATED', message: 'Evento criado', actorName: 'Eduarda', createdAt: '2026-10-01T10:00:00.000Z' },
-      { id: 'h2', action: 'RULES', message: 'Regras aplicadas', actorName: null, createdAt: '2026-10-02T10:00:00.000Z' },
+      { id: 'h1', message: 'Evento criado', actorName: 'Eduarda', createdAt: '2026-10-01T10:00:00.000Z' },
+      { id: 'h2', message: 'Regras aplicadas', actorName: null, createdAt: '2026-10-02T10:00:00.000Z' },
     ])
     renderPage()
 

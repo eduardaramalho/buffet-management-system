@@ -18,4 +18,4 @@ export const getReplicationPreview = async (eventId: string, schedule: { eventDa
 export const replicateEvent = async (eventId: string, input: ReplicateEventInput) => (await httpClient.post<Event>(`/api/v1/events/${eventId}/replicate`, input)).data
 export const getEventHistory = async (eventId: string) => (await httpClient.get<EventHistory[]>(`/api/v1/events/${eventId}/history`)).data
 
-export type EventHistory = { id: string; action: string; message: string; actorName: string | null; createdAt: string }
+export type EventHistory = { id: string; message: string; actorName: string | null; createdAt: string }
