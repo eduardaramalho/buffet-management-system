@@ -19,7 +19,7 @@ Além disso, o seed só adicionava permissões. Uma permissão retirada da matri
 2. **A matriz do seed é a fonte da verdade.** O seed, que roda a cada deploy (ADR 0011), remove do papel as permissões que saíram da matriz (`revokeRolePermissionsExcept`). Não há tela de gestão de permissões, então nenhuma configuração manual é perdida.
 3. **Página inicial por permissão:** depois do login, ou ao abrir uma tela não permitida, o usuário vai para a primeira tela do menu que o papel pode abrir (`getHomePath`, na mesma ordem do menu). Sem nenhuma tela permitida, uma página "Sem acesso" mantém o botão Sair. Com isso, o gestor passa a abrir em Clientes e o colaborador em Eventos.
 4. **Botões só com a permissão correspondente:** Novo, Editar e Excluir na lista de eventos (`events:create`, `events:update`, `events:delete`) e Novo usuário (`users:create`). O quadro de tarefas só consulta equipes com `teams:list`; sem ela, não mostra o filtro de equipe.
-5. **Gestor sem mudança de permissões** (decisão de 24/10/2026): `users:list`, `users:read`, `users:update`, `audit:read` e `clients:*`.
+5. ~~**Gestor sem mudança de permissões** (decisão de 24/10/2026): `users:list`, `users:read`, `users:update`, `audit:read` e `clients:*`.~~ Substituída pelo [ADR 0018](0018-gestor-com-acesso-completo-e-admin-protegido.md).
 
 ## Prós
 
@@ -50,3 +50,7 @@ A decisão 1 dava `users:read` ao colaborador só porque `GET /auth/me` exigia e
 ## Atualização: comentários nas tarefas (08/11/2026)
 
 O colaborador recebe `tasks:comment` (ADR 0017): ele comenta nas tarefas que executa, sem ganhar `tasks:update`. O seed concede a permissão nos bancos existentes no próximo deploy.
+
+## Atualização: gestor com acesso completo (09/11/2026)
+
+A decisão 5 foi substituída pelo [ADR 0018](0018-gestor-com-acesso-completo-e-admin-protegido.md): o gestor recebe todas as permissões do admin, exceto a gestão de papéis, e passa a abrir no Dashboard. O seed concede as permissões nos bancos existentes no próximo deploy (decisão 2).

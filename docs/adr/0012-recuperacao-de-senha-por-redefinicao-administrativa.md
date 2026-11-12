@@ -30,6 +30,10 @@ O fluxo não mudou, só a apresentação. O login e a troca obrigatória passara
 - O erro `TEMP_PASSWORD_EXPIRED` aparece como aviso, separado do erro de credenciais, com a mensagem do backend.
 - Na troca obrigatória, o campo "Senha atual" passou a se chamar **Senha temporária**, e um checklist mostra, enquanto o usuário digita, as mesmas regras conferidas no envio (mínimo de 8 caracteres, diferente da temporária, confirmação igual).
 
+## Atualização: redefinição também pelo gestor (09/11/2026)
+
+O [ADR 0018](0018-gestor-com-acesso-completo-e-admin-protegido.md) dá `users:reset-password` ao gestor, que também passa a redefinir senhas. Continuam valendo a proteção do admin (decisão 7) e a troca obrigatória. Novo: ninguém redefine a própria senha pela tela de usuários (403); a própria senha muda por `POST /auth/change-password`, que confere a senha atual.
+
 ## Por que a flag vai no token
 
 | | Claim no access token (escolhida) | Consulta ao banco em cada requisição |
