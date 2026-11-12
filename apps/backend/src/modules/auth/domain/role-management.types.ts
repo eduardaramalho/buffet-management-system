@@ -8,6 +8,8 @@ export type ManagedRole = {
   id: string;
   name: string;
   description: string | null;
+  /** Papel do dono (admin): não é atribuído no cadastro de usuário (ADR 0018). */
+  isProtected: boolean;
   deletedAt: Date | null;
   permissions: RolePermission[];
 };

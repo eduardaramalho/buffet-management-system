@@ -6,11 +6,22 @@ const role = {
   id: 'role-1',
   name: 'Gestor',
   description: 'Gestão operacional',
+  isProtected: false,
   deletedAt: null,
   permissions: [],
 };
 
 describe('PrismaRoleRepository', () => {
+  // ADR 0018: o cadastro de usuário esconde os papéis protegidos; sem o campo, o admin aparecia na lista.
+  it('exposes the protection flag so the user form can hide the admin role', async () => {
+    const findMany = jest.fn(async () => [{ ...role, id: 'role-admin', name: 'admin', isProtected: true }, role]);
+    const repository = new PrismaRoleRepository({ role: { findMany } } as any);
+
+    const roles = await repository.list();
+
+    expect(roles.map(({ name, isProtected }) => ({ name, isProtected }))).toEqual([{ name: 'admin', isProtected: true }, { name: 'Gestor', isProtected: false }]);
+  });
+
   it('lists active roles with permissions and excludes soft-deleted roles', async () => {
     const findMany = jest.fn(async () => [role]);
     const repository = new PrismaRoleRepository({ role: { findMany } } as any);
