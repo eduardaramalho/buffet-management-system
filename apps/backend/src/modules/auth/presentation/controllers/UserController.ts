@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { UserService } from "../../application/UserService.js";
 
 const createSchema = z.object({ name: z.string().min(2).max(150), email: z.string().email(), password: z.string().min(8), roleId: z.string().uuid() });
-// ADR 0012: a senha não muda pela edição (users:update também é do gestor e do colaborador).
+// ADR 0012: a senha não muda pela edição (users:update também é do gestor, ADR 0018).
 // strict(): enviar "password" é recusado com 422 em vez de ser ignorado em silêncio.
 const updateSchema = z.object({ name: z.string().min(2).max(150).optional(), email: z.string().email().optional() }).strict();
 const routeId = (request: Request) => String(request.params.id);

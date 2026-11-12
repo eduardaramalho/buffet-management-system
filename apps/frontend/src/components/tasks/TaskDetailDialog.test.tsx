@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TaskDetailDialog, type TaskDetailPermissions } from './TaskDetailDialog'
 import { createTaskComment, listTaskComments, updateTask } from '../../api/tasksApi'
 import type { Task } from '../../types/task'
@@ -44,8 +44,16 @@ const renderDialog = (overrides: Partial<Parameters<typeof TaskDetailDialog>[0]>
 
 describe('TaskDetailDialog', () => {
   beforeEach(() => {
+    // Relógio fixo antes do prazo da tarefa: com a data real, o teste passava a ver "(atrasada)" depois de 12/11/2026.
+    // Só o Date é falso; os timers reais continuam servindo ao waitFor.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-10T12:00:00.000Z'))
     vi.clearAllMocks()
     vi.mocked(listTaskComments).mockResolvedValue([comment])
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('shows the task, its origin, event, team and deadline', async () => {

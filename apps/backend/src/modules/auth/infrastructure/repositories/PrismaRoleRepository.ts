@@ -11,6 +11,7 @@ const mapRole = (value: any): ManagedRole => ({
   id: value.id,
   name: value.name,
   description: value.description,
+  isProtected: value.isProtected,
   deletedAt: value.deletedAt,
   permissions: value.permissions.map((item: any): RolePermission => ({
     id: item.permission?.id ?? item.id,

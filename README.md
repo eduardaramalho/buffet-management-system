@@ -29,7 +29,8 @@ O EventosPro centraliza clientes, eventos, serviços contratados, equipes e tare
 - **Motor de regras:** condições por tipo de evento, número de convidados e serviços; geração idempotente de tarefas; alocação automática de equipes e atribuição de cada tarefa à equipe responsável; alertas de falta de equipe.
 - **Gestão operacional:** quadro de tarefas, tarefas manuais, atualização de status, destaque das tarefas atrasadas e Central do evento com atualização automática.
 - **Dashboard e relatórios:** indicadores do gestor e relatórios de eventos, tarefas e desempenho das equipes, com exportação em CSV e PDF.
-- **Acesso:** autenticação JWT com refresh token rotacionado, RBAC por permissões, trilha de auditoria e recuperação de senha pelo administrador, com senha temporária de 24 horas e troca obrigatória no próximo acesso.
+- **Acesso:** autenticação JWT com refresh token rotacionado, RBAC por permissões, trilha de auditoria e recuperação de senha pelo admin ou gestor, com senha temporária de 24 horas e troca obrigatória no próximo acesso.
+- **Papéis:** **admin**, a conta protegida do dono, que ninguém edita, desativa ou tem a senha redefinida pela tela; **gestor**, que opera o sistema inteiro (entra pelo Dashboard) e só não gerencia papéis; **colaborador**, que consulta eventos e tarefas, move o status e comenta. O papel admin não é atribuído no cadastro, e ninguém desativa a própria conta ([ADR 0018](docs/adr/0018-gestor-com-acesso-completo-e-admin-protegido.md)).
 
 ## Stack
 

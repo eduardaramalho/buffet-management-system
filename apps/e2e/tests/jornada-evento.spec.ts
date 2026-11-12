@@ -64,6 +64,8 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     const dialog = page.getByRole('dialog', { name: 'Novo usuário' })
     await dialog.getByLabel('Nome').fill(data.manager.name)
     await dialog.getByLabel('E-mail').fill(data.manager.email)
+    // ADR 0018: o papel admin é a conta protegida do dono e não aparece no cadastro.
+    await expect(dialog.getByRole('radio', { name: 'admin', exact: true })).toHaveCount(0)
     await dialog.getByRole('radio', { name: data.manager.role, exact: true }).check()
     await dialog.getByLabel('Senha inicial').fill(data.manager.password)
     await dialog.getByRole('button', { name: 'Criar usuário' }).click()
@@ -525,37 +527,57 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await page.getByRole('button', { name: 'Salvar nova senha' }).click()
     // A troca devolve um par novo de tokens já sem a flag de troca pendente; o passo 20 usa esse token na API.
     managerAccessToken = (await (await changed).json() as { accessToken: string }).accessToken
-    // Página inicial = primeira tela do menu que o papel pode abrir (para o gestor, Clientes).
-    await expect(page.getByRole('heading', { level: 1, name: 'Clientes' })).toBeVisible()
+    // Página inicial = primeira tela do menu que o papel pode abrir (para o gestor, o Dashboard; ADR 0018).
+    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible()
   })
 
-  test('20. controle de acesso: gestor vê apenas o que seu papel permite', async () => {
+  test('20. controle de acesso: gestor opera o sistema, sem gerir papéis nem a própria conta (ADR 0018)', async () => {
     const menu = page.getByRole('navigation')
-    await expect(menu.getByRole('link', { name: 'Usuários', exact: true })).toBeVisible()
-    await expect(menu.getByRole('link', { name: 'Clientes', exact: true })).toBeVisible()
-    for (const hidden of ['Eventos', 'Tarefas', 'Regras', 'Serviços', 'Relatórios', 'Dashboard']) {
-      await expect(menu.getByRole('link', { name: hidden, exact: true })).toHaveCount(0)
+    for (const visible of ['Dashboard', 'Relatórios', 'Eventos', 'Clientes', 'Serviços', 'Tarefas', 'Equipes', 'Colaboradores', 'Regras', 'Usuários', 'Papéis e permissões']) {
+      await expect(menu.getByRole('link', { name: visible, exact: true })).toBeVisible()
     }
-    await expect(page.getByRole('button', { name: `Redefinir senha de ${data.manager.name}` })).toHaveCount(0)
 
-    // A tela esconder o menu não basta: o backend precisa recusar a operação.
+    // Na própria linha: editar sim; desativar e redefinir a senha, não.
+    await navigateTo(page, 'Usuários', 'Usuários')
+    await expect(page.getByRole('button', { name: `Editar ${data.manager.name}` })).toBeEnabled()
+    await expect(page.getByRole('button', { name: `Desativar ${data.manager.name}` })).toBeDisabled()
+    await expect(page.getByRole('button', { name: `Redefinir senha de ${data.manager.name}` })).toBeDisabled()
+    // O admin continua protegido para o gestor.
+    await expect(page.getByRole('button', { name: 'Editar Administrador' })).toBeDisabled()
+
+    // A tela não basta: o backend confere cada permissão e cada trava.
     const manager = await ApiClient.fromToken(managerAccessToken)
-    await expectStatus(await manager.get('/events'), 403)
-    await expectStatus(await manager.post('/rules', { name: 'Regra indevida' }), 403)
-    await expectStatus(await manager.get('/clients'), 200)
-    const source = await findEvent(data.event.name)
-    await expectStatus(await manager.post(`/events/${source.id}/replicate`, { name: 'Réplica indevida' }), 403)
-    const managerUser = (await admin.json<Array<{ id: string; email: string }>>(admin.get('/users'))).find((user) => user.email === data.manager.email)
-    await expectStatus(await manager.post(`/users/${managerUser!.id}/reset-password`), 403)
+    await expectStatus(await manager.get('/dashboard/summary'), 200)
+    await expectStatus(await manager.get('/events'), 200)
+    await expectStatus(await manager.get('/rules'), 200)
+    await expectStatus(await manager.get(`/events/${(await findEvent(data.event.name)).id}/history`), 200)
 
-    // ADR 0012: users:update (gestor) não troca senha pela edição; antes isso permitia tomar a conta de outro usuário.
     const roles = await admin.json<Array<{ id: string; name: string }>>(admin.get('/roles'))
+    const adminRole = roles.find((role) => role.name === 'admin')!
+    await expectStatus(await manager.post('/roles', { name: 'papel-indevido' }), 403)
+    await expectStatus(await manager.put(`/roles/${adminRole.id}`, { description: 'Edição indevida' }), 403)
+    await expectStatus(await manager.get('/roles/permissions'), 403)
+
+    const users = await admin.json<Array<{ id: string; email: string }>>(admin.get('/users'))
+    const managerUser = users.find((user) => user.email === data.manager.email)!
+    const adminUser = users.find((user) => user.email === e2eEnv.admin.email)!
+    await expectStatus(await manager.post('/users', { name: 'Outro Admin', email: 'outro.admin@buffet.local', password: 'Indevido123!', roleId: adminRole.id }), 403)
+    await expectStatus(await manager.patch(`/users/${managerUser.id}/deactivate`), 403)
+    await expectStatus(await manager.delete(`/users/${managerUser.id}`), 403)
+    await expectStatus(await manager.post(`/users/${managerUser.id}/reset-password`), 403)
+    await expectStatus(await manager.put(`/users/${adminUser.id}`, { name: 'Edição indevida' }), 403)
+    await expectStatus(await manager.patch(`/users/${adminUser.id}/deactivate`), 403)
+    await expectStatus(await manager.post(`/users/${adminUser.id}/reset-password`), 403)
+    await expectStatus(await manager.get('/users/00000000-0000-4000-8000-000000000000'), 404)
+
+    // O gestor cadastra a conta do colaborador usada no passo 22.
+    // ADR 0012: users:update não troca senha pela edição; antes isso permitia tomar a conta de outro usuário.
     const { collaboratorUser } = data
-    const colleague = await admin.json<{ id: string }>(admin.post('/users', {
+    const colleague = await manager.json<{ id: string }>(manager.post('/users', {
       name: collaboratorUser.name, email: collaboratorUser.email, password: collaboratorUser.password, roleId: roles.find((role) => role.name === collaboratorUser.role)!.id,
     }), 201)
     await expectStatus(await manager.put(`/users/${colleague.id}`, { password: 'Invadida123!' }), 422)
-    await expectStatus(await manager.put(`/users/${managerUser!.id}`, { password: 'Invadida123!' }), 422)
+    await expectStatus(await manager.put(`/users/${managerUser.id}`, { password: 'Invadida123!' }), 422)
     await manager.dispose()
   })
 

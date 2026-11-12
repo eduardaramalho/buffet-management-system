@@ -14,10 +14,11 @@ import { Switch } from './form/Switch'
 import { TextField } from './form/TextField'
 import type { Role, User } from '../types'
 
-type UserFormProps = { user?: User; onClose: () => void; onCreated: (user: User) => void; onUpdated: (user: User) => void }
+// isOwnAccount: quem edita é o próprio usuário; ele não pode se desativar (ADR 0018).
+type UserFormProps = { user?: User; isOwnAccount?: boolean; onClose: () => void; onCreated: (user: User) => void; onUpdated: (user: User) => void }
 
-/** Cadastro e edição de usuário. Na edição não há papel nem senha (ADR 0012): a senha só muda pelo reset do administrador. */
-export function UserForm({ user, onClose, onCreated, onUpdated }: UserFormProps) {
+/** Cadastro e edição de usuário. Na edição não há papel nem senha (ADR 0012): a senha só muda pelo reset feito por admin ou gestor. */
+export function UserForm({ user, isOwnAccount = false, onClose, onCreated, onUpdated }: UserFormProps) {
   const toast = useToast()
   const [name, setName] = useState(user?.name ?? '')
   const [email, setEmail] = useState(user?.email ?? '')
@@ -33,7 +34,8 @@ export function UserForm({ user, onClose, onCreated, onUpdated }: UserFormProps)
 
   useEffect(() => {
     if (user) return
-    void listRoles().then(setRoles).catch((cause) => setApiError(getApiErrorMessage(cause, 'Não foi possível carregar os papéis')))
+    // ADR 0018: o papel admin (protegido) é a conta do dono e não é atribuído pela interface.
+    void listRoles().then((all) => setRoles(all.filter((role) => !role.isProtected))).catch((cause) => setApiError(getApiErrorMessage(cause, 'Não foi possível carregar os papéis')))
   }, [user])
 
   const save = async () => {
@@ -73,6 +75,6 @@ export function UserForm({ user, onClose, onCreated, onUpdated }: UserFormProps)
         </div>
       </FieldGroup>
     </>}
-    {user && <Switch label="Usuário ativo" description="Usuários inativos não conseguem entrar no sistema." checked={active} onChange={setActive} />}
+    {user && <Switch label="Usuário ativo" description={isOwnAccount ? 'Você não pode desativar a própria conta.' : 'Usuários inativos não conseguem entrar no sistema.'} checked={active} onChange={setActive} disabled={isOwnAccount} />}
   </FormModal>
 }

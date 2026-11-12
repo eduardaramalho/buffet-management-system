@@ -45,6 +45,10 @@ export class PrismaUserRepository implements UserRepository, UserManagementRepos
     return this.prisma.user.findMany({ where, include: { roles: { select: { role: { select: { id: true, name: true, isProtected: true } } } } }, orderBy: { name: "asc" } }) as Promise<ManagedUser[]>;
   }
 
+  findRoleById(id: string) {
+    return this.prisma.role.findFirst({ where: { id, deletedAt: null }, select: { id: true, isProtected: true } });
+  }
+
   findManagedById(id: string) {
     return this.prisma.user.findFirst({ where: { id, deletedAt: null }, include: { roles: { select: { role: { select: { id: true, name: true, isProtected: true } } } } } }) as Promise<ManagedUser | null>;
   }

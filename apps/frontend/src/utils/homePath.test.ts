@@ -12,7 +12,7 @@ describe('getHomePath', () => {
     expect(getHomePath(userWith(['users:read', 'events:list', 'events:read', 'tasks:list']))).toBe('/events')
   })
 
-  it('sends the gestor to clients, the first menu entry it can open', () => {
+  it('follows the menu order when the dashboard is not allowed', () => {
     expect(getHomePath(userWith(['users:list', 'users:read', 'clients:list']))).toBe('/clients')
   })
 
