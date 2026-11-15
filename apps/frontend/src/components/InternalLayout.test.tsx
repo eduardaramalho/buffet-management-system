@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InternalLayout } from './InternalLayout'
@@ -11,6 +12,7 @@ const permissions = ['dashboard:view', 'users:list', 'events:list', 'teams:list'
 const makeUser = (roleNames: string[]) => ({ id: 'user-1', name: 'Alice', email: 'alice@example.com', mustChangePassword: false, roles: roleNames.map((name) => ({ name, permissions })) })
 
 beforeEach(() => {
+  localStorage.clear()
   vi.mocked(useAuth).mockReturnValue({ user: makeUser(['Gestor']), loading: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
 })
 
@@ -60,5 +62,54 @@ describe('InternalLayout', () => {
     vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), roles: [{ name: 'Gestor', permissions: ['events:list'] }] }, loading: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
     render(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
     expect(screen.getAllByRole('link', { name: 'Relatórios' })).toHaveLength(1)
+  })
+
+  describe('sidebar recolhível (KAN-80)', () => {
+    const renderLayout = () => render(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
+    const layout = () => document.querySelector('.internal-layout') as HTMLElement
+
+    it('começa expandida, com o controle indicando o estado', () => {
+      renderLayout()
+      const toggle = screen.getByRole('button', { name: 'Recolher menu' })
+      expect(toggle).toHaveAttribute('aria-expanded', 'true')
+      expect(toggle).toHaveAttribute('aria-controls', 'app-sidebar')
+      expect(layout()).not.toHaveClass('sidebar-collapsed')
+    })
+
+    it('recolhe e expande pelo controle', async () => {
+      const user = userEvent.setup()
+      renderLayout()
+      await user.click(screen.getByRole('button', { name: 'Recolher menu' }))
+      expect(layout()).toHaveClass('sidebar-collapsed')
+      expect(screen.getByRole('button', { name: 'Expandir menu' })).toHaveAttribute('aria-expanded', 'false')
+
+      await user.click(screen.getByRole('button', { name: 'Expandir menu' }))
+      expect(layout()).not.toHaveClass('sidebar-collapsed')
+    })
+
+    it('mantém a navegação acessível com a barra recolhida', async () => {
+      const user = userEvent.setup()
+      renderLayout()
+      await user.click(screen.getByRole('button', { name: 'Recolher menu' }))
+      const eventsLink = screen.getByRole('link', { name: 'Eventos' })
+      expect(eventsLink).toHaveAttribute('href', '/events')
+      expect(eventsLink).toHaveAttribute('title', 'Eventos')
+      expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument()
+    })
+
+    it('não mostra dica de título nos links com a barra expandida', () => {
+      renderLayout()
+      expect(screen.getByRole('link', { name: 'Eventos' })).not.toHaveAttribute('title')
+    })
+
+    it('lembra a escolha ao montar o layout de novo', async () => {
+      const user = userEvent.setup()
+      const { unmount } = renderLayout()
+      await user.click(screen.getByRole('button', { name: 'Recolher menu' }))
+      unmount()
+      renderLayout()
+      expect(layout()).toHaveClass('sidebar-collapsed')
+      expect(screen.getByRole('button', { name: 'Expandir menu' })).toBeInTheDocument()
+    })
   })
 })

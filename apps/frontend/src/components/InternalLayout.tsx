@@ -3,8 +3,9 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth'
 import { listTasks } from '../api/tasksApi'
 import { Avatar } from './Avatar'
-import { Icon } from './Icon'
+import { Icon, type IconName } from './Icon'
 import { Logo } from './Logo'
+import { useSidebarCollapsed } from '../hooks/useSidebarCollapsed'
 
 const breadcrumbLabels: Record<string, string> = {
   '/rules': 'Regras',
@@ -16,6 +17,14 @@ const breadcrumbLabels: Record<string, string> = {
   '/reports': 'Relatórios',
 }
 
+type SideLinkProps = { to: string; label: string; icon: IconName; active: boolean; collapsed: boolean; children?: ReactNode }
+
+// Com a barra recolhida só o ícone fica visível: o title mostra o nome ao passar o mouse
+// e o aria-label mantém o link identificável para leitores de tela.
+function SideLink({ to, label, icon, active, collapsed, children }: SideLinkProps) {
+  return <Link aria-label={label} title={collapsed ? label : undefined} to={to} className={`side-link${active ? ' active' : ''}`}><Icon name={icon} /><span>{label}</span>{children}</Link>
+}
+
 export function InternalLayout({ children, onLogout }: { children: ReactNode; onLogout: () => Promise<void> }) {
   const { user } = useAuth()
   const location = useLocation()
@@ -23,30 +32,35 @@ export function InternalLayout({ children, onLogout }: { children: ReactNode; on
   const roleLabel = user?.roles?.map((role) => role.name).join(', ') || 'Usuário'
   const breadcrumbLabel = Object.entries(breadcrumbLabels).find(([path]) => location.pathname.startsWith(path))?.[1] ?? (location.pathname === '/' ? 'Dashboard' : 'Administração')
   const [unassignedTaskCount, setUnassignedTaskCount] = useState(0)
+  const { collapsed, toggle } = useSidebarCollapsed()
+  const isActive = (path: string) => location.pathname.startsWith(path)
 
   useEffect(() => {
     if (!hasPermission('tasks:list')) { setUnassignedTaskCount(0); return }
     listTasks().then((tasks) => setUnassignedTaskCount(tasks.filter((task) => !task.assignedTeamId && task.status !== 'CONCLUIDA' && task.status !== 'CANCELADA').length)).catch(() => setUnassignedTaskCount(0))
   }, [user])
 
-  return <div className="internal-layout">
-    <aside className="sidebar">
-      <Logo compact />
+  return <div className={`internal-layout${collapsed ? ' sidebar-collapsed' : ''}`}>
+    <aside id="app-sidebar" className="sidebar">
+      <div className="sidebar-header">
+        <Logo compact />
+        <button type="button" className="sidebar-toggle" onClick={toggle} aria-expanded={!collapsed} aria-controls="app-sidebar" aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'} title={collapsed ? 'Expandir menu' : 'Recolher menu'}><Icon name="chevron-left" /></button>
+      </div>
       <nav className="side-nav">
-        {hasPermission('dashboard:view') && <Link aria-label="Dashboard" to="/" className={`side-link${location.pathname === '/' ? ' active' : ''}`}><Icon name="home" /><span>Dashboard</span></Link>}
-        {hasPermission('reports:view') && <Link aria-label="Relatórios" to="/reports" className={`side-link${location.pathname.startsWith('/reports') ? ' active' : ''}`}><Icon name="chart" /><span>Relatórios</span></Link>}
+        {hasPermission('dashboard:view') && <SideLink to="/" label="Dashboard" icon="home" active={location.pathname === '/'} collapsed={collapsed} />}
+        {hasPermission('reports:view') && <SideLink to="/reports" label="Relatórios" icon="chart" active={isActive('/reports')} collapsed={collapsed} />}
         <span className="side-section">OPERAÇÃO</span>
-        {hasPermission('events:list') && <Link aria-label="Eventos" to="/events" className={`side-link${location.pathname.startsWith('/events') ? ' active' : ''}`}><Icon name="calendar" /><span>Eventos</span></Link>}
-        {hasPermission('clients:list') && <Link aria-label="Clientes" to="/clients" className={`side-link${location.pathname.startsWith('/clients') ? ' active' : ''}`}><Icon name="contact" /><span>Clientes</span></Link>}
-        {hasPermission('services:list') && <Link aria-label="Serviços" to="/services" className={`side-link${location.pathname.startsWith('/services') ? ' active' : ''}`}><Icon name="tag" /><span>Serviços</span></Link>}
-        {hasPermission('tasks:list') && <Link aria-label="Tarefas" to="/tasks" className={`side-link${location.pathname.startsWith('/tasks') ? ' active' : ''}`}><Icon name="tasks" /><span>Tarefas</span>{unassignedTaskCount > 0 && <i className="task-alert-badge">{unassignedTaskCount}</i>}</Link>}
-        {hasPermission('teams:list') && <Link aria-label="Equipes" to="/teams" className={`side-link${location.pathname.startsWith('/teams') ? ' active' : ''}`}><Icon name="users" /><span>Equipes</span></Link>}
-        {hasPermission('collaborators:manage') && <Link aria-label="Colaboradores" to="/collaborators" className={`side-link${location.pathname.startsWith('/collaborators') ? ' active' : ''}`}><Icon name="user" /><span>Colaboradores</span></Link>}
+        {hasPermission('events:list') && <SideLink to="/events" label="Eventos" icon="calendar" active={isActive('/events')} collapsed={collapsed} />}
+        {hasPermission('clients:list') && <SideLink to="/clients" label="Clientes" icon="contact" active={isActive('/clients')} collapsed={collapsed} />}
+        {hasPermission('services:list') && <SideLink to="/services" label="Serviços" icon="tag" active={isActive('/services')} collapsed={collapsed} />}
+        {hasPermission('tasks:list') && <SideLink to="/tasks" label="Tarefas" icon="tasks" active={isActive('/tasks')} collapsed={collapsed}>{unassignedTaskCount > 0 && <i className="task-alert-badge">{unassignedTaskCount}</i>}</SideLink>}
+        {hasPermission('teams:list') && <SideLink to="/teams" label="Equipes" icon="users" active={isActive('/teams')} collapsed={collapsed} />}
+        {hasPermission('collaborators:manage') && <SideLink to="/collaborators" label="Colaboradores" icon="user" active={isActive('/collaborators')} collapsed={collapsed} />}
         <span className="side-section">AUTOMAÇÃO</span>
-        {hasPermission('rules:list') && <Link aria-label="Regras" to="/rules" className={`side-link${location.pathname.startsWith('/rules') ? ' active' : ''}`}><Icon name="bolt" /><span>Regras</span></Link>}
+        {hasPermission('rules:list') && <SideLink to="/rules" label="Regras" icon="bolt" active={isActive('/rules')} collapsed={collapsed} />}
         <span className="side-section">ADMINISTRAÇÃO</span>
-        {hasPermission('users:list') && <Link aria-label="Usuários" to="/users" className={`side-link${location.pathname.startsWith('/users') ? ' active' : ''}`}><Icon name="users" /><span>Usuários</span></Link>}
-        {hasPermission('roles:list') && <Link aria-label="Papéis e permissões" to="/roles" className={`side-link${location.pathname.startsWith('/roles') ? ' active' : ''}`}><Icon name="shield" /><span>Papéis e permissões</span></Link>}
+        {hasPermission('users:list') && <SideLink to="/users" label="Usuários" icon="users" active={isActive('/users')} collapsed={collapsed} />}
+        {hasPermission('roles:list') && <SideLink to="/roles" label="Papéis e permissões" icon="shield" active={isActive('/roles')} collapsed={collapsed} />}
       </nav>
       <div className="sidebar-footer"><Avatar name={user?.name ?? 'Usuário'} small /><div><strong>{user?.name ?? 'Usuário'}</strong><small>{roleLabel}</small></div><button type="button" onClick={() => void onLogout()} aria-label="Sair" title="Sair"><Icon name="logout" /></button></div>
     </aside>
