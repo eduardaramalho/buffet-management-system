@@ -429,3 +429,29 @@ describe('TasksBoardPage', () => {
     await act(async () => { resolve({ ...pendingTask, status: 'EM_ANDAMENTO' }) })
   })
 })
+
+describe('TasksBoardPage: carregamento inicial (KAN-79)', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('does not show empty columns or a zeroed summary before the API answers', () => {
+    vi.mocked(listTasks).mockReturnValue(new Promise<never>(() => {}))
+    vi.mocked(listEvents).mockResolvedValue([event])
+    vi.mocked(listTeams).mockResolvedValue([team])
+    renderBoard()
+    expect(screen.getByRole('heading', { level: 1, name: 'Tarefas' })).toBeInTheDocument()
+    expect(screen.queryByText(/0 tarefas/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Pendente' })).not.toBeInTheDocument()
+  })
+
+  it('replaces the board with the error and recovers on retry', async () => {
+    vi.mocked(listTasks).mockRejectedValueOnce(new Error('Falha geral')).mockResolvedValue([task()])
+    vi.mocked(listEvents).mockResolvedValue([event])
+    vi.mocked(listTeams).mockResolvedValue([team])
+    renderBoard()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falha geral')
+    expect(screen.queryByRole('region', { name: 'Pendente' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(await screen.findByText('Confirmar decoração')).toBeInTheDocument()
+    expect(screen.getByText(/1 tarefa ·/)).toBeInTheDocument()
+  })
+})

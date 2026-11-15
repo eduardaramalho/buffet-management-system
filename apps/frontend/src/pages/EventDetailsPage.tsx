@@ -11,6 +11,7 @@ import { Icon } from '../components/Icon'
 import { Notice } from '../components/Notice'
 import { RefreshIndicator } from '../components/RefreshIndicator'
 import { ReplicateEventDialog } from '../components/ReplicateEventDialog'
+import { LoadingIndicator } from '../components/LoadBoundary'
 import { usePolling } from '../hooks/usePolling'
 import type { Event, EventStatus } from '../types/event'
 import type { MatchedRule } from '../types/rule'
@@ -151,7 +152,7 @@ export function EventDetailsPage() {
     finally { setRulesAction(false) }
   }
 
-  if (eventState.status === 'loading') return <main className="app-shell"><p className="muted">Carregando evento...</p></main>
+  if (eventState.status === 'loading') return <main className="app-shell"><LoadingIndicator label="Carregando evento..." /></main>
   if (eventState.status === 'hidden') return <main className="app-shell"><Notice message="Você não tem acesso a este evento." error /></main>
   if (eventState.status === 'error') return <main className="app-shell"><BlockError message={eventState.message ?? 'Não foi possível carregar o evento'} retry={() => void loadEvent()} /></main>
   if (!event) return null
