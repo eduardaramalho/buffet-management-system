@@ -1,7 +1,7 @@
 # ADR 0005: Cadastro de clientes e vínculo com eventos
 
 - **Status:** Aceito
-- **Escopo:** Backend (`modules/clients`, `modules/events`), migration `20261021200000_add_clients`, frontend (`ClientsListPage`, `ClientForm`, `EventForm`, `EventDetailsPage`)
+- **Escopo:** Backend (`modules/clients`, `modules/events`), migrations `20261021200000_add_clients` e `20261103210000_require_event_client`, frontend (`ClientsListPage`, `ClientForm`, `EventForm`, `EventDetailsPage`)
 
 ## Contexto
 
@@ -10,7 +10,7 @@ A RFC (seção 3.1 e Figura 1, bloco "Entrada de Dados") prevê o cadastro e ger
 ## Decisões
 
 1. **Modelo:** `Client` com `type` (`PF`/`PJ`), `name`, `document`, `email`, `phone`, `notes`, timestamps e `deletedAt`. Relação N:1 `Event.clientId -> Client`, com `ON DELETE RESTRICT`. Endereço ficou de fora porque o local já pertence ao evento (minimização de dados). Contatos múltiplos (1:N) ficam como evolução futura.
-2. **Expand/contract no `clientId`:** a coluna nasce nullable (expand). A aplicação exige o cliente na criação do evento (Zod e service). Na edição, o `clientId` é opcional para não travar a troca de status de eventos antigos pela Central do evento; o formulário de edição exige o cliente. Quando todos os eventos antigos estiverem vinculados, uma segunda migration aplica `NOT NULL` (contract).
+2. **Expand/contract no `clientId`:** a coluna nasce nullable (expand). A aplicação exige o cliente na criação do evento (Zod e service). Na edição, o `clientId` é opcional (atualização parcial: a troca de status pela Central do evento envia só o status); o formulário de edição exige o cliente. Quando todos os eventos antigos estiverem vinculados, uma segunda migration aplica `NOT NULL` (contract). **Concluído (KAN-75):** a migration `20261103210000_require_event_client` aplicou o `NOT NULL`, depois de confirmar em produção que nenhum evento (incluindo os excluídos) estava sem cliente. O domínio e o frontend deixaram de tratar `clientId`/`client` nulos. O rascunho da replicação continua com `clientId` nulo apenas quando o cliente do evento de origem foi excluído (aviso `CLIENT_UNAVAILABLE`).
 3. **Documento:** opcional, validado por dígito verificador conforme o tipo (CPF ou CNPJ), armazenado sem pontuação. A validação aceita o CNPJ alfanumérico (12 caracteres `[0-9A-Z]` + 2 dígitos numéricos, valor de cada caractere = código ASCII menos 48), emitido pela Receita Federal desde julho de 2026. CNPJs numéricos continuam válidos com o mesmo algoritmo.
 4. **Unicidade global do documento:** índice `UNIQUE` em `document`, incluindo clientes excluídos. O MySQL trata `NULL` como distinto, então clientes sem documento não colidem. O service verifica antes de gravar e o repository traduz a violação `P2002` (corrida entre verificação e insert) em `409`.
 5. **Exclusão:** soft delete, bloqueado com `409` enquanto houver eventos não excluídos fora de `CONCLUIDO`/`CANCELADO`. Eventos encerrados mantêm o vínculo, e as telas exibem o cliente como inativo.
@@ -26,7 +26,8 @@ A RFC (seção 3.1 e Figura 1, bloco "Entrada de Dados") prevê o cadastro e ger
 
 ## Contras e limitações
 
-- Durante a transição, a obrigatoriedade do cliente fica só na aplicação.
+- Durante a transição (até a migration de contract), a obrigatoriedade do cliente ficou só na aplicação.
+- A migration de contract falha (erro MySQL 1138) se existir algum evento sem cliente, por isso o deploy exige conferir antes `SELECT id, name, deleted_at FROM events WHERE client_id IS NULL;`.
 - Como a reativação de clientes está fora do escopo, o documento de um cliente excluído impede um novo cadastro com o mesmo CPF/CNPJ (a API explica o motivo no `409`).
 - No soft delete os dados pessoais são mantidos; a anonimização para atender ao direito de eliminação (LGPD, art. 18) é evolução futura.
 

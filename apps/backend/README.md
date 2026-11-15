@@ -69,7 +69,7 @@ Exemplo de criação:
 }
 ```
 
-`clientId` é obrigatório na criação e precisa apontar para um cliente ativo (não excluído). Na edição é opcional; quando enviado, passa pela mesma validação. Eventos criados antes do cadastro de clientes podem ter `clientId: null` (ver [ADR 0005](../../docs/adr/0005-cadastro-de-clientes.md)). As respostas de evento trazem `client` com `id`, `name`, `email`, `phone` e `deletedAt` (o documento não é exposto no evento).
+`clientId` é obrigatório na criação e precisa apontar para um cliente ativo (não excluído). Na edição é opcional (atualização parcial, mantém o cliente atual); quando enviado, passa pela mesma validação. No banco, `events.client_id` é `NOT NULL` desde a migration `20261103210000_require_event_client`, então todo evento tem cliente (ver [ADR 0005](../../docs/adr/0005-cadastro-de-clientes.md)). As respostas de evento trazem `client` com `id`, `name`, `email`, `phone` e `deletedAt` (o documento não é exposto no evento).
 
 Exemplo de edição:
 
