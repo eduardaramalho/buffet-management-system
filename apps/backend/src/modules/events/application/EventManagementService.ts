@@ -99,8 +99,8 @@ export class EventManagementService {
     if (input.guestsCount !== undefined && input.guestsCount > MAX_GUESTS_COUNT) {
       throw new EventManagementError(`O número de convidados não pode exceder ${MAX_GUESTS_COUNT}`);
     }
-    // clientId is optional on update so legacy events (no client) can still change status from the Event Hub;
-    // when sent, it must point to an active client. The change is audited through EVENT_UPDATED before/after.
+    // Partial update: an omitted clientId keeps the current client (status changes from the Event Hub send
+    // only the status). When sent, it must point to an active client; the change is audited in EVENT_UPDATED.
     if (input.clientId !== undefined) await this.assertClientAvailable(input.clientId);
 
     const updated = await this.events.update(id, input);

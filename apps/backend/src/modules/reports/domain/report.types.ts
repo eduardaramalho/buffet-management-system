@@ -34,7 +34,7 @@ export type EventReportRow = {
   status: EventStatus;
   serviceType: EventType;
   guestsCount: number;
-  clientName: string | null;
+  clientName: string;
   tasksTotal: number;
   tasksCompleted: number;
 };

@@ -78,7 +78,7 @@ export function EventForm({ event, onClose, onCreated, onUpdated }: EventFormPro
   })
   const selectedCount = services.filter((service) => selected[service.id] !== undefined).length
   // A soft-deleted client is not listed by the API; keep it selectable so editing an old event does not lose the link.
-  const linkedInactiveClient = event?.client && !clients.some((client) => client.id === event.client?.id) ? event.client : null
+  const linkedInactiveClient = event && !clients.some((client) => client.id === event.client.id) ? event.client : null
   const clientName = clients.find((client) => client.id === clientId)?.name ?? (linkedInactiveClient?.id === clientId ? linkedInactiveClient.name : '')
 
   const invalidIn = (id: Exclude<SectionId, 'teams'>) => hasErrorIn(validation.errors, SECTION_FIELDS[id])

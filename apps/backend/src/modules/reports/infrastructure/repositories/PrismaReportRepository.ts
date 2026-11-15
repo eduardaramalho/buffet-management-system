@@ -102,7 +102,7 @@ export class PrismaReportRepository implements ReportRepository {
       status: event.status as EventStatus,
       serviceType: event.serviceType as EventType,
       guestsCount: event.guestsCount,
-      clientName: client?.name ?? null,
+      clientName: client.name,
       tasksTotal: totals.get(event.id)?.total ?? 0,
       tasksCompleted: totals.get(event.id)?.completed ?? 0,
     }));

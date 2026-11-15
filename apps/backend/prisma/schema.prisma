@@ -92,9 +92,9 @@ model Event {
   guestsCount      Int               @map("guests_count")
   observations     String?           @db.Text
   status           EventStatus       @default(PLANEJAMENTO)
-  // Nullable on purpose (expand/contract, ADR 0005): required by the application for new events;
-  // a later migration makes it NOT NULL once legacy events are linked to a client.
-  clientId         String?           @map("client_id") @db.Char(36)
+  // Required (ADR 0005): NOT NULL since 20261103210000_require_event_client, the contract step of the
+  // expand/contract migration that introduced clients.
+  clientId         String            @map("client_id") @db.Char(36)
   // RF25 (ADR 0008): event used as the base of this one. Restrict keeps the lineage forever;
   // business data is never physically deleted (soft delete, RNF07).
   sourceEventId    String?           @map("source_event_id") @db.Char(36)
@@ -103,7 +103,7 @@ model Event {
   updatedAt        DateTime          @updatedAt @map("updated_at")
   deletedAt        DateTime?         @map("deleted_at")
   createdBy        User              @relation("EventCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  client           Client?           @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  client           Client            @relation(fields: [clientId], references: [id], onDelete: Restrict)
   sourceEvent      Event?            @relation("EventReplication", fields: [sourceEventId], references: [id], onDelete: Restrict)
   replicas         Event[]           @relation("EventReplication")
   services         EventService[]

@@ -497,8 +497,8 @@ describe("EventManagementService", () => {
     });
 
     it("validates the client when it changes on update and audits the change in EVENT_UPDATED", async () => {
-      const before = makeEvent({ clientId: null, client: null });
-      const after = makeEvent({ clientId: "client-2" });
+      const before = makeEvent();
+      const after = makeEvent({ clientId: "client-2", client: { id: "client-2", name: "Bruno Lima", email: null, phone: null, deletedAt: null } });
       const events = { findById: jest.fn(async () => before), update: jest.fn(async () => after) } as unknown as EventRepository;
       const audit = { record: jest.fn(async (_input: Parameters<EventAuditService["record"]>[0]) => undefined) } as unknown as EventAuditService;
       const clients = activeClients();
@@ -519,9 +519,9 @@ describe("EventManagementService", () => {
       expect(events.update).not.toHaveBeenCalled();
     });
 
-    it("keeps legacy events without a client editable when clientId is not sent", async () => {
-      const legacy = makeEvent({ clientId: null, client: null });
-      const events = { findById: jest.fn(async () => legacy), update: jest.fn(async () => legacy) } as unknown as EventRepository;
+    it("keeps the current client and skips the client lookup when clientId is not sent on update", async () => {
+      const event = makeEvent();
+      const events = { findById: jest.fn(async () => event), update: jest.fn(async () => event) } as unknown as EventRepository;
       const clients = activeClients();
       const service = new EventManagementService(events, { record: jest.fn() } as unknown as EventAuditService, undefined, undefined, undefined, clients);
 

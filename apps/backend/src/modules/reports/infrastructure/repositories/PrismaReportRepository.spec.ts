@@ -33,7 +33,7 @@ describe("PrismaReportRepository.eventRows", () => {
   it("loads one page of events and counts their tasks with a single grouped query (no N+1)", async () => {
     const findMany = fn([
       { id: "event-1", name: "Casamento", eventDate: from, status: "CONFIRMADO", serviceType: "CASAMENTO", guestsCount: 100, client: { name: "Ana" } },
-      { id: "event-2", name: "Formatura", eventDate: to, status: "PLANEJAMENTO", serviceType: "FORMATURA", guestsCount: 50, client: null },
+      { id: "event-2", name: "Formatura", eventDate: to, status: "PLANEJAMENTO", serviceType: "FORMATURA", guestsCount: 50, client: { name: "Bruno" } },
     ]);
     const taskGroupBy = fn([
       { eventId: "event-1", status: "CONCLUIDA", _count: { _all: 2 } },
@@ -54,7 +54,7 @@ describe("PrismaReportRepository.eventRows", () => {
     expect(taskGroupBy).toHaveBeenCalledWith({ by: ["eventId", "status"], where: { deletedAt: null, eventId: { in: ["event-1", "event-2"] } }, _count: { _all: true } });
     expect(rows).toEqual([
       { id: "event-1", name: "Casamento", eventDate: from, status: "CONFIRMADO", serviceType: "CASAMENTO", guestsCount: 100, clientName: "Ana", tasksTotal: 5, tasksCompleted: 2 },
-      { id: "event-2", name: "Formatura", eventDate: to, status: "PLANEJAMENTO", serviceType: "FORMATURA", guestsCount: 50, clientName: null, tasksTotal: 0, tasksCompleted: 0 },
+      { id: "event-2", name: "Formatura", eventDate: to, status: "PLANEJAMENTO", serviceType: "FORMATURA", guestsCount: 50, clientName: "Bruno", tasksTotal: 0, tasksCompleted: 0 },
     ]);
   });
 
