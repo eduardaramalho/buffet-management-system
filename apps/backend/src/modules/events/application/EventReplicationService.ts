@@ -53,7 +53,7 @@ export class EventReplicationService {
     const now = this.now();
     const warnings: ReplicationWarning[] = [];
 
-    const clientAvailable = Boolean(source.clientId && source.client && !source.client.deletedAt);
+    const clientAvailable = !source.client.deletedAt;
     if (!clientAvailable) warnings.push({ code: "CLIENT_UNAVAILABLE" });
 
     const services = source.services.flatMap((contracted) => {

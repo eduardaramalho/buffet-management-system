@@ -77,6 +77,7 @@ export type ReplicationPreview = {
     serviceType: EventType;
     guestsCount: number;
     observations: string | null;
+    // Null when the source event's client was soft-deleted (CLIENT_UNAVAILABLE): the user picks another one.
     clientId: string | null;
     services: ReplicationPreviewService[];
   };

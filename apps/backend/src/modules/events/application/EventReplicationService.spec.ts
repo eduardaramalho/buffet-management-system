@@ -243,15 +243,6 @@ describe("EventReplicationService.preview", () => {
 
     expect(previewTeams[1]).toEqual({ teamId: "team-bar", name: "Equipe removida", specialty: "", available: false, reason: "NOT_FOUND", conflictingEvent: null });
   });
-
-  it("treats a legacy event without client as a client warning", async () => {
-    const { service } = buildHarness({ source: makeSource({ clientId: null, client: null }) });
-
-    const preview = await service.preview("source-1", { eventDate: NEW_DATE, endDate: null });
-
-    expect(preview.draft.clientId).toBeNull();
-    expect(preview.warnings).toContainEqual({ code: "CLIENT_UNAVAILABLE" });
-  });
 });
 
 describe("EventReplicationService.replicate", () => {

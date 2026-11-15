@@ -42,9 +42,9 @@ export type EventRecord = {
   updatedAt: Date;
   deletedAt: Date | null;
   services: EventServiceRecord[];
-  // Null only for events created before the clients module (expand/contract migration, ADR 0005).
-  clientId: string | null;
-  client: EventClientSummary | null;
+  // Required since the contract migration 20261103210000_require_event_client (ADR 0005).
+  clientId: string;
+  client: EventClientSummary;
   // RF25 lineage. sourceEventId comes with every read; sourceEvent and replicas only with the detail
   // read (findDetailById), so lists and audit snapshots stay light.
   sourceEventId?: string | null;
