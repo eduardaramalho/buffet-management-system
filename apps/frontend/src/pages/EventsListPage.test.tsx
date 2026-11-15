@@ -10,7 +10,7 @@ const { authState } = vi.hoisted(() => ({ authState: { permissions: ['events:lis
 vi.mock('../contexts/useAuth', () => ({ useAuth: () => ({ user: { roles: [{ permissions: authState.permissions }] } }) }))
 vi.mock('../api/servicesApi', () => ({ listServices: vi.fn() }))
 
-const event = (status: 'PLANEJAMENTO' | 'CONFIRMADO') => ({ id: status, name: status === 'CONFIRMADO' ? 'Evento confirmado' : 'Evento planejamento', eventDate: '2026-10-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO' as const, guestsCount: 100, observations: null, status, createdById: 'user', createdAt: '', updatedAt: '', deletedAt: null, services: [], clientId: null, client: null })
+const event = (status: 'PLANEJAMENTO' | 'CONFIRMADO') => ({ id: status, name: status === 'CONFIRMADO' ? 'Evento confirmado' : 'Evento planejamento', eventDate: '2026-10-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO' as const, guestsCount: 100, observations: null, status, createdById: 'user', createdAt: '', updatedAt: '', deletedAt: null, services: [], clientId: 'client-1', client: { id: 'client-1', name: 'Ana Souza', email: null, phone: null, deletedAt: null } })
 
 describe('EventsListPage', () => {
   beforeEach(() => {

@@ -59,7 +59,7 @@ export function EventsReportPanel({ period }: { period: ApiPeriod | null }) {
       <Table headers={['Data', 'Evento', 'Cliente', 'Tipo', 'Status', 'Convidados', 'Tarefas concluídas']}>{data.items.map((item) => <tr key={item.id}>
         <td>{formatDateTime(item.eventDate)}</td>
         <td><strong>{item.name}</strong></td>
-        <td>{item.clientName ?? '-'}</td>
+        <td>{item.clientName}</td>
         <td>{EVENT_TYPE_LABELS[item.serviceType]}</td>
         <td><Badge tone={item.status === 'CANCELADO' ? 'inactive' : 'active'}>{EVENT_STATUS_LABELS[item.status]}</Badge></td>
         <td>{item.guestsCount}</td>

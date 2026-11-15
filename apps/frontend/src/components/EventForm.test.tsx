@@ -109,7 +109,7 @@ describe('EventForm', () => {
       id: 'event-1', name: 'Casamento de Alice', eventDate: '2026-10-10T15:00:00.000Z', endDate: null,
       location: 'Salao Principal', serviceType: 'CASAMENTO', guestsCount: 100, observations: 'Detalhes',
       status: 'PLANEJAMENTO', createdById: 'actor-1', createdAt: '', updatedAt: '', deletedAt: null,
-      services: [{ serviceId: 'service-buffet', customLabel: null, service: services[1] }], clientId: null, client: null,
+      services: [{ serviceId: 'service-buffet', customLabel: null, service: services[1] }], clientId: 'client-1', client: { id: 'client-1', name: 'Ana Souza', email: null, phone: null, deletedAt: null },
     }} onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
 
     expect(await screen.findByDisplayValue('Casamento de Alice')).toBeInTheDocument()
@@ -119,7 +119,7 @@ describe('EventForm', () => {
   })
 
   it('creates an event and notifies the list after successful submission', async () => {
-    const created = { id: 'event-new', name: 'Novo evento', eventDate: '2026-10-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO' as const, guestsCount: 50, observations: null, status: 'PLANEJAMENTO' as const, createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, services: [], clientId: 'client-2', client: null }
+    const created = { id: 'event-new', name: 'Novo evento', eventDate: '2026-10-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO' as const, guestsCount: 50, observations: null, status: 'PLANEJAMENTO' as const, createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, services: [], clientId: 'client-2', client: { id: 'client-2', name: 'Bruno Lima', email: null, phone: null, deletedAt: null } }
     vi.mocked(listServices).mockResolvedValue([])
     vi.mocked(createEvent).mockResolvedValue(created)
     const onCreated = vi.fn()
@@ -142,7 +142,7 @@ describe('EventForm', () => {
     vi.mocked(listTeams).mockResolvedValue([{ id: 'team-1', name: 'Equipe Salao A', specialty: 'SALAO', status: 'ATIVA', observations: null, createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, members: [], events: [] }])
     vi.mocked(listTeamsByEvent).mockResolvedValue([])
     vi.mocked(assignTeamToEvent).mockResolvedValue({ eventId: 'event-1', teamId: 'team-1', assignedAt: '', assignedById: 'actor' })
-    render(<EventForm event={{ id: 'event-1', name: 'Evento', eventDate: '2026-10-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO', guestsCount: 50, observations: null, status: 'PLANEJAMENTO', createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, services: [], clientId: 'client-1', client: null }} onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
+    render(<EventForm event={{ id: 'event-1', name: 'Evento', eventDate: '2026-10-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO', guestsCount: 50, observations: null, status: 'PLANEJAMENTO', createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, services: [], clientId: 'client-1', client: { id: 'client-1', name: 'Ana Souza', email: null, phone: null, deletedAt: null } }} onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: /^Equipes/ }))
     await screen.findByRole('option', { name: 'Equipe Salao A' })
@@ -158,7 +158,7 @@ describe('EventForm', () => {
     vi.mocked(listTeams).mockResolvedValue([{ id: 'team-1', name: 'Equipe Salao A', specialty: 'SALAO', status: 'ATIVA', observations: null, createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, members: [], events: [] }])
     vi.mocked(listTeamsByEvent).mockResolvedValue([])
     vi.mocked(assignTeamToEvent).mockRejectedValue(new Error('conflito de agenda'))
-    render(<EventForm event={{ id: 'event-1', name: 'Evento', eventDate: '2026-10-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO', guestsCount: 50, observations: null, status: 'PLANEJAMENTO', createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, services: [], clientId: 'client-1', client: null }} onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
+    render(<EventForm event={{ id: 'event-1', name: 'Evento', eventDate: '2026-10-10T15:00:00.000Z', endDate: null, location: 'Salao', serviceType: 'CASAMENTO', guestsCount: 50, observations: null, status: 'PLANEJAMENTO', createdById: 'actor', createdAt: '', updatedAt: '', deletedAt: null, services: [], clientId: 'client-1', client: { id: 'client-1', name: 'Ana Souza', email: null, phone: null, deletedAt: null } }} onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: /^Equipes/ }))
     await screen.findByRole('option', { name: 'Equipe Salao A' })
@@ -205,16 +205,6 @@ describe('EventForm', () => {
 
     expect(await screen.findByRole('option', { name: 'Carlos Lima (inativo)' })).toBeInTheDocument()
     expect(screen.getByLabelText('Cliente')).toHaveValue('client-old')
-  })
-
-  it('asks to link a client when editing a legacy event without one', async () => {
-    vi.mocked(listServices).mockResolvedValue([])
-    render(<EventForm event={makeEvent({ clientId: null, client: null })} onClose={vi.fn()} onCreated={vi.fn()} onUpdated={vi.fn()} />)
-    await screen.findByRole('option', { name: 'Ana Souza' })
-    save()
-
-    expect(await screen.findByText('Selecione o cliente do evento.')).toBeInTheDocument()
-    expect(updateEvent).not.toHaveBeenCalled()
   })
 
   it('shows an error when clients cannot be loaded', async () => {

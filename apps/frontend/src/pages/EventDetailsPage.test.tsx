@@ -129,18 +129,12 @@ describe('EventDetailsPage', () => {
     expect(screen.getByText('47999990000')).toBeInTheDocument()
   })
 
-  it('flags legacy events without a client and inactive clients', async () => {
-    vi.mocked(getEvent).mockResolvedValueOnce({ ...event(), clientId: null, client: null })
+  it('flags an inactive client', async () => {
     vi.mocked(listTasks).mockResolvedValue([])
     vi.mocked(listTeamsByEvent).mockResolvedValue([])
     vi.mocked(listTeams).mockResolvedValue([])
     vi.mocked(listEventRuleApplications).mockResolvedValue([])
     vi.mocked(getEventHistory).mockResolvedValue([])
-    const { unmount } = renderPage()
-
-    expect(await screen.findByText('Nenhum cliente vinculado. Edite o evento para vincular um cliente.')).toBeInTheDocument()
-    unmount()
-
     vi.mocked(getEvent).mockResolvedValueOnce({ ...event(), client: { id: 'client-1', name: 'Ana Souza', email: null, phone: null, deletedAt: '2026-10-01T00:00:00.000Z' } })
     renderPage()
 

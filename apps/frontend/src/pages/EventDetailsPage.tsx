@@ -181,9 +181,8 @@ export function EventDetailsPage() {
 
 // The client comes embedded in GET /events/:id, so this block needs no extra request or permission.
 function ClientPanel({ client }: { client: Event['client'] }) {
-  return <section className="event-panel"><div className="panel-heading"><h2>Cliente</h2></div>{client
-    ? <div className="team-row"><span className="team-avatar"><Icon name="contact" /></span><div><strong>{client.name}</strong>{client.email && <small>{client.email}</small>}{client.phone && <small>{client.phone}</small>}{!client.email && !client.phone && <small>Sem contato cadastrado</small>}</div>{client.deletedAt && <Badge tone="inactive">Cliente inativo</Badge>}</div>
-    : <p className="empty-state">Nenhum cliente vinculado. Edite o evento para vincular um cliente.</p>}</section>
+  return <section className="event-panel"><div className="panel-heading"><h2>Cliente</h2></div>
+    <div className="team-row"><span className="team-avatar"><Icon name="contact" /></span><div><strong>{client.name}</strong>{client.email && <small>{client.email}</small>}{client.phone && <small>{client.phone}</small>}{!client.email && !client.phone && <small>Sem contato cadastrado</small>}</div>{client.deletedAt && <Badge tone="inactive">Cliente inativo</Badge>}</div></section>
 }
 
 // RF25: events created using this one as the base (lineage kept by Event.sourceEventId).

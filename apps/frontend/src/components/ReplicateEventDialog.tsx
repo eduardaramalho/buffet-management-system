@@ -42,7 +42,7 @@ export function ReplicateEventDialog({ source, onClose, onReplicated }: Replicat
   const [serviceType, setServiceType] = useState<EventType>(source.serviceType)
   const [guestsCount, setGuestsCount] = useState(String(source.guestsCount))
   const [observations, setObservations] = useState(source.observations ?? '')
-  const [clientId, setClientId] = useState(source.client && !source.client.deletedAt ? source.client.id : '')
+  const [clientId, setClientId] = useState(source.client.deletedAt ? '' : source.client.id)
   const [clients, setClients] = useState<Client[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [selectedServices, setSelectedServices] = useState<Record<string, string>>(() => Object.fromEntries(source.services.map((item) => [item.serviceId, item.customLabel ?? ''])))

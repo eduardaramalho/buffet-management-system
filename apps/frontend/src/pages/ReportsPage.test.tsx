@@ -21,7 +21,7 @@ const eventsReport: EventsReport = {
     byStatus: { PLANEJAMENTO: 0, CONFIRMADO: 1, EM_ANDAMENTO: 0, CONCLUIDO: 0, CANCELADO: 0 },
     byServiceType: { CASAMENTO: 1, ANIVERSARIO: 0, FORMATURA: 0, CORPORATIVO: 0, CONFRATERNIZACAO: 0, BATIZADO: 0, OUTRO: 0 },
   },
-  items: [{ id: 'event-1', name: 'Casamento Ana', eventDate: '2026-10-10T22:00:00.000Z', status: 'CONFIRMADO', serviceType: 'CASAMENTO', guestsCount: 120, clientName: null, tasksTotal: 4, tasksCompleted: 1 }],
+  items: [{ id: 'event-1', name: 'Casamento Ana', eventDate: '2026-10-10T22:00:00.000Z', status: 'CONFIRMADO', serviceType: 'CASAMENTO', guestsCount: 120, clientName: 'Ana Souza', tasksTotal: 4, tasksCompleted: 1 }],
   pagination,
 }
 
@@ -66,7 +66,7 @@ describe('ReportsPage', () => {
     const table = await screen.findByRole('table')
     expect(within(table).getByText('Casamento Ana')).toBeInTheDocument()
     expect(within(table).getByText('1/4')).toBeInTheDocument()
-    expect(within(table).getByText('-')).toBeInTheDocument()
+    expect(within(table).getByText('Ana Souza')).toBeInTheDocument()
     expect(screen.getByRole('figure', { name: 'Eventos por status' })).toBeInTheDocument()
     expect(screen.getByRole('figure', { name: 'Eventos por tipo' })).toBeInTheDocument()
     expect(screen.getByText('Total de eventos')).toBeInTheDocument()

@@ -11,8 +11,8 @@ export type Event = {
   id: string; name: string; eventDate: string; endDate: string | null; location: string; serviceType: EventType
   guestsCount: number; observations: string | null; status: EventStatus; createdById: string; createdAt: string
   updatedAt: string; deletedAt: string | null; services: EventService[]
-  // Null only for events created before the clients module (they must be linked when edited).
-  clientId: string | null; client: EventClient | null
+  // Required: every event has a client (NOT NULL in the database since the ADR 0005 contract migration).
+  clientId: string; client: EventClient
   // RF25 lineage: sourceEvent and replicas come only with GET /events/:id.
   sourceEventId?: string | null
   sourceEvent?: { id: string; name: string; eventDate: string; deletedAt: string | null } | null
