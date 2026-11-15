@@ -270,7 +270,7 @@ describe("ReportService.exportReport", () => {
   it("exports every event row of the period as CSV and audits the export", async () => {
     const repository = makeRepository({
       eventAggregates: jest.fn(async () => ({ byStatus: [{ status: "CONFIRMADO" as const, count: 1 }], byServiceType: [{ serviceType: "CASAMENTO" as const, count: 1 }] })),
-      eventRows: jest.fn(async () => [eventRow({ clientName: null })]),
+      eventRows: jest.fn(async () => [eventRow()]),
     });
     const { service, csvRender, record } = makeService(repository);
 
@@ -287,7 +287,7 @@ describe("ReportService.exportReport", () => {
     expect(document.periodLabel).toBe("01/10/2026 a 31/10/2026");
     expect(document.generatedAtLabel).toBe("21/10/2026 12:00");
     expect(document.columns).toEqual(["Data", "Evento", "Cliente", "Tipo", "Status", "Convidados", "Tarefas", "Concluídas"]);
-    expect(document.rows).toEqual([["10/10/2026 19:00", "Casamento Ana", null, "Casamento", "Confirmado", 120, 4, 1]]);
+    expect(document.rows).toEqual([["10/10/2026 19:00", "Casamento Ana", "Ana", "Casamento", "Confirmado", 120, 4, 1]]);
     expect(document.summary).toEqual(expect.arrayContaining([{ label: "Total de eventos", value: 1 }, { label: "Confirmado", value: 1 }]));
     expect(record).toHaveBeenCalledWith({
       userId: "actor-1",
