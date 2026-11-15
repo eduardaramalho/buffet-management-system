@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { listRules, setRuleActive, removeRule } from '../api/rulesApi'
 import { Badge } from '../components/Badge'
+import { LoadBoundary } from '../components/LoadBoundary'
 import { Notice } from '../components/Notice'
 import { Icon } from '../components/Icon'
 import { Pagination } from '../components/Pagination'
 import { RuleForm } from '../components/RuleForm'
 import { StatCard } from '../components/StatCard'
 import { Table } from '../components/Table'
+import { useInitialLoad } from '../hooks/useInitialLoad'
 import type { EventType } from '../types/event'
 import type { TeamSpecialty } from '../types/team'
 import type { Rule } from '../types/rule'
@@ -34,11 +36,12 @@ export function RulesListPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingRule, setEditingRule] = useState<Rule>()
 
+  const fetchRules = (value: string) => listRules({ search: value || undefined })
   const load = async (value = search) => {
-    try { setRules(await listRules({ search: value || undefined })); setError('') }
+    try { setRules(await fetchRules(value)); setError('') }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Erro ao carregar regras') }
   }
-  useEffect(() => { void load('') }, [])
+  const initialLoad = useInitialLoad(() => fetchRules(''), { onData: setRules, errorMessage: 'Erro ao carregar regras' })
   const totalPages = Math.max(1, Math.ceil(rules.length / PAGE_SIZE))
   const visibleRules = rules.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   const openForm = (rule?: Rule) => { setEditingRule(rule); setFormOpen(true) }
@@ -57,7 +60,7 @@ export function RulesListPage() {
 
   return <main className="app-shell">
     <header><div><span className="eyebrow">MOTOR DE REGRAS</span><h1>Regras</h1></div><button className="secondary" onClick={() => openForm()}>Nova regra</button></header>
-    <section className="summary">
+    <LoadBoundary status={initialLoad.status} error={initialLoad.error} onRetry={initialLoad.retry} label="Carregando regras..."><section className="summary">
       <StatCard icon="⚙" value={rules.length} label="Total de regras" tone="blue" />
       <StatCard icon="✓" value={rules.filter((rule) => rule.isActive).length} label="Regras ativas" tone="green" />
       <StatCard icon="◌" value={rules.filter((rule) => !rule.isActive).length} label="Inativas" tone="gold" />
@@ -79,7 +82,7 @@ export function RulesListPage() {
       </tr>)}
     </Table>
     {rules.length === 0 && <div className="empty">Nenhuma regra encontrada.</div>}
-    <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} />
+    <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} /></LoadBoundary>
     {formOpen && <RuleForm rule={editingRule} onClose={() => { setFormOpen(false); setEditingRule(undefined) }} onCreated={(rule) => { addRule(rule); setFormOpen(false) }} onUpdated={(rule) => { replaceRule(rule); setFormOpen(false); setEditingRule(undefined) }} />}
   </main>
 }

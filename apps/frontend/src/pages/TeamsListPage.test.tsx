@@ -37,3 +37,23 @@ describe('TeamsListPage', () => {
     await waitFor(() => expect(setTeamActive).toHaveBeenCalledWith('team-2', true))
   })
 })
+
+describe('TeamsListPage: carregamento inicial (KAN-79)', () => {
+  it('does not show zeroed totals or the empty message before the API answers', () => {
+    vi.mocked(listTeams).mockReturnValue(new Promise<never>(() => {}))
+    render(<TeamsListPage />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Equipes' })).toBeInTheDocument()
+    expect(screen.queryByText('Total de equipes')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nenhuma equipe encontrada.')).not.toBeInTheDocument()
+  })
+
+  it('shows the error instead of zeroed data and recovers on retry', async () => {
+    vi.mocked(listTeams).mockRejectedValueOnce(new Error('Falha de rede')).mockResolvedValue(teams)
+    render(<TeamsListPage />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falha de rede')
+    expect(screen.queryByText('Total de equipes')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(await screen.findByText('Equipe Cozinha A')).toBeInTheDocument()
+    expect(screen.getByText('Total de equipes')).toBeInTheDocument()
+  })
+})

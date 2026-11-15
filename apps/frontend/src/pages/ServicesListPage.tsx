@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { listServices, removeService } from '../api/servicesApi'
 import { getApiErrorMessage } from '../api/apiError'
 import { useAuth } from '../contexts/useAuth'
 import { Badge } from '../components/Badge'
 import { Icon } from '../components/Icon'
+import { LoadBoundary } from '../components/LoadBoundary'
 import { Notice } from '../components/Notice'
 import { Pagination } from '../components/Pagination'
 import { ServiceForm } from '../components/ServiceForm'
 import { StatCard } from '../components/StatCard'
 import { Table } from '../components/Table'
+import { useInitialLoad } from '../hooks/useInitialLoad'
 import type { Service } from '../types/event'
 
 const PAGE_SIZE = 10
@@ -27,13 +29,7 @@ export function ServicesListPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingService, setEditingService] = useState<Service>()
 
-  useEffect(() => {
-    let active = true
-    listServices()
-      .then((data) => { if (active) setServices([...data].sort(byName)) })
-      .catch((cause) => { if (active) setError(getApiErrorMessage(cause, 'Erro ao carregar serviços')) })
-    return () => { active = false }
-  }, [])
+  const initialLoad = useInitialLoad(listServices, { onData: (data) => setServices([...data].sort(byName)), errorMessage: 'Erro ao carregar serviços' })
 
   const filtered = services.filter((service) => normalize(service.name).includes(normalize(search)))
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
@@ -53,6 +49,7 @@ export function ServicesListPage() {
 
   return <main className="app-shell">
     <header><div><span className="eyebrow">OPERAÇÃO DE BUFFET</span><h1>Serviços</h1></div>{hasPermission('services:create') && <button className="secondary" onClick={() => openForm()}>Novo serviço</button>}</header>
+    <LoadBoundary status={initialLoad.status} error={initialLoad.error} onRetry={initialLoad.retry} label="Carregando serviços...">
     <section className="summary"><StatCard icon={<Icon name="tag" />} value={services.length} label="Total de serviços" tone="blue" /></section>
     <section className="content-head"><input className="search" placeholder="Buscar serviço..." aria-label="Buscar serviço" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} /></section>
     {error && <Notice message={error} error />}
@@ -66,6 +63,7 @@ export function ServicesListPage() {
     </tr>)}</Table>
     {filtered.length === 0 && <div className="empty">Nenhum serviço encontrado.</div>}
     <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} />
+    </LoadBoundary>
     {formOpen && <ServiceForm service={editingService} onClose={closeForm} onSaved={saveService} />}
   </main>
 }

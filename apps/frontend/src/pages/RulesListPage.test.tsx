@@ -125,3 +125,23 @@ describe('RulesListPage', () => {
     await waitFor(() => expect(screen.queryByText('Regra inativa de limpeza')).not.toBeInTheDocument())
   })
 })
+
+describe('RulesListPage: carregamento inicial (KAN-79)', () => {
+  it('does not show zeroed totals or the empty message before the API answers', () => {
+    vi.mocked(listRules).mockReturnValue(new Promise<never>(() => {}))
+    render(<RulesListPage />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Regras' })).toBeInTheDocument()
+    expect(screen.queryByText('Total de regras')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nenhuma regra encontrada.')).not.toBeInTheDocument()
+  })
+
+  it('shows the error instead of zeroed data and recovers on retry', async () => {
+    vi.mocked(listRules).mockRejectedValueOnce(new Error('Falha de rede')).mockResolvedValue(rules)
+    render(<RulesListPage />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falha de rede')
+    expect(screen.queryByText('Total de regras')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(await screen.findByText('Casamento grande precisa de bar')).toBeInTheDocument()
+    expect(screen.getByText('Total de regras')).toBeInTheDocument()
+  })
+})

@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { listTeams, setTeamActive } from '../api/teamsApi'
 import { Badge } from '../components/Badge'
+import { LoadBoundary } from '../components/LoadBoundary'
 import { Notice } from '../components/Notice'
 import { Pagination } from '../components/Pagination'
 import { StatCard } from '../components/StatCard'
 import { Table } from '../components/Table'
 import { TeamForm } from '../components/TeamForm'
+import { useInitialLoad } from '../hooks/useInitialLoad'
 import type { Team, TeamSpecialty } from '../types/team'
 
 const PAGE_SIZE = 10
@@ -19,11 +21,12 @@ export function TeamsListPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingTeam, setEditingTeam] = useState<Team>()
 
+  const fetchTeams = (value: string) => listTeams({ search: value || undefined })
   const load = async (value = search) => {
-    try { setTeams(await listTeams({ search: value || undefined })); setError('') }
+    try { setTeams(await fetchTeams(value)); setError('') }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Erro ao carregar equipes') }
   }
-  useEffect(() => { void load('') }, [])
+  const initialLoad = useInitialLoad(() => fetchTeams(''), { onData: setTeams, errorMessage: 'Erro ao carregar equipes' })
   const totalPages = Math.max(1, Math.ceil(teams.length / PAGE_SIZE))
   const visibleTeams = teams.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   const openForm = (team?: Team) => { setEditingTeam(team); setFormOpen(true) }
@@ -35,5 +38,5 @@ export function TeamsListPage() {
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Falha ao alterar status da equipe') }
   }
 
-  return <main className="app-shell"><header><div><span className="eyebrow">OPERAÇÃO DE BUFFET</span><h1>Equipes</h1></div><button className="secondary" onClick={() => openForm()}>Nova equipe</button></header><section className="summary"><StatCard icon="♜" value={teams.length} label="Total de equipes" tone="blue" /><StatCard icon="✓" value={teams.filter((team) => team.status === 'ATIVA').length} label="Equipes ativas" tone="green" /><StatCard icon="◌" value={teams.filter((team) => team.status === 'INATIVA').length} label="Inativas" tone="gold" /></section><section className="content-head"><input className="search" placeholder="Buscar por nome..." value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); void load(event.target.value) }} /></section>{error && <Notice message={error} error />}<Table headers={['Equipe', 'Especialidade', 'Membros', 'Status', 'Ações']}>{visibleTeams.map((team) => <tr key={team.id}><td><strong>{team.name}</strong></td><td>{specialtyLabels[team.specialty]}</td><td>{team.members.length}</td><td><Badge tone={team.status === 'ATIVA' ? 'active' : 'inactive'}>{team.status === 'ATIVA' ? 'Ativa' : 'Inativa'}</Badge></td><td><div className="row-actions"><button title="Visualizar equipe" aria-label={`Visualizar ${team.name}`} onClick={() => openForm(team)}>◉</button><button title="Editar equipe" aria-label={`Editar ${team.name}`} onClick={() => openForm(team)}>✎</button><button title={team.status === 'ATIVA' ? 'Inativar equipe' : 'Ativar equipe'} aria-label={`${team.status === 'ATIVA' ? 'Inativar' : 'Ativar'} ${team.name}`} onClick={() => void changeStatus(team)}>{team.status === 'ATIVA' ? '◌' : '●'}</button></div></td></tr>)}</Table>{teams.length === 0 && <div className="empty">Nenhuma equipe encontrada.</div>}<Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} />{formOpen && <TeamForm team={editingTeam} onClose={() => { setFormOpen(false); setEditingTeam(undefined) }} onCreated={(team) => { addTeam(team); setFormOpen(false) }} onUpdated={(team) => { replaceTeam(team); setFormOpen(false) }} />}</main>
+  return <main className="app-shell"><header><div><span className="eyebrow">OPERAÇÃO DE BUFFET</span><h1>Equipes</h1></div><button className="secondary" onClick={() => openForm()}>Nova equipe</button></header><LoadBoundary status={initialLoad.status} error={initialLoad.error} onRetry={initialLoad.retry} label="Carregando equipes..."><section className="summary"><StatCard icon="♜" value={teams.length} label="Total de equipes" tone="blue" /><StatCard icon="✓" value={teams.filter((team) => team.status === 'ATIVA').length} label="Equipes ativas" tone="green" /><StatCard icon="◌" value={teams.filter((team) => team.status === 'INATIVA').length} label="Inativas" tone="gold" /></section><section className="content-head"><input className="search" placeholder="Buscar por nome..." value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); void load(event.target.value) }} /></section>{error && <Notice message={error} error />}<Table headers={['Equipe', 'Especialidade', 'Membros', 'Status', 'Ações']}>{visibleTeams.map((team) => <tr key={team.id}><td><strong>{team.name}</strong></td><td>{specialtyLabels[team.specialty]}</td><td>{team.members.length}</td><td><Badge tone={team.status === 'ATIVA' ? 'active' : 'inactive'}>{team.status === 'ATIVA' ? 'Ativa' : 'Inativa'}</Badge></td><td><div className="row-actions"><button title="Visualizar equipe" aria-label={`Visualizar ${team.name}`} onClick={() => openForm(team)}>◉</button><button title="Editar equipe" aria-label={`Editar ${team.name}`} onClick={() => openForm(team)}>✎</button><button title={team.status === 'ATIVA' ? 'Inativar equipe' : 'Ativar equipe'} aria-label={`${team.status === 'ATIVA' ? 'Inativar' : 'Ativar'} ${team.name}`} onClick={() => void changeStatus(team)}>{team.status === 'ATIVA' ? '◌' : '●'}</button></div></td></tr>)}</Table>{teams.length === 0 && <div className="empty">Nenhuma equipe encontrada.</div>}<Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} /></LoadBoundary>{formOpen && <TeamForm team={editingTeam} onClose={() => { setFormOpen(false); setEditingTeam(undefined) }} onCreated={(team) => { addTeam(team); setFormOpen(false) }} onUpdated={(team) => { replaceTeam(team); setFormOpen(false) }} />}</main>
 }

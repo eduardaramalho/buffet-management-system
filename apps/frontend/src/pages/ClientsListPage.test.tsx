@@ -89,3 +89,25 @@ describe('ClientsListPage', () => {
     expect(screen.queryByRole('button', { name: 'Excluir Ana Souza' })).not.toBeInTheDocument()
   })
 })
+
+describe('ClientsListPage: carregamento inicial (KAN-79)', () => {
+  beforeEach(() => { vi.clearAllMocks(); authState.permissions = ALL_PERMISSIONS })
+
+  it('does not show zeroed totals or the empty message before the API answers', () => {
+    vi.mocked(listClients).mockReturnValue(new Promise<never>(() => {}))
+    render(<ClientsListPage />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Clientes' })).toBeInTheDocument()
+    expect(screen.queryByText('Total de clientes')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nenhum cliente encontrado.')).not.toBeInTheDocument()
+  })
+
+  it('shows the error instead of zeroed data and recovers on retry', async () => {
+    vi.mocked(listClients).mockRejectedValueOnce(new Error('Falha de rede')).mockResolvedValue(clients)
+    render(<ClientsListPage />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falha de rede')
+    expect(screen.queryByText('Total de clientes')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(await screen.findByText('Ana Souza')).toBeInTheDocument()
+    expect(screen.getByText('Total de clientes')).toBeInTheDocument()
+  })
+})

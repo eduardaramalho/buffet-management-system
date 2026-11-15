@@ -212,3 +212,25 @@ describe('UsersListPage creation flow', () => {
     expect(screen.getByRole('switch', { name: /Usuário ativo/ })).toBeDisabled()
   })
 })
+
+describe('UsersListPage: carregamento inicial (KAN-79)', () => {
+  const renderPage = () => render(<MemoryRouter><UsersListPage /></MemoryRouter>)
+
+  it('does not show zeroed totals or the empty message before the API answers', () => {
+    listUsers.mockReturnValue(new Promise<never>(() => {}))
+    renderPage()
+    expect(screen.getByRole('heading', { level: 1, name: 'Usuários' })).toBeInTheDocument()
+    expect(screen.queryByText('Total de usuários')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nenhum usuário encontrado.')).not.toBeInTheDocument()
+  })
+
+  it('shows the error instead of zeroed data and recovers on retry', async () => {
+    listUsers.mockRejectedValueOnce(new Error('Falha de rede')).mockResolvedValue([{ id: 'u-1', name: 'Carla', email: 'carla@buffet.com', isActive: true, roles: [] }])
+    renderPage()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falha de rede')
+    expect(screen.queryByText('Total de usuários')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(await screen.findByText('Carla')).toBeInTheDocument()
+    expect(screen.getByText('Total de usuários')).toBeInTheDocument()
+  })
+})

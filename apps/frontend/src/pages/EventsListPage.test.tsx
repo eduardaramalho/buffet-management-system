@@ -120,3 +120,22 @@ describe('EventsListPage', () => {
     })
   })
 })
+describe('EventsListPage: carregamento inicial (KAN-79)', () => {
+  it('does not show zeroed totals or the empty message before the API answers', () => {
+    vi.mocked(listEvents).mockReturnValue(new Promise<never>(() => {}))
+    render(<MemoryRouter><EventsListPage /></MemoryRouter>)
+    expect(screen.getByRole('heading', { level: 1, name: 'Eventos' })).toBeInTheDocument()
+    expect(screen.queryByText('Total de eventos')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nenhum evento encontrado.')).not.toBeInTheDocument()
+  })
+
+  it('shows the error instead of zeroed data and recovers on retry', async () => {
+    vi.mocked(listEvents).mockRejectedValueOnce(new Error('Falha de rede')).mockResolvedValue([event('CONFIRMADO')])
+    render(<MemoryRouter><EventsListPage /></MemoryRouter>)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falha de rede')
+    expect(screen.queryByText('Total de eventos')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(await screen.findByText('Evento confirmado')).toBeInTheDocument()
+    expect(screen.getByText('Total de eventos')).toBeInTheDocument()
+  })
+})
