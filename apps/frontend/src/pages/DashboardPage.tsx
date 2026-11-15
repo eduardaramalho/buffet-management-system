@@ -10,6 +10,7 @@ import { Table } from '../components/Table'
 import type { DashboardSummary, TaskStatusCounts, UpcomingEvent } from '../types/dashboard'
 import type { EventStatus } from '../types/event'
 import type { TaskStatus } from '../types/task'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const emptyTasks: TaskStatusCounts = { PENDENTE: 0, EM_ANDAMENTO: 0, CONCLUIDA: 0, CANCELADA: 0 }
 const statusLabels: Record<EventStatus, string> = { PLANEJAMENTO: 'Planejamento', CONFIRMADO: 'Confirmado', EM_ANDAMENTO: 'Em andamento', CONCLUIDO: 'Concluído', CANCELADO: 'Cancelado' }
@@ -20,6 +21,7 @@ const taskStatuses: TaskStatus[] = ['PENDENTE', 'EM_ANDAMENTO', 'CONCLUIDA', 'CA
 const formatDate = (value: string) => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
 
 export function DashboardPage() {
+  usePageTitle('Dashboard')
   const [summary, setSummary] = useState<DashboardSummary>()
   const [events, setEvents] = useState<UpcomingEvent[]>([])
   const [tasksByStatus, setTasksByStatus] = useState<TaskStatusCounts>(emptyTasks)

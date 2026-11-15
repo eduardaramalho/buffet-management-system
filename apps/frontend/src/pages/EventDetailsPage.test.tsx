@@ -66,6 +66,27 @@ describe('EventDetailsPage', () => {
     expect(screen.getByText('Regras aplicadas')).toBeInTheDocument()
   })
 
+  it('names the browser tab after the event once it loads', async () => {
+    vi.mocked(getEvent).mockResolvedValue(event())
+    vi.mocked(listEventRuleApplications).mockResolvedValue([])
+    mockOtherBlocks()
+    renderPage()
+
+    expect(document.title).toBe('Evento · EventosPro')
+    await screen.findByText('Casamento Ana')
+    expect(document.title).toBe('Casamento Ana · EventosPro')
+  })
+
+  it('keeps the generic tab title when the event cannot be loaded', async () => {
+    vi.mocked(getEvent).mockRejectedValue(new Error('falha'))
+    vi.mocked(listEventRuleApplications).mockResolvedValue([])
+    mockOtherBlocks()
+    renderPage()
+
+    await waitFor(() => expect(getEvent).toHaveBeenCalled())
+    expect(document.title).toBe('Evento · EventosPro')
+  })
+
   it('hides a forbidden block and retries other errors locally', async () => {
     vi.mocked(getEvent).mockResolvedValue(event())
     vi.mocked(listTasks).mockRejectedValue({ response: { status: 403 } })

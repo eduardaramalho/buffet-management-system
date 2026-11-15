@@ -20,6 +20,7 @@ import { InternalLayout } from '../components/InternalLayout'
 import { RouteErrorBoundary } from '../components/RouteErrorBoundary'
 import { Notice } from '../components/Notice'
 import { NO_ACCESS_PATH, getHomePath } from '../utils/homePath'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function AppRoutes() {
 	const { user, logout } = useAuth()
@@ -52,5 +53,6 @@ export function AppRoutes() {
 
 // Usuário sem nenhuma tela permitida: mantém o menu (vazio) e o botão Sair em vez de uma tela em branco.
 function NoAccessPage() {
+	usePageTitle('Sem acesso')
 	return <main className="app-shell"><header><div><h1>Sem acesso</h1></div></header><Notice message="Seu perfil não tem acesso a nenhuma tela. Procure o administrador do sistema." /></main>
 }

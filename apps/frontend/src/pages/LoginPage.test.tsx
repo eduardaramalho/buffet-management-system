@@ -30,6 +30,12 @@ describe('LoginPage', () => {
     expect(login).toHaveBeenCalledWith('alice@example.com', 'secret123')
   })
 
+  it('names the browser tab after the screen', () => {
+    renderPage()
+
+    expect(document.title).toBe('Entrar · EventosPro')
+  })
+
   it('uses the form as the page heading and keeps the slogan out of the heading outline', () => {
     renderPage()
 

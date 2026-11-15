@@ -7,6 +7,7 @@ import { Icon, type IconName } from '../components/Icon'
 import { Notice } from '../components/Notice'
 import { PasswordField } from '../components/PasswordField'
 import { useAuth } from '../contexts/useAuth'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const TEMP_PASSWORD_EXPIRED = 'TEMP_PASSWORD_EXPIRED'
 
@@ -19,6 +20,7 @@ const highlights: Array<{ icon: IconName; title: string; text: string }> = [
 type LoginError = { message: string; expired: boolean }
 
 export function LoginPage() {
+  usePageTitle('Entrar')
   const { login, loading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

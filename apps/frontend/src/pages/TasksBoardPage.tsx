@@ -24,6 +24,7 @@ import type { Team } from '../types/team'
 import { TASK_STATUS_LABELS } from '../utils/labels'
 import { decideTaskDrop, getMoveBlockReason } from '../utils/taskBoard'
 import { isTaskOverdue, sortTasksBySchedule } from '../utils/taskSchedule'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const HIGHLIGHT_MS = 900
 const dayMonth = (value: string) => new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(new Date(value))
@@ -42,6 +43,7 @@ const announcements: Announcements = {
 type PendingConfirm = { kind: 'cancel' | 'delete'; task: Task }
 
 export function TasksBoardPage() {
+  usePageTitle('Tarefas')
   const { user } = useAuth()
   const toast = useToast()
   const hasPermission = (permission: string) => user?.roles?.some((role) => role.permissions.includes(permission)) ?? false

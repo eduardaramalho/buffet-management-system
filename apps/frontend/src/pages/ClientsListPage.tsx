@@ -13,11 +13,13 @@ import { Table } from '../components/Table'
 import { useInitialLoad } from '../hooks/useInitialLoad'
 import { formatDocument } from '../utils/document'
 import { CLIENT_TYPE_LABELS, type Client } from '../types/client'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const PAGE_SIZE = 10
 const LOAD_ERROR = 'Erro ao carregar clientes'
 
 export function ClientsListPage() {
+  usePageTitle('Clientes')
   const { user } = useAuth()
   const hasPermission = (permission: string) => Boolean(user?.roles?.some((role) => role.permissions.includes(permission)))
   const [clients, setClients] = useState<Client[]>([])

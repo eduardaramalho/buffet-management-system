@@ -7,8 +7,10 @@ import { Table } from '../components/Table'
 import { useAuth } from '../contexts/useAuth'
 import { useInitialLoad } from '../hooks/useInitialLoad'
 import type { Role } from '../types'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function RolesListPage() {
+  usePageTitle('Papéis e permissões')
   const { user } = useAuth()
   const can = (permission: string) => Boolean(user?.roles?.some((role) => role.permissions.includes(permission)))
   const [roles, setRoles] = useState<Role[]>([])

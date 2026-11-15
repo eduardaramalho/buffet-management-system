@@ -19,6 +19,7 @@ import type { Task } from '../types/task'
 import { isTaskOverdue, sortTasksBySchedule } from '../utils/taskSchedule'
 import type { Team } from '../types/team'
 import { EVENT_STATUS_LABELS } from '../utils/labels'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const STATUS_STEPS: Array<{ status: Exclude<EventStatus, 'CANCELADO'>; label: string }> = [
   { status: 'PLANEJAMENTO', label: 'Planejamento' },
@@ -51,6 +52,8 @@ export function EventDetailsPage() {
   const { user } = useAuth()
   const hasPermission = (permission: string) => Boolean(user?.roles?.some((role) => role.permissions.includes(permission)))
   const [eventState, setEventState] = useState<BlockState<Event>>(loading())
+  // Enquanto o evento carrega (ou se falhar), a aba mostra o nome genérico da tela.
+  usePageTitle(eventState.data?.name ?? 'Evento')
   const [teamsState, setTeamsState] = useState<BlockState<Array<{ team: Team; assignedAt: string }>>>(loading())
   const [tasksState, setTasksState] = useState<BlockState<Task[]>>(loading())
   const [rulesState, setRulesState] = useState<BlockState<RulesView>>(loading())

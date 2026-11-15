@@ -9,12 +9,8 @@ a { text-decoration: none; }
 .brand strong { display: block; font: 800 29px/1 'Manrope', sans-serif; letter-spacing: -.06em; }
 .brand strong span { color: var(--gold-500); }
 .brand small { display: block; margin-top: 5px; color: var(--slate-600); font-size: 12px; }
-.logo-mark { position: relative; display: block; width: 48px; height: 42px; border: 4px solid var(--navy-900); border-top-left-radius: 28px; border-top-right-radius: 28px; border-bottom: 0; }
-.logo-mark::before { content: ''; position: absolute; left: -10px; right: -10px; bottom: 3px; height: 7px; border: 4px solid var(--navy-900); border-radius: 8px; background: var(--white); }
-.logo-mark::after { content: ''; position: absolute; width: 8px; height: 8px; top: -13px; left: 16px; border: 4px solid var(--navy-900); border-radius: 50%; }
-.brand.compact .logo-mark { width: 34px; height: 30px; border-width: 3px; }
-.brand.compact .logo-mark::before { left: -7px; right: -7px; border-width: 3px; }
-.brand.compact .logo-mark::after { left: 11px; border-width: 3px; }
+.logo-mark { display: block; flex-shrink: 0; width: 48px; height: 48px; }
+.brand.compact .logo-mark { width: 34px; height: 34px; }
 .brand.compact strong { font-size: 18px; color: var(--white); }
 .brand.compact small { color: var(--sidebar-muted); font-size: 9px; }
 .form-wrap { width: min(100%, 470px); }
@@ -191,9 +187,7 @@ nav[aria-label="Paginação"] { display: flex; justify-content: flex-end; align-
 .auth-aside .brand { color: var(--white); }
 .auth-aside .brand strong { font-size: 22px; }
 .auth-aside .brand small { color: var(--sidebar-muted); font-size: 11px; }
-.auth-aside .logo-mark { width: 34px; height: 30px; margin: 10px 7px 0; border-width: 3px; border-color: var(--white); }
-.auth-aside .logo-mark::before { left: -10px; right: -10px; border-width: 3px; border-color: var(--white); background: var(--navy-950); }
-.auth-aside .logo-mark::after { top: -12px; left: 10px; border-width: 3px; border-color: var(--white); }
+.auth-aside .logo-mark { width: 40px; height: 40px; }
 .auth-aside-body { position: relative; z-index: 1; display: grid; gap: 24px; max-width: 440px; margin: auto 0; }
 .auth-aside-line { width: 56px; border-top: 2px solid var(--gold-500); }
 .auth-aside-title { margin: 0; font: 800 40px/1.12 'Manrope', sans-serif; letter-spacing: -.03em; }

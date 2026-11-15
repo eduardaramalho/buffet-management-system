@@ -9,10 +9,12 @@ import { StatCard } from '../components/StatCard'
 import { Table } from '../components/Table'
 import { useInitialLoad } from '../hooks/useInitialLoad'
 import type { Collaborator } from '../types/collaborator'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const PAGE_SIZE = 10
 
 export function CollaboratorsListPage() {
+  usePageTitle('Colaboradores')
   const [collaborators, setCollaborators] = useState<Collaborator[]>([])
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
