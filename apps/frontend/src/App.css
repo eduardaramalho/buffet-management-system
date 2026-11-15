@@ -241,6 +241,9 @@ form .auth-submit { display: flex; align-items: center; justify-content: center;
 .spinner { width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+/* KAN-79: área reservada enquanto a tela carrega; o indicador só aparece se a resposta demorar. */
+.page-loading { display: grid; place-items: center; min-height: 160px; }
+.page-loading p { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--slate-600); font-size: 13px; }
 .auth-note { display: flex; align-items: flex-start; gap: 10px; margin: 28px 0 0; padding-top: 20px; border-top: 1px solid var(--line-200); color: var(--slate-600); font-size: 13px; line-height: 1.55; }
 .auth-note svg { flex: 0 0 18px; width: 18px; height: 18px; margin-top: 1px; }
 .password-requirements { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; color: var(--slate-600); font-size: 13px; }

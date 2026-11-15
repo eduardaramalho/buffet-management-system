@@ -77,3 +77,23 @@ describe('RolesListPage', () => {
     expect(screen.queryByRole('button', { name: 'Novo papel' })).not.toBeInTheDocument()
   })
 })
+
+describe('RolesListPage: carregamento inicial (KAN-79)', () => {
+  beforeEach(() => { vi.clearAllMocks(); authState.permissions = ['roles:list', 'roles:create', 'roles:update'] })
+
+  it('keeps the table hidden until the API answers', () => {
+    listRoles.mockReturnValue(new Promise<never>(() => {}))
+    render(<RolesListPage />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Papéis' })).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+  })
+
+  it('shows the error instead of an empty table and recovers on retry', async () => {
+    listRoles.mockRejectedValueOnce(new Error('Falha de rede')).mockResolvedValue([gestor])
+    render(<RolesListPage />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falha de rede')
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(await screen.findByText('Gestor')).toBeInTheDocument()
+  })
+})

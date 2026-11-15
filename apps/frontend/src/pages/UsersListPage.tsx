@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { listUsers, setUserActive } from '../api/usersApi'
+import { LoadBoundary } from '../components/LoadBoundary'
 import { Notice } from '../components/Notice'
 import { Pagination } from '../components/Pagination'
 import { Table } from '../components/Table'
@@ -7,6 +8,7 @@ import { UserForm } from '../components/UserForm'
 import { UserDetails } from '../components/UserDetails'
 import { ResetPasswordDialog } from '../components/ResetPasswordDialog'
 import { useAuth } from '../contexts/useAuth'
+import { useInitialLoad } from '../hooks/useInitialLoad'
 import { Avatar } from '../components/Avatar'
 import { Badge } from '../components/Badge'
 import { Icon } from '../components/Icon'
@@ -31,11 +33,7 @@ export function UsersListPage() {
     try { setUsers(await listUsers(value)); setError('') }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Erro ao carregar usuários') }
   }
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => { void load() }, 0)
-    return () => window.clearTimeout(timer)
-  }, [])
+  const initialLoad = useInitialLoad(() => listUsers(''), { onData: setUsers, errorMessage: 'Erro ao carregar usuários' })
 
   const isAdmin = (user: User) => user.roles.some(({ role }) => role.isProtected)
   // ADR 0018: ninguém se desativa nem redefine a própria senha por aqui (o backend também recusa com 403).
@@ -53,6 +51,7 @@ export function UsersListPage() {
 
   return <main className="app-shell">
     <header><div><span className="eyebrow">PAINEL OPERACIONAL</span><h1>Usuários</h1></div>{canCreate && <button className="secondary" onClick={() => { setEditingUser(undefined); setFormOpen(true) }}>Novo usuário</button>}</header>
+    <LoadBoundary status={initialLoad.status} error={initialLoad.error} onRetry={initialLoad.retry} label="Carregando usuários...">
     <section className="summary"><StatCard icon={<Icon name="users" />} value={users.length} label="Total de usuários" tone="blue" /><StatCard icon={<Icon name="check" />} value={activeUsers} label="Usuários ativos" tone="green" /><StatCard icon={<Icon name="x" />} value={users.length - activeUsers} label="Inativos" tone="gold" /><StatCard icon={<Icon name="shield" />} value={users.filter(isAdmin).length} label="Administradores" tone="purple" /></section>
     <section className="content-head"><input className="search" placeholder="Buscar por nome, e-mail ou cargo..." value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); void load(event.target.value) }} /><select aria-label="Todos os perfis"><option>Todos os perfis</option></select><select aria-label="Status"><option>Status</option></select><button className="secondary">Filtros</button></section>
     {error && <Notice message={error} error />}
@@ -61,6 +60,7 @@ export function UsersListPage() {
     </Table>
     {users.length === 0 && <div className="empty">Nenhum usuário encontrado.</div>}
     <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} />
+    </LoadBoundary>
     {formOpen && <UserForm user={editingUser} isOwnAccount={editingUser ? isOwnAccount(editingUser) : false} onClose={() => { setFormOpen(false); setEditingUser(undefined) }} onCreated={addUser} onUpdated={(updated) => { replaceUser(updated); setFormOpen(false); setEditingUser(undefined) }} />}
     {viewingUser && <UserDetails user={viewingUser} onClose={() => setViewingUser(undefined)} />}
     {resettingUser && <ResetPasswordDialog user={resettingUser} onClose={() => setResettingUser(undefined)} />}

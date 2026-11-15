@@ -1,18 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { listClients, removeClient } from '../api/clientsApi'
 import { getApiErrorMessage } from '../api/apiError'
 import { useAuth } from '../contexts/useAuth'
 import { Badge } from '../components/Badge'
 import { ClientForm } from '../components/ClientForm'
 import { Icon } from '../components/Icon'
+import { LoadBoundary } from '../components/LoadBoundary'
 import { Notice } from '../components/Notice'
 import { Pagination } from '../components/Pagination'
 import { StatCard } from '../components/StatCard'
 import { Table } from '../components/Table'
+import { useInitialLoad } from '../hooks/useInitialLoad'
 import { formatDocument } from '../utils/document'
 import { CLIENT_TYPE_LABELS, type Client } from '../types/client'
 
 const PAGE_SIZE = 10
+const LOAD_ERROR = 'Erro ao carregar clientes'
 
 export function ClientsListPage() {
   const { user } = useAuth()
@@ -25,16 +28,11 @@ export function ClientsListPage() {
   const [editingClient, setEditingClient] = useState<Client>()
 
   const fetchClients = (value: string) => listClients(value ? { search: value } : {})
-  const showLoadError = (cause: unknown) => setError(getApiErrorMessage(cause, 'Erro ao carregar clientes'))
   const load = async (value: string) => {
     try { setClients(await fetchClients(value)); setError('') }
-    catch (cause) { showLoadError(cause) }
+    catch (cause) { setError(getApiErrorMessage(cause, LOAD_ERROR)) }
   }
-  useEffect(() => {
-    let active = true
-    fetchClients('').then((data) => { if (active) setClients(data) }).catch((cause) => { if (active) showLoadError(cause) })
-    return () => { active = false }
-  }, [])
+  const initialLoad = useInitialLoad(() => fetchClients(''), { onData: setClients, errorMessage: LOAD_ERROR })
 
   const totalPages = Math.max(1, Math.ceil(clients.length / PAGE_SIZE))
   const visibleClients = clients.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -52,6 +50,7 @@ export function ClientsListPage() {
 
   return <main className="app-shell">
     <header><div><span className="eyebrow">OPERAÇÃO DE BUFFET</span><h1>Clientes</h1></div>{hasPermission('clients:create') && <button className="secondary" onClick={() => openForm()}>Novo cliente</button>}</header>
+    <LoadBoundary status={initialLoad.status} error={initialLoad.error} onRetry={initialLoad.retry} label="Carregando clientes...">
     <section className="summary"><StatCard icon="♜" value={clients.length} label="Total de clientes" tone="blue" /><StatCard icon="☺" value={clients.filter((client) => client.type === 'PF').length} label="Pessoas físicas" tone="green" /><StatCard icon="◈" value={clients.filter((client) => client.type === 'PJ').length} label="Pessoas jurídicas" tone="gold" /></section>
     <section className="content-head"><input className="search" placeholder="Buscar por nome, documento ou e-mail..." value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); void load(event.target.value) }} /></section>
     {error && <Notice message={error} error />}
@@ -67,6 +66,7 @@ export function ClientsListPage() {
     </tr>)}</Table>
     {clients.length === 0 && <div className="empty">Nenhum cliente encontrado.</div>}
     <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} />
+    </LoadBoundary>
     {formOpen && <ClientForm client={editingClient} onClose={closeForm} onSaved={saveClient} />}
   </main>
 }

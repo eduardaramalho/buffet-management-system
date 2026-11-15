@@ -113,3 +113,23 @@ describe('ServicesListPage (RF06)', () => {
     expect(screen.queryByRole('button', { name: 'Excluir Bar' })).not.toBeInTheDocument()
   })
 })
+
+describe('ServicesListPage: carregamento inicial (KAN-79)', () => {
+  it('does not show zeroed totals or the empty message before the API answers', () => {
+    vi.mocked(listServices).mockReturnValue(new Promise<never>(() => {}))
+    render(<ServicesListPage />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Serviços' })).toBeInTheDocument()
+    expect(screen.queryByText('Total de serviços')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nenhum serviço encontrado.')).not.toBeInTheDocument()
+  })
+
+  it('shows the error instead of zeroed data and recovers on retry', async () => {
+    vi.mocked(listServices).mockRejectedValueOnce(new Error('Falha de rede')).mockResolvedValue(catalog)
+    render(<ServicesListPage />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falha de rede')
+    expect(screen.queryByText('Total de serviços')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(await screen.findByText('Buffet completo')).toBeInTheDocument()
+    expect(screen.getByText('Total de serviços')).toBeInTheDocument()
+  })
+})

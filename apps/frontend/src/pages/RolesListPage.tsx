@@ -1,22 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { listRoles } from '../api/rolesApi'
-import { getApiErrorMessage } from '../api/apiError'
 import { Icon } from '../components/Icon'
-import { Notice } from '../components/Notice'
+import { LoadBoundary } from '../components/LoadBoundary'
 import { RoleForm } from '../components/RoleForm'
 import { Table } from '../components/Table'
 import { useAuth } from '../contexts/useAuth'
+import { useInitialLoad } from '../hooks/useInitialLoad'
 import type { Role } from '../types'
 
 export function RolesListPage() {
   const { user } = useAuth()
   const can = (permission: string) => Boolean(user?.roles?.some((role) => role.permissions.includes(permission)))
   const [roles, setRoles] = useState<Role[]>([])
-  const [error, setError] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editingRole, setEditingRole] = useState<Role>()
 
-  useEffect(() => { void listRoles().then(setRoles).catch((cause) => setError(getApiErrorMessage(cause, 'Não foi possível carregar os papéis'))) }, [])
+  const initialLoad = useInitialLoad(listRoles, { onData: setRoles, errorMessage: 'Não foi possível carregar os papéis' })
 
   const openForm = (role?: Role) => { setEditingRole(role); setFormOpen(true) }
   const closeForm = () => { setFormOpen(false); setEditingRole(undefined) }
@@ -33,7 +32,7 @@ export function RolesListPage() {
         </div>
         {can('roles:create') && <button type="button" className="secondary" onClick={() => openForm()}>Novo papel</button>}
       </header>
-      {error && <Notice message={error} error />}
+      <LoadBoundary status={initialLoad.status} error={initialLoad.error} onRetry={initialLoad.retry} label="Carregando papéis...">
       <Table headers={['Nome', 'Descrição', 'Ações']}>
         {roles.map((role) => (
           <tr key={role.id}>
@@ -43,6 +42,7 @@ export function RolesListPage() {
           </tr>
         ))}
       </Table>
+      </LoadBoundary>
       {formOpen && <RoleForm role={editingRole} onClose={closeForm} onSaved={saveRole} />}
     </main>
   )

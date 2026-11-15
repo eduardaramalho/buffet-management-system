@@ -6,7 +6,7 @@ import { listEvents } from '../api/eventsApi'
 import { listTeams } from '../api/teamsApi'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Icon } from '../components/Icon'
-import { Notice } from '../components/Notice'
+import { LoadBoundary } from '../components/LoadBoundary'
 import { RefreshIndicator } from '../components/RefreshIndicator'
 import { TaskForm } from '../components/TaskForm'
 import { DraggableTaskCard, TaskCardPreview, type TaskCardHighlight } from '../components/tasks/TaskCard'
@@ -15,6 +15,7 @@ import { TaskDetailDialog } from '../components/tasks/TaskDetailDialog'
 import { TaskFilterMenu } from '../components/tasks/TaskFilterMenu'
 import { useAuth } from '../contexts/useAuth'
 import { useToast } from '../contexts/toast'
+import { useInitialLoad } from '../hooks/useInitialLoad'
 import { usePolling } from '../hooks/usePolling'
 import { getTaskDestinations, TASK_STATUSES, TERMINAL_TASK_STATUSES } from '../types/task'
 import type { Task, TaskStatus } from '../types/task'
@@ -54,7 +55,6 @@ export function TasksBoardPage() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [events, setEvents] = useState<Event[]>([])
   const [teams, setTeams] = useState<Team[]>([])
-  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [teamId, setTeamId] = useState('')
   const [eventId, setEventId] = useState('')
@@ -74,22 +74,17 @@ export function TasksBoardPage() {
     return () => pending.forEach(clearTimeout)
   }, [])
 
-  // Rejeita em caso de erro: o polling silencioso o ignora e mantém os dados atuais.
-  const fetchAll = async () => {
-    // Equipes só para quem pode listá-las: o colaborador vê e move tarefas sem acesso ao cadastro de equipes.
-    const [taskList, eventList, teamList] = await Promise.all([listTasks(), listEvents(), canListTeams ? listTeams() : Promise.resolve([])])
+  // Equipes só para quem pode listá-las: o colaborador vê e move tarefas sem acesso ao cadastro de equipes.
+  const fetchBoard = () => Promise.all([listTasks(), listEvents(), canListTeams ? listTeams() : Promise.resolve([])])
+  const applyBoard = ([taskList, eventList, teamList]: Awaited<ReturnType<typeof fetchBoard>>) => {
     setTasks((current) => taskList.map((fresh) => (pendingMoves.current.has(fresh.id) ? current.find((item) => item.id === fresh.id) ?? fresh : fresh)))
     setEvents(eventList)
     setTeams(teamList)
-    setError('')
   }
-  const load = async () => {
-    try { await fetchAll() } catch (cause) {
-      setError(getApiErrorMessage(cause, 'Erro ao carregar tarefas'))
-    }
-  }
-  useEffect(() => { void load() }, [])
-  const { lastUpdatedAt, refreshing, refresh } = usePolling(fetchAll)
+  const initialLoad = useInitialLoad(fetchBoard, { onData: applyBoard, errorMessage: 'Erro ao carregar tarefas' })
+  const ready = initialLoad.status === 'ready'
+  // Rejeita em caso de erro: o polling silencioso o ignora e mantém os dados atuais. Só começa depois da primeira carga.
+  const { lastUpdatedAt, refreshing, refresh } = usePolling(async () => applyBoard(await fetchBoard()), { enabled: ready })
 
   const eventsById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events])
   const teamsById = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams])
@@ -192,7 +187,6 @@ export function TasksBoardPage() {
   const closeForm = () => { setFormOpen(false); setEditingTask(undefined) }
   const saveTask = (saved: Task) => {
     setTasks((current) => (current.some((item) => item.id === saved.id) ? current.map((item) => (item.id === saved.id ? saved : item)) : [saved, ...current]))
-    setError('')
   }
 
   const confirmAction = async () => {
@@ -214,11 +208,12 @@ export function TasksBoardPage() {
     <header>
       <div><span className="eyebrow">MOTOR DE REGRAS</span><h1>Tarefas</h1></div>
       <div className="header-actions">
-        <span className="task-board-summary">{summary}</span>
+        {ready && <span className="task-board-summary">{summary}</span>}
         <RefreshIndicator lastUpdatedAt={lastUpdatedAt} refreshing={refreshing} onRefresh={() => void refresh()} />
-        {canCreate && <button type="button" className="secondary" onClick={() => openForm()}><Icon name="plus" />Nova tarefa</button>}
+        {canCreate && ready && <button type="button" className="secondary" onClick={() => openForm()}><Icon name="plus" />Nova tarefa</button>}
       </div>
     </header>
+    <LoadBoundary status={initialLoad.status} error={initialLoad.error} onRetry={initialLoad.retry} label="Carregando tarefas...">
     <section className="content-head task-board-toolbar" aria-label="Busca e filtros">
       <label className="search task-board-search">
         <Icon name="search" />
@@ -235,7 +230,6 @@ export function TasksBoardPage() {
         onClear={() => { setTeamId(''); setEventId('') }}
       />
     </section>
-    {error && <Notice message={error} error />}
     <p id="task-board-help" className="sr-only">Arraste os cards entre as colunas ou abra a tarefa para mudar o status pelo botão Mover para.</p>
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)} accessibility={{ announcements, screenReaderInstructions: { draggable: 'Abra a tarefa e use Mover para, ou arraste o card com o mouse ou o dedo.' } }}>
       <div className="task-board" aria-describedby="task-board-help">
@@ -255,6 +249,7 @@ export function TasksBoardPage() {
         {draggedTask && <TaskCardPreview task={draggedTask} eventLabel={eventLabelOf(draggedTask)} teamName={teamNameOf(draggedTask)} />}
       </DragOverlay>
     </DndContext>
+    </LoadBoundary>
     {detailTask && <TaskDetailDialog
       key={detailTask.id}
       task={detailTask}

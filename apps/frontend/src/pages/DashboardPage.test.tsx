@@ -90,3 +90,34 @@ describe('DashboardPage: falhas e formatação', () => {
     for (const label of ['Planejamento', 'Confirmado', 'Concluído', 'Cancelado']) expect(screen.getByText(label)).toBeInTheDocument()
   })
 })
+
+describe('DashboardPage: carregamento inicial (KAN-79)', () => {
+  it('does not show zeroed cards, an empty donut or the empty list before the API answers', () => {
+    vi.mocked(getDashboardSummary).mockReturnValue(new Promise<never>(() => {}))
+    vi.mocked(getUpcomingEvents).mockReturnValue(new Promise<never>(() => {}))
+    vi.mocked(getTasksByStatus).mockReturnValue(new Promise<never>(() => {}))
+    render(<DashboardPage />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
+    expect(screen.queryByText('Eventos este mês')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nenhum próximo evento.')).not.toBeInTheDocument()
+    expect(screen.queryByText('tarefas')).not.toBeInTheDocument()
+  })
+
+  it('shows each block as soon as its own request answers', async () => {
+    vi.mocked(getDashboardSummary).mockResolvedValue(summary)
+    vi.mocked(getUpcomingEvents).mockReturnValue(new Promise<never>(() => {}))
+    vi.mocked(getTasksByStatus).mockReturnValue(new Promise<never>(() => {}))
+    render(<DashboardPage />)
+    expect(await screen.findByText('Eventos este mês')).toBeInTheDocument()
+    expect(screen.queryByText('Nenhum próximo evento.')).not.toBeInTheDocument()
+  })
+
+  it('hides the zeroed cards of a failed block', async () => {
+    vi.mocked(getDashboardSummary).mockRejectedValue('x')
+    vi.mocked(getUpcomingEvents).mockResolvedValue([])
+    vi.mocked(getTasksByStatus).mockResolvedValue(statuses)
+    render(<DashboardPage />)
+    expect(await screen.findByText('Não foi possível carregar o resumo.')).toBeInTheDocument()
+    expect(screen.queryByText('Eventos este mês')).not.toBeInTheDocument()
+  })
+})

@@ -32,3 +32,23 @@ describe('CollaboratorsListPage', () => {
     await waitFor(() => expect(setCollaboratorActive).toHaveBeenCalledWith('collaborator-2', true))
   })
 })
+
+describe('CollaboratorsListPage: carregamento inicial (KAN-79)', () => {
+  it('does not show zeroed totals or the empty message before the API answers', () => {
+    vi.mocked(listCollaborators).mockReturnValue(new Promise<never>(() => {}))
+    render(<CollaboratorsListPage />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Colaboradores' })).toBeInTheDocument()
+    expect(screen.queryByText('Total de colaboradores')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nenhum colaborador encontrado.')).not.toBeInTheDocument()
+  })
+
+  it('shows the error instead of zeroed data and recovers on retry', async () => {
+    vi.mocked(listCollaborators).mockRejectedValueOnce(new Error('Falha de rede')).mockResolvedValue(collaborators)
+    render(<CollaboratorsListPage />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falha de rede')
+    expect(screen.queryByText('Total de colaboradores')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(await screen.findByText('Ana Silva')).toBeInTheDocument()
+    expect(screen.getByText('Total de colaboradores')).toBeInTheDocument()
+  })
+})
