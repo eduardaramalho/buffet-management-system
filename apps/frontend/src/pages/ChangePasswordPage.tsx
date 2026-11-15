@@ -8,11 +8,13 @@ import { Icon } from '../components/Icon'
 import { Notice } from '../components/Notice'
 import { PasswordField } from '../components/PasswordField'
 import { useAuth } from '../contexts/useAuth'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const PASSWORD_MIN_LENGTH = 8
 
 /** ADR 0012: troca obrigatória depois que o administrador redefine a senha. Fica fora do layout interno de propósito. */
 export function ChangePasswordPage() {
+  usePageTitle('Trocar senha')
   const { user, changePassword, logout, loading } = useAuth()
   const navigate = useNavigate()
   const [currentPassword, setCurrentPassword] = useState('')

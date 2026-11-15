@@ -5,6 +5,7 @@ import { TasksReportPanel } from '../components/reports/TasksReportPanel'
 import { TeamPerformancePanel } from '../components/reports/TeamPerformancePanel'
 import type { ReportKind } from '../types/report'
 import { currentMonthRange, toApiPeriod, validatePeriod, type PeriodInput } from '../utils/reportPeriod'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const TABS: Array<{ kind: ReportKind; label: string }> = [
   { kind: 'events', label: 'Eventos' },
@@ -13,6 +14,7 @@ const TABS: Array<{ kind: ReportKind; label: string }> = [
 ]
 
 export function ReportsPage() {
+  usePageTitle('Relatórios')
   const [tab, setTab] = useState<ReportKind>('events')
   const [periodInput, setPeriodInput] = useState<PeriodInput>(() => currentMonthRange())
   const periodError = validatePeriod(periodInput)

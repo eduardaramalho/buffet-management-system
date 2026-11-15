@@ -12,6 +12,7 @@ import { useInitialLoad } from '../hooks/useInitialLoad'
 import type { EventType } from '../types/event'
 import type { TeamSpecialty } from '../types/team'
 import type { Rule } from '../types/rule'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const PAGE_SIZE = 10
 const eventTypeLabels: Record<EventType, string> = { CASAMENTO: 'Casamento', ANIVERSARIO: 'Aniversário', FORMATURA: 'Formatura', CORPORATIVO: 'Corporativo', CONFRATERNIZACAO: 'Confraternização', BATIZADO: 'Batizado', OUTRO: 'Outro' }
@@ -29,6 +30,7 @@ const summarizeResources = (rule: Rule) => rule.resourceRequirements.map((item) 
 const summarizeTasks = (rule: Rule) => rule.taskTemplates.length ? `${rule.taskTemplates.length} tarefas` : 'Nenhuma'
 
 export function RulesListPage() {
+  usePageTitle('Regras')
   const [rules, setRules] = useState<Rule[]>([])
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)

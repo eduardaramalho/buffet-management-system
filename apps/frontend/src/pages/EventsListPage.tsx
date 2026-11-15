@@ -12,6 +12,7 @@ import { StatCard } from '../components/StatCard'
 import { Table } from '../components/Table'
 import { useInitialLoad } from '../hooks/useInitialLoad'
 import type { Event, EventStatus } from '../types/event'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const PAGE_SIZE = 10
 const statusLabels: Record<EventStatus, string> = { PLANEJAMENTO: 'Planejamento', CONFIRMADO: 'Confirmado', EM_ANDAMENTO: 'Em andamento', CONCLUIDO: 'Concluído', CANCELADO: 'Cancelado' }
@@ -21,6 +22,7 @@ const formatDate = (value: string) => new Intl.DateTimeFormat('pt-BR', { dateSty
 type View = 'active' | 'deleted'
 
 export function EventsListPage() {
+  usePageTitle('Eventos')
   const navigate = useNavigate()
   const { user } = useAuth()
   const hasPermission = (permission: string) => Boolean(user?.roles?.some((role) => role.permissions.includes(permission)))

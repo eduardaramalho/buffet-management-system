@@ -12,6 +12,7 @@ import { StatCard } from '../components/StatCard'
 import { Table } from '../components/Table'
 import { useInitialLoad } from '../hooks/useInitialLoad'
 import type { Service } from '../types/event'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const PAGE_SIZE = 10
 // Same tolerance as the MySQL collation used for uniqueness: case and accents do not matter.
@@ -20,6 +21,7 @@ const byName = (left: Service, right: Service) => left.name.localeCompare(right.
 
 /** RF06: catalog of contractable services. The list is small, so search runs on the loaded data. */
 export function ServicesListPage() {
+  usePageTitle('Serviços')
   const { user } = useAuth()
   const hasPermission = (permission: string) => Boolean(user?.roles?.some((role) => role.permissions.includes(permission)))
   const [services, setServices] = useState<Service[]>([])

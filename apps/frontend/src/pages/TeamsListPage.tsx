@@ -9,11 +9,13 @@ import { Table } from '../components/Table'
 import { TeamForm } from '../components/TeamForm'
 import { useInitialLoad } from '../hooks/useInitialLoad'
 import type { Team, TeamSpecialty } from '../types/team'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const PAGE_SIZE = 10
 const specialtyLabels: Record<TeamSpecialty, string> = { COZINHA: 'Cozinha', SALAO: 'Salão', BAR: 'Bar', DECORACAO: 'Decoração', LIMPEZA: 'Limpeza', CERIMONIAL: 'Cerimonial', OUTRO: 'Outro' }
 
 export function TeamsListPage() {
+  usePageTitle('Equipes')
   const [teams, setTeams] = useState<Team[]>([])
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)

@@ -14,9 +14,11 @@ import { Badge } from '../components/Badge'
 import { Icon } from '../components/Icon'
 import { StatCard } from '../components/StatCard'
 import type { User } from '../types'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const PAGE_SIZE = 10
 export function UsersListPage() {
+  usePageTitle('Usuários')
   const { user: actor } = useAuth()
   const canResetPassword = Boolean(actor?.roles?.some((role) => role.permissions.includes('users:reset-password')))
   const canCreate = Boolean(actor?.roles?.some((role) => role.permissions.includes('users:create')))
