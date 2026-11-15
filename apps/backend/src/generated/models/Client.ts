@@ -429,9 +429,9 @@ export type ClientMinOrderByAggregateInput = {
   deletedAt?: Prisma.SortOrder
 }
 
-export type ClientNullableScalarRelationFilter = {
-  is?: Prisma.ClientWhereInput | null
-  isNot?: Prisma.ClientWhereInput | null
+export type ClientScalarRelationFilter = {
+  is?: Prisma.ClientWhereInput
+  isNot?: Prisma.ClientWhereInput
 }
 
 export type EnumClientTypeFieldUpdateOperationsInput = {
@@ -448,12 +448,10 @@ export type ClientCreateNestedOneWithoutEventsInput = {
   connect?: Prisma.ClientWhereUniqueInput
 }
 
-export type ClientUpdateOneWithoutEventsNestedInput = {
+export type ClientUpdateOneRequiredWithoutEventsNestedInput = {
   create?: Prisma.XOR<Prisma.ClientCreateWithoutEventsInput, Prisma.ClientUncheckedCreateWithoutEventsInput>
   connectOrCreate?: Prisma.ClientCreateOrConnectWithoutEventsInput
   upsert?: Prisma.ClientUpsertWithoutEventsInput
-  disconnect?: Prisma.ClientWhereInput | boolean
-  delete?: Prisma.ClientWhereInput | boolean
   connect?: Prisma.ClientWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.ClientUpdateToOneWithWhereWithoutEventsInput, Prisma.ClientUpdateWithoutEventsInput>, Prisma.ClientUncheckedUpdateWithoutEventsInput>
 }
