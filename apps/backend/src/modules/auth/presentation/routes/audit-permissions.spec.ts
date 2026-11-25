@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { authService } from "../../infrastructure/factories/auth.factory.js";
 import { authorize } from "../middlewares/authorize.js";
 
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => { jest.restoreAllMocks(); });
 
 describe("audit history permissions", () => {
   it("returns 403 without audit:read", async () => {

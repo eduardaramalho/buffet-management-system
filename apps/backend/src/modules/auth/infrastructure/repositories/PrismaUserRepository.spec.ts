@@ -45,7 +45,7 @@ describe('PrismaUserRepository credentials', () => {
 describe('PrismaUserRepository roles', () => {
   // ADR 0018: a criação de usuário consulta o papel para recusar o admin protegido.
   it('finds an active role with only its id and protection flag', async () => {
-    const findFirst = jest.fn(async () => ({ id: 'role-1', isProtected: true }));
+    const findFirst = jest.fn(async (_args: unknown) => ({ id: 'role-1', isProtected: true }));
     const repository = new PrismaUserRepository({ role: { findFirst } } as any);
 
     await expect(repository.findRoleById('role-1')).resolves.toEqual({ id: 'role-1', isProtected: true });

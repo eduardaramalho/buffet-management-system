@@ -14,7 +14,7 @@ const role = {
 describe('PrismaRoleRepository', () => {
   // ADR 0018: o cadastro de usuário esconde os papéis protegidos; sem o campo, o admin aparecia na lista.
   it('exposes the protection flag so the user form can hide the admin role', async () => {
-    const findMany = jest.fn(async () => [{ ...role, id: 'role-admin', name: 'admin', isProtected: true }, role]);
+    const findMany = jest.fn(async (_args: unknown) => [{ ...role, id: 'role-admin', name: 'admin', isProtected: true }, role]);
     const repository = new PrismaRoleRepository({ role: { findMany } } as any);
 
     const roles = await repository.list();
@@ -23,7 +23,7 @@ describe('PrismaRoleRepository', () => {
   });
 
   it('lists active roles with permissions and excludes soft-deleted roles', async () => {
-    const findMany = jest.fn(async () => [role]);
+    const findMany = jest.fn(async (_args: unknown) => [role]);
     const repository = new PrismaRoleRepository({ role: { findMany } } as any);
 
     await expect(repository.list()).resolves.toEqual([role]);
@@ -35,9 +35,9 @@ describe('PrismaRoleRepository', () => {
   });
 
   it('reads a role by id and creates and updates role data', async () => {
-    const findFirst = jest.fn(async () => role);
-    const create = jest.fn(async () => role);
-    const update = jest.fn(async () => role);
+    const findFirst = jest.fn(async (_args: unknown) => role);
+    const create = jest.fn(async (_args: unknown) => role);
+    const update = jest.fn(async (_args: unknown) => role);
     const repository = new PrismaRoleRepository({ role: { findFirst, create, update } } as any);
 
     await repository.findById('role-1');
@@ -54,7 +54,7 @@ describe('PrismaRoleRepository', () => {
       ...role,
       permissions: [{ permission: { id: 'permission-1', key: 'users:list', description: 'List users' } }],
     };
-    const findFirst = jest.fn()
+    const findFirst = jest.fn<(args: unknown) => Promise<unknown>>()
       .mockResolvedValueOnce(nestedRole)
       .mockResolvedValueOnce(null);
     const repository = new PrismaRoleRepository({ role: { findFirst } } as any);
@@ -66,7 +66,7 @@ describe('PrismaRoleRepository', () => {
   });
 
   it('maps flat permission records when the nested permission relation is absent', async () => {
-    const findFirst = jest.fn(async () => ({
+    const findFirst = jest.fn(async (_args: unknown) => ({
       ...role,
       permissions: [{ id: 'permission-1', key: 'users:list', description: undefined }],
     }));
@@ -78,8 +78,8 @@ describe('PrismaRoleRepository', () => {
   });
 
   it('soft deletes a role and counts only active users', async () => {
-    const update = jest.fn(async () => ({ ...role, deletedAt: new Date() }));
-    const count = jest.fn(async () => 2);
+    const update = jest.fn(async (_args: unknown) => ({ ...role, deletedAt: new Date() }));
+    const count = jest.fn(async (_args: unknown) => 2);
     const repository = new PrismaRoleRepository({ role: { update }, userRole: { count } } as any);
 
     await repository.softDelete('role-1');
@@ -90,9 +90,9 @@ describe('PrismaRoleRepository', () => {
   });
 
   it('lists permissions and manages role-permission links', async () => {
-    const findMany = jest.fn(async () => role.permissions);
-    const upsert = jest.fn(async () => undefined);
-    const deleteMany = jest.fn(async () => ({ count: 1 }));
+    const findMany = jest.fn(async (_args: unknown) => role.permissions);
+    const upsert = jest.fn(async (_args: unknown) => undefined);
+    const deleteMany = jest.fn(async (_args: unknown) => ({ count: 1 }));
     const repository = new PrismaRoleRepository({
       permission: { findMany },
       rolePermission: { upsert, deleteMany },

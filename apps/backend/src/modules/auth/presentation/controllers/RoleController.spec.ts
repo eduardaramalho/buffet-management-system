@@ -1,25 +1,28 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
 import { RoleController } from './RoleController.js';
+import type { RoleService } from '../../application/RoleService.js';
+import type { ManagedRole } from '../../domain/role-management.types.js';
 
-const role = {
+const role: ManagedRole = {
   id: 'role-1',
   name: 'Gestor',
   description: 'Gestão operacional',
+  isProtected: false,
   deletedAt: null,
   permissions: [],
 };
 
 describe('RoleController', () => {
   const service = () => ({
-    list: jest.fn(async () => [role]),
-    get: jest.fn(async () => role),
-    create: jest.fn(async () => role),
-    update: jest.fn(async () => role),
-    remove: jest.fn(async () => role),
-    listPermissions: jest.fn(async () => []),
-    assignPermission: jest.fn(async () => undefined),
-    revokePermission: jest.fn(async () => undefined),
+    list: jest.fn<RoleService['list']>(async () => [role]),
+    get: jest.fn<RoleService['get']>(async () => role),
+    create: jest.fn<RoleService['create']>(async () => role),
+    update: jest.fn<RoleService['update']>(async () => role),
+    remove: jest.fn<RoleService['remove']>(async () => role),
+    listPermissions: jest.fn<RoleService['listPermissions']>(async () => []),
+    assignPermission: jest.fn<RoleService['assignPermission']>(async () => undefined),
+    revokePermission: jest.fn<RoleService['revokePermission']>(async () => undefined),
   });
 
   it('lists roles and gets a role by id', async () => {
