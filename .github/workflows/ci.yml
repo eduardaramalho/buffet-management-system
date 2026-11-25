@@ -76,6 +76,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Falha com qualquer erro ou aviso do ESLint (--max-warnings 0 no script), antes dos testes (KAN-84).
+      - name: Lint
+        run: npm run lint
+
       - name: Run tests with coverage
         run: npm run test:coverage
 
