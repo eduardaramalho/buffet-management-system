@@ -1,5 +1,23 @@
 # Backend
 
+## Sessão: access token e refresh token em cookie httpOnly (ADR 0020)
+
+| Método | Path | Entrada | Resposta |
+|---|---|---|---|
+| `POST` | `/api/v1/auth/login` | `{ "email", "password" }` | `{ accessToken, user }` e grava o cookie |
+| `POST` | `/api/v1/auth/refresh-token` | cookie `eventospro_rt`, sem corpo | `{ accessToken, user }` e grava um cookie novo (rotação) |
+| `POST` | `/api/v1/auth/logout` | cookie `eventospro_rt`, sem corpo | 204 e apaga o cookie |
+| `POST` | `/api/v1/auth/change-password` | Bearer e `{ "currentPassword", "newPassword" }` | `{ accessToken, user }` e grava o cookie |
+
+O refresh token não aparece no corpo de nenhuma resposta. O cookie `eventospro_rt` é `HttpOnly`, `SameSite=Strict`, `Path=/api/v1/auth`, com `Max-Age` igual a `JWT_REFRESH_TTL_MS`. O atributo `Secure` vem de `COOKIE_SECURE`: sem valor, é `true` em `NODE_ENV=production` e `false` fora dele; use `false` só em HTTP local. Um refresh sem cookie, ou com token revogado ou expirado, responde 400 (`AuthError`) e apaga o cookie. O CORS aceita credenciais apenas das origens em `CORS_ORIGIN`.
+
+```bash
+# Login guardando o cookie e renovação usando só o cookie
+curl -c cookies.txt -H "Content-Type: application/json" \
+  -d '{"email":"admin@buffet.local","password":"..."}' http://localhost:3000/api/v1/auth/login
+curl -b cookies.txt -c cookies.txt -X POST http://localhost:3000/api/v1/auth/refresh-token
+```
+
 ## Senha: redefinição pelo administrador e troca obrigatória (ADR 0012)
 
 | Método | Path | Autenticação | Permissão |
@@ -16,7 +34,7 @@
 { "temporaryPassword": "Kp7mWx2rTq9a", "expiresAt": "2026-10-29T12:00:00.000Z" }
 ```
 
-`POST /auth/change-password` recebe `{ "currentPassword": "...", "newPassword": "..." }` e devolve uma sessão nova (`user`, `accessToken`, `refreshToken`), com `user.mustChangePassword: false`. O login, a renovação e `GET /auth/me` também devolvem `mustChangePassword`.
+`POST /auth/change-password` recebe `{ "currentPassword": "...", "newPassword": "..." }` e devolve uma sessão nova (`user`, `accessToken`), com `user.mustChangePassword: false`. O refresh token novo vai no cookie httpOnly (ADR 0020). O login, a renovação e `GET /auth/me` também devolvem `mustChangePassword`.
 
 | Situação | Status | Corpo |
 |---|---|---|

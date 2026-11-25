@@ -29,7 +29,7 @@ O EventosPro centraliza clientes, eventos, serviços contratados, equipes e tare
 - **Motor de regras:** condições por tipo de evento, número de convidados e serviços; geração idempotente de tarefas; alocação automática de equipes e atribuição de cada tarefa à equipe responsável; alertas de falta de equipe.
 - **Gestão operacional:** quadro de tarefas, tarefas manuais, atualização de status, destaque das tarefas atrasadas e Central do evento com atualização automática.
 - **Dashboard e relatórios:** indicadores do gestor e relatórios de eventos, tarefas e desempenho das equipes, com exportação em CSV e PDF.
-- **Acesso:** autenticação JWT com refresh token rotacionado, RBAC por permissões, trilha de auditoria e recuperação de senha pelo admin ou gestor, com senha temporária de 24 horas e troca obrigatória no próximo acesso.
+- **Acesso:** autenticação JWT com refresh token rotacionado em cookie httpOnly, que mantém a sessão ao recarregar a página ([ADR 0020](docs/adr/0020-refresh-token-em-cookie-httponly.md)), RBAC por permissões, trilha de auditoria e recuperação de senha pelo admin ou gestor, com senha temporária de 24 horas e troca obrigatória no próximo acesso.
 - **Papéis:** **admin**, a conta protegida do dono, que ninguém edita, desativa ou tem a senha redefinida pela tela; **gestor**, que opera o sistema inteiro (entra pelo Dashboard) e só não gerencia papéis; **colaborador**, que consulta eventos e tarefas, move o status e comenta. O papel admin não é atribuído no cadastro, e ninguém desativa a própria conta ([ADR 0018](docs/adr/0018-gestor-com-acesso-completo-e-admin-protegido.md)).
 
 ## Stack
@@ -105,7 +105,7 @@ cd apps/e2e      && npm test                # jornada completa no navegador (req
 |---|---|---|---|---|---|---|---|
 | Backend | 665 | 98,4% | 92,5% | 95,0% | 97,2% | 75% | 85% nas quatro métricas |
 | Frontend | 362 | 95,4% | 84,6% | 86,9% | 89,4% | 25% | 80% nas quatro métricas |
-| E2E | jornada com 22 passos | não se aplica | | | | | |
+| E2E | jornada com 23 passos | não se aplica | | | | | |
 
 Medição de 02/11/2026. Cada execução do CI publica a cobertura de cada aplicação no resumo do job. As exclusões de cobertura e os thresholds seguem o [ADR 0007](docs/adr/0007-politica-de-qualidade-e-cobertura.md). Detalhes em [Qualidade e Testes](https://github.com/eduardaramalho/buffet-management-system/wiki/Qualidade-e-Testes).
 
