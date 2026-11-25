@@ -39,6 +39,10 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
+      # Checa os tipos de todo o src, specs incluídos: o ts-jest não barra erro de tipo e o build exclui os testes (KAN-85).
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Run tests with coverage
         run: npm run test:coverage
 
