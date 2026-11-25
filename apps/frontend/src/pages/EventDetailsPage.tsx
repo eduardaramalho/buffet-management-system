@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../api/apiError'
 import { getEvent, getEventHistory, updateEvent, type EventHistory } from '../api/eventsApi'
@@ -46,8 +46,15 @@ function BlockError({ message, retry }: { message: string; retry: () => void }) 
   return <div className="block-error"><Notice message={message} error /><button type="button" className="link-button" onClick={retry}>Tentar de novo</button></div>
 }
 
+// A key faz a Central reiniciar do zero (estado de carregamento, menus e diálogos) quando a rota troca de
+// evento, como ao abrir uma réplica a partir do evento de origem. Assim a carga inicial não precisa
+// resetar estado dentro do efeito.
 export function EventDetailsPage() {
   const { id = '' } = useParams<{ id: string }>()
+  return <EventCentral key={id} id={id} />
+}
+
+function EventCentral({ id }: { id: string }) {
   const navigate = useNavigate()
   const { user } = useAuth()
   const hasPermission = (permission: string) => Boolean(user?.roles?.some((role) => role.permissions.includes(permission)))
@@ -66,55 +73,54 @@ export function EventDetailsPage() {
   const [rulesResult, setRulesResult] = useState('')
   const [replicateOpen, setReplicateOpen] = useState(false)
 
-  const loadEvent = async (silent = false) => {
-    if (!silent) setEventState(loading())
-    try {
-      const data = await getEvent(id)
-      setEventState({ status: 'ready', data })
-      return data
-    } catch (cause) { if (silent) throw cause; setEventState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar o evento') }) }
+  // fetch* só alteram o estado quando a resposta chega; load* voltam o bloco para "carregando" antes
+  // (recarga e "Tentar de novo"). A carga inicial usa fetch*, pois todo bloco já nasce em loading.
+  // Os fetch* usam .then em vez de await para o setState ficar visivelmente fora do corpo do efeito,
+  // que é como a regra react-hooks/set-state-in-effect enxerga o fluxo.
+  // Em modo silencioso (polling) a falha é relançada para o usePolling manter os dados anteriores.
+  const blockFailure = <T,>(setState: (state: BlockState<T>) => void, fallback: string, silent: boolean) => (cause: unknown): undefined => {
+    if (silent) throw cause
+    setState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, fallback) })
+    return undefined
   }
-  const loadTeams = async (silent = false) => {
-    if (!silent) setTeamsState(loading())
-    try {
-      const [assignments, teams] = await Promise.all([listTeamsByEvent(id), listTeams()])
-      const teamsById = new Map(teams.map((team) => [team.id, team]))
-      setTeamsState({ status: 'ready', data: assignments.flatMap((assignment) => { const team = teamsById.get(assignment.teamId); return team ? [{ team, assignedAt: assignment.assignedAt }] : [] }) })
-    } catch (cause) { if (silent) throw cause; setTeamsState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar equipes') }) }
-  }
-  const loadTasks = async (silent = false) => {
-    if (!silent) setTasksState(loading())
-    try { setTasksState({ status: 'ready', data: await listTasks({ eventId: id }) }) }
-    catch (cause) { if (silent) throw cause; setTasksState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar tarefas') }) }
-  }
+  const fetchEvent = (silent = false) => getEvent(id).then((data) => {
+    setEventState({ status: 'ready', data })
+    return data
+  }, blockFailure(setEventState, 'Não foi possível carregar o evento', silent))
+  const fetchTeams = (silent = false) => Promise.all([listTeamsByEvent(id), listTeams()]).then(([assignments, teams]) => {
+    const teamsById = new Map(teams.map((team) => [team.id, team]))
+    setTeamsState({ status: 'ready', data: assignments.flatMap((assignment) => { const team = teamsById.get(assignment.teamId); return team ? [{ team, assignedAt: assignment.assignedAt }] : [] }) })
+  }, blockFailure(setTeamsState, 'Não foi possível carregar equipes', silent))
+  const fetchTasks = (silent = false) => listTasks({ eventId: id })
+    .then((data) => { setTasksState({ status: 'ready', data }) }, blockFailure(setTasksState, 'Não foi possível carregar tarefas', silent))
   // Recebe o status explicitamente: ler eventState aqui pegaria o valor de um render anterior (closure).
-  const loadRules = async (eventStatus: EventStatus, silent = false) => {
-    if (!silent) setRulesState(loading())
-    try {
-      const data: RulesView = eventStatus === 'PLANEJAMENTO'
-        ? { kind: 'matches', items: await getEventRuleMatches(id) }
-        : { kind: 'applications', items: await listEventRuleApplications(id) }
-      setRulesState({ status: 'ready', data })
-    } catch (cause) { if (silent) throw cause; setRulesState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar regras') }) }
+  const fetchRules = (eventStatus: EventStatus, silent = false) => {
+    const request: Promise<RulesView> = eventStatus === 'PLANEJAMENTO'
+      ? getEventRuleMatches(id).then((items) => ({ kind: 'matches', items }))
+      : listEventRuleApplications(id).then((items) => ({ kind: 'applications', items }))
+    return request.then((data) => { setRulesState({ status: 'ready', data }) }, blockFailure(setRulesState, 'Não foi possível carregar regras', silent))
   }
-  const loadHistory = async (silent = false) => {
-    if (!silent) setHistoryState(loading())
-    try { setHistoryState({ status: 'ready', data: await getEventHistory(id) }) }
-    catch (cause) { if (silent) throw cause; setHistoryState(isForbidden(cause) ? { status: 'hidden' } : { status: 'error', message: getApiErrorMessage(cause, 'Não foi possível carregar histórico') }) }
-  }
-  const loadAll = async () => {
-    const loaded = await loadEvent()
-    if (!loaded) return
-    await Promise.allSettled([loadTeams(), loadTasks(), loadRules(loaded.status), loadHistory()])
-  }
+  const fetchHistory = (silent = false) => getEventHistory(id)
+    .then((data) => { setHistoryState({ status: 'ready', data }) }, blockFailure(setHistoryState, 'Não foi possível carregar histórico', silent))
+  const loadEvent = () => { setEventState(loading()); return fetchEvent() }
+  const loadTeams = () => { setTeamsState(loading()); return fetchTeams() }
+  const loadTasks = () => { setTasksState(loading()); return fetchTasks() }
+  const loadRules = (eventStatus: EventStatus) => { setRulesState(loading()); return fetchRules(eventStatus) }
+  const loadHistory = () => { setHistoryState(loading()); return fetchHistory() }
 
-  useEffect(() => { void loadAll() }, [id])
+  const fetchAll = () => fetchEvent().then((loaded) => {
+    if (loaded) return Promise.allSettled([fetchTeams(), fetchTasks(), fetchRules(loaded.status), fetchHistory()])
+  })
+  // Effect Event: a carga inicial usa as funções do render atual sem listá-las como dependência. Com a key
+  // no componente de rota, o id não muda durante a vida desta instância.
+  const loadInitial = useEffectEvent(() => { void fetchAll() })
+  useEffect(() => { loadInitial() }, [])
 
   const pollAll = async () => {
-    // Em modo silencioso loadEvent lança o erro em vez de retornar vazio, então current é sempre definido.
-    const current = await loadEvent(true)
+    // Em modo silencioso fetchEvent lança o erro em vez de retornar vazio, então current é sempre definido.
+    const current = await fetchEvent(true)
     if (!current) return
-    await Promise.all([loadTeams(true), loadTasks(true), loadRules(current.status, true), loadHistory(true)])
+    await Promise.all([fetchTeams(true), fetchTasks(true), fetchRules(current.status, true), fetchHistory(true)])
   }
   const { lastUpdatedAt, refreshing, refresh } = usePolling(pollAll, { enabled: eventState.status === 'ready' })
 
