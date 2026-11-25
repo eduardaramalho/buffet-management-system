@@ -8,6 +8,7 @@ import { JwtTokenProvider } from "../providers/JwtTokenProvider.js";
 import { prisma } from "../../../../shared/config/database.js";
 import { env } from "../../../../shared/config/env.js";
 import { AuthController } from "../../presentation/controllers/AuthController.js";
+import { RefreshTokenCookie } from "../../presentation/refreshTokenCookie.js";
 
 export const tokenProvider = new JwtTokenProvider(env.jwtSecret, env.accessTokenTtl);
 export const authService = new AuthService(
@@ -19,4 +20,7 @@ export const authService = new AuthService(
   new AuditService(new PrismaAuditRepository(prisma))
 );
 
-export const authController = new AuthController(authService);
+export const authController = new AuthController(
+  authService,
+  new RefreshTokenCookie({ secure: env.cookieSecure, maxAgeMs: env.refreshTokenTtlMs })
+);

@@ -100,7 +100,9 @@ describe("pending password change", () => {
       .send({ currentPassword: "Abcd2345efgh", newPassword: "NovaSenha123" });
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual(session);
+    // ADR 0020: o refresh token novo vai só no cookie httpOnly.
+    expect(response.body).toEqual({ accessToken: session.accessToken, user: session.user });
+    expect(String(response.headers["set-cookie"])).toContain("eventospro_rt=r");
     expect(change).toHaveBeenCalledWith("u1", "Abcd2345efgh", "NovaSenha123", expect.anything());
     expect(hasPermission).not.toHaveBeenCalled();
   });
