@@ -35,10 +35,19 @@ export function InternalLayout({ children, onLogout }: { children: ReactNode; on
   const { collapsed, toggle } = useSidebarCollapsed()
   const isActive = (path: string) => location.pathname.startsWith(path)
 
+  const canListTasks = hasPermission('tasks:list')
+  const userId = user?.id
+
+  // Sem tasks:list o link de Tarefas (e o badge) nem aparece, então não há estado para zerar aqui.
+  // A flag descarta a resposta de um usuário anterior que chegue depois da troca de sessão.
   useEffect(() => {
-    if (!hasPermission('tasks:list')) { setUnassignedTaskCount(0); return }
-    listTasks().then((tasks) => setUnassignedTaskCount(tasks.filter((task) => !task.assignedTeamId && task.status !== 'CONCLUIDA' && task.status !== 'CANCELADA').length)).catch(() => setUnassignedTaskCount(0))
-  }, [user])
+    if (!canListTasks || !userId) return undefined
+    let active = true
+    listTasks()
+      .then((tasks) => { if (active) setUnassignedTaskCount(tasks.filter((task) => !task.assignedTeamId && task.status !== 'CONCLUIDA' && task.status !== 'CANCELADA').length) })
+      .catch(() => { if (active) setUnassignedTaskCount(0) })
+    return () => { active = false }
+  }, [canListTasks, userId])
 
   return <div className={`internal-layout${collapsed ? ' sidebar-collapsed' : ''}`}>
     <aside id="app-sidebar" className="sidebar">
@@ -53,7 +62,7 @@ export function InternalLayout({ children, onLogout }: { children: ReactNode; on
         {hasPermission('events:list') && <SideLink to="/events" label="Eventos" icon="calendar" active={isActive('/events')} collapsed={collapsed} />}
         {hasPermission('clients:list') && <SideLink to="/clients" label="Clientes" icon="contact" active={isActive('/clients')} collapsed={collapsed} />}
         {hasPermission('services:list') && <SideLink to="/services" label="Serviços" icon="tag" active={isActive('/services')} collapsed={collapsed} />}
-        {hasPermission('tasks:list') && <SideLink to="/tasks" label="Tarefas" icon="tasks" active={isActive('/tasks')} collapsed={collapsed}>{unassignedTaskCount > 0 && <i className="task-alert-badge">{unassignedTaskCount}</i>}</SideLink>}
+        {canListTasks && <SideLink to="/tasks" label="Tarefas" icon="tasks" active={isActive('/tasks')} collapsed={collapsed}>{unassignedTaskCount > 0 && <i className="task-alert-badge">{unassignedTaskCount}</i>}</SideLink>}
         {hasPermission('teams:list') && <SideLink to="/teams" label="Equipes" icon="users" active={isActive('/teams')} collapsed={collapsed} />}
         {hasPermission('collaborators:manage') && <SideLink to="/collaborators" label="Colaboradores" icon="user" active={isActive('/collaborators')} collapsed={collapsed} />}
         <span className="side-section">AUTOMAÇÃO</span>
