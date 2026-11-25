@@ -30,6 +30,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL}
       NODE_ENV: ${NODE_ENV}
       TRUST_PROXY: ${TRUST_PROXY:-0}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD}
     depends_on:
       mysql:
