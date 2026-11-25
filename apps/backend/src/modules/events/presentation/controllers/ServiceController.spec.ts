@@ -10,7 +10,7 @@ import { serviceCatalogService } from "../../infrastructure/factories/event.fact
 import { ServiceCatalogConflictError, ServiceCatalogError } from "../../application/ServiceCatalogService.js";
 import { NotFoundError } from "../../../../shared/errors/NotFoundError.js";
 
-const auth = () => ({ Authorization: `Bearer ${tokenProvider.createAccessToken({ sub: "actor-1", email: "actor@buffet.com" })}` });
+const auth = () => ({ Authorization: `Bearer ${tokenProvider.createAccessToken({ sub: "actor-1", email: "actor@buffet.com", mustChangePassword: false })}` });
 
 describe("ServiceController (RF06)", () => {
   afterEach(() => { jest.restoreAllMocks(); });

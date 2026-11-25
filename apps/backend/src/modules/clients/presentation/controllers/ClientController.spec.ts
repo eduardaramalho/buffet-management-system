@@ -12,7 +12,7 @@ import { clientService } from "../../infrastructure/factories/client.factory.js"
 import { ClientConflictError, ClientManagementError } from "../../domain/client.errors.js";
 import { NotFoundError } from "../../../../shared/errors/NotFoundError.js";
 
-const token = () => tokenProvider.createAccessToken({ sub: "actor-1", email: "actor@buffet.com" });
+const token = () => tokenProvider.createAccessToken({ sub: "actor-1", email: "actor@buffet.com", mustChangePassword: false });
 const auth = () => ({ Authorization: `Bearer ${token()}` });
 
 describe("ClientController", () => {

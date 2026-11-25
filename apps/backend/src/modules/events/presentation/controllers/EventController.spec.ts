@@ -9,9 +9,9 @@ import { authService, tokenProvider } from "../../../auth/infrastructure/factori
 import { eventService } from "../../infrastructure/factories/event.factory.js";
 
 describe("EventController", () => {
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => { jest.restoreAllMocks(); });
 
-  const token = () => tokenProvider.createAccessToken({ sub: "actor-1", email: "actor@buffet.com" });
+  const token = () => tokenProvider.createAccessToken({ sub: "actor-1", email: "actor@buffet.com", mustChangePassword: false });
 
   it("lists and gets events with the corresponding permissions", async () => {
     jest.spyOn(authService, "hasPermission").mockResolvedValue(true);
@@ -67,7 +67,7 @@ describe("EventController", () => {
   it("rejects invalid event payloads with Zod", async () => {
     jest.spyOn(authService, "hasPermission").mockResolvedValueOnce(true);
     const create = jest.spyOn(eventService, "create").mockResolvedValueOnce({} as never);
-    const token = tokenProvider.createAccessToken({ sub: "actor-1", email: "actor@buffet.com" });
+    const token = tokenProvider.createAccessToken({ sub: "actor-1", email: "actor@buffet.com", mustChangePassword: false });
 
     const response = await request(app)
       .post("/api/v1/events")
@@ -80,7 +80,7 @@ describe("EventController", () => {
 
   it("returns 403 when the authenticated user lacks events:list", async () => {
     jest.spyOn(authService, "hasPermission").mockResolvedValueOnce(false);
-    const token = tokenProvider.createAccessToken({ sub: "actor-1", email: "actor@buffet.com" });
+    const token = tokenProvider.createAccessToken({ sub: "actor-1", email: "actor@buffet.com", mustChangePassword: false });
 
     const response = await request(app)
       .get("/api/v1/events")

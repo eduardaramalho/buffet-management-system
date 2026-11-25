@@ -10,7 +10,7 @@ import { eventReplicationService } from "../../infrastructure/factories/event.fa
 import { EventReplicationConflictError, EventReplicationError } from "../../application/EventReplicationService.js";
 import { NotFoundError } from "../../../../shared/errors/NotFoundError.js";
 
-const token = () => tokenProvider.createAccessToken({ sub: "actor-1", email: "actor@buffet.com" });
+const token = () => tokenProvider.createAccessToken({ sub: "actor-1", email: "actor@buffet.com", mustChangePassword: false });
 const auth = () => ({ Authorization: `Bearer ${token()}` });
 
 const replicateBody = {
