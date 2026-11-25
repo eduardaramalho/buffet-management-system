@@ -570,7 +570,7 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await expectStatus(await manager.post(`/users/${adminUser.id}/reset-password`), 403)
     await expectStatus(await manager.get('/users/00000000-0000-4000-8000-000000000000'), 404)
 
-    // O gestor cadastra a conta do colaborador usada no passo 22.
+    // O gestor cadastra a conta do colaborador usada no passo 23.
     // ADR 0012: users:update não troca senha pela edição; antes isso permitia tomar a conta de outro usuário.
     const { collaboratorUser } = data
     const colleague = await manager.json<{ id: string }>(manager.post('/users', {
@@ -581,7 +581,22 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
     await manager.dispose()
   })
 
-  test('21. sessão: o botão Sair continua acessível em tela baixa e no celular', async () => {
+  test('21. sessão: recarregar a página mantém o login na mesma tela (ADR 0020)', async () => {
+    // O access token fica só em memória e se perde no F5; o refresh token em cookie httpOnly restaura a sessão.
+    await navigateTo(page, 'Eventos', 'Eventos')
+    const restored = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/refresh-token'))
+    await page.reload()
+    expect((await restored).status()).toBe(200)
+    await expect(page).toHaveURL(/\/events$/)
+    await expect(page.getByRole('heading', { level: 1, name: 'Eventos' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Sair' })).toBeVisible()
+    // O JavaScript da página não enxerga o refresh token.
+    expect(await page.evaluate(() => document.cookie)).not.toContain('eventospro_rt')
+    const cookies = await page.context().cookies()
+    expect(cookies.find((cookie) => cookie.name === 'eventospro_rt')).toMatchObject({ httpOnly: true, sameSite: 'Strict', path: '/api/v1/auth' })
+  })
+
+  test('22. sessão: o botão Sair continua acessível em tela baixa e no celular, e o F5 depois de sair não restaura a sessão', async () => {
     // Regressão: a sidebar é fixa e não rolava; em telas baixas o rodapé com "Sair" ficava fora da tela,
     // e no celular o botão era escondido por CSS (não havia como encerrar a sessão).
     for (const viewport of [{ width: 1366, height: 600 }, { width: 390, height: 844 }]) {
@@ -589,11 +604,15 @@ test.describe.serial('Jornada do evento: cadastro → regras → confirmação �
       await expect(page.getByRole('button', { name: 'Sair' })).toBeInViewport()
     }
     await logout(page)
+    // O logout revoga o refresh token e apaga o cookie: recarregar continua no login.
+    expect((await page.context().cookies()).some((cookie) => cookie.name === 'eventospro_rt')).toBe(false)
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Acesse sua conta' })).toBeVisible()
   })
 
-  test('22. colaborador acompanha eventos e move o status das tarefas, sem editar nada', async () => {
+  test('23. colaborador acompanha eventos e move o status das tarefas, sem editar nada', async () => {
     const { collaboratorUser, replica } = data
-    // O passo 21 termina no tamanho de celular.
+    // O passo 22 termina no tamanho de celular.
     await page.setViewportSize({ width: 1280, height: 720 })
     const signedIn = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/login'))
     await login(page, collaboratorUser.email, collaboratorUser.password)

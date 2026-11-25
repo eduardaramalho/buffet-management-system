@@ -12,6 +12,8 @@ const env = {
   CORS_ORIGIN: e2eEnv.frontendUrl,
   LOG_LEVEL: process.env.LOG_LEVEL ?? 'warn',
   NODE_ENV: 'test',
+  // O E2E roda em HTTP local: sem isso, navegadores fora do Chromium descartariam o cookie do refresh token (ADR 0020).
+  COOKIE_SECURE: 'false',
   ADMIN_INITIAL_PASSWORD: e2eEnv.admin.password,
 }
 
