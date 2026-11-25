@@ -117,7 +117,7 @@ describe("CollaboratorService", () => {
   });
 
   it("lists collaborators with the default filter", async () => {
-    const list = jest.fn(async () => []);
+    const list = jest.fn<CollaboratorRepository["list"]>(async () => []);
     const collaborators = { list } as unknown as CollaboratorRepository;
     const service = new CollaboratorService(collaborators, { record: jest.fn() } as unknown as AuditService);
 

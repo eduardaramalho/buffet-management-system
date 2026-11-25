@@ -51,8 +51,8 @@ describe("RuleEvaluationController", () => {
         resourceRequirements: [{ id: "req-1", specialty: "BAR", minQuantity: 1 }],
       },
     ];
-    const events = { findById: jest.fn(async () => event) };
-    const evaluate = jest.fn(async () => matches);
+    const events = { findById: jest.fn(async (..._args: unknown[]) => event) };
+    const evaluate = jest.fn(async (..._args: unknown[]) => matches);
     const controller = new RuleEvaluationController({ evaluate } as never, events as never);
     const app = express();
     app.get("/events/:eventId/rule-matches", controller.getMatches);
@@ -68,8 +68,8 @@ describe("RuleEvaluationController", () => {
   });
 
   it("returns an empty list, not an error, when no rule matches", async () => {
-    const events = { findById: jest.fn(async () => makeEvent({ services: [] })) };
-    const evaluate = jest.fn(async () => []);
+    const events = { findById: jest.fn(async (..._args: unknown[]) => makeEvent({ services: [] })) };
+    const evaluate = jest.fn(async (..._args: unknown[]) => []);
     const controller = new RuleEvaluationController({ evaluate } as never, events as never);
     const app = express();
     app.get("/events/:eventId/rule-matches", controller.getMatches);
@@ -81,7 +81,7 @@ describe("RuleEvaluationController", () => {
   });
 
   it("returns 400 when the event does not exist", async () => {
-    const events = { findById: jest.fn(async () => null) };
+    const events = { findById: jest.fn(async (..._args: unknown[]) => null) };
     const evaluate = jest.fn();
     const controller = new RuleEvaluationController({ evaluate } as never, events as never);
     const app = express();

@@ -6,7 +6,7 @@ import { EventTeamController } from "./EventTeamController.js";
 
 describe("EventTeamController", () => {
   it("assigns a team using route ids and authenticated actor", async () => {
-    const assignTeamToEvent = jest.fn(async () => ({ eventId: "event-1", teamId: "team-1" }));
+    const assignTeamToEvent = jest.fn(async (..._args: unknown[]) => ({ eventId: "event-1", teamId: "team-1" }));
     const controller = new EventTeamController({ assignTeamToEvent } as never);
     const app = express();
     app.use((req, _res, next) => {
@@ -34,7 +34,7 @@ describe("EventTeamController", () => {
   });
 
   it("unassigns a team using route ids and authenticated actor", async () => {
-    const unassignTeamFromEvent = jest.fn(async () => undefined);
+    const unassignTeamFromEvent = jest.fn(async (..._args: unknown[]) => undefined);
     const controller = new EventTeamController({ unassignTeamFromEvent } as never);
     const app = express();
     app.use((req, _res, next) => {
@@ -62,8 +62,8 @@ describe("EventTeamController", () => {
   });
 
   it("lists teams by event and events by team", async () => {
-    const listTeamsByEvent = jest.fn(async () => [{ teamId: "team-1" }]);
-    const listEventsByTeam = jest.fn(async () => [{ eventId: "event-1" }]);
+    const listTeamsByEvent = jest.fn(async (..._args: unknown[]) => [{ teamId: "team-1" }]);
+    const listEventsByTeam = jest.fn(async (..._args: unknown[]) => [{ eventId: "event-1" }]);
     const controller = new EventTeamController({ listTeamsByEvent, listEventsByTeam } as never);
     const app = express();
     app.get("/events/:eventId/teams", controller.listTeamsByEvent);

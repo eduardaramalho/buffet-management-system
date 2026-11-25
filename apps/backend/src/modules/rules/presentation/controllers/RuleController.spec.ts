@@ -24,7 +24,7 @@ describe("RuleController", () => {
   });
 
   it("creates a valid rule with the authenticated actor", async () => {
-    const create = jest.fn(async (input: unknown) => ({ id: "rule-1", ...input }));
+    const create = jest.fn(async (input: object) => ({ id: "rule-1", ...input }));
     const controller = new RuleController({ create } as never);
     const app = express();
     app.use(express.json(), authenticated);
@@ -52,8 +52,8 @@ describe("RuleController", () => {
   });
 
   it("lists and gets rules", async () => {
-    const list = jest.fn(async () => [{ id: "rule-1" }]);
-    const get = jest.fn(async () => ({ id: "rule-1" }));
+    const list = jest.fn(async (..._args: unknown[]) => [{ id: "rule-1" }]);
+    const get = jest.fn(async (..._args: unknown[]) => ({ id: "rule-1" }));
     const controller = new RuleController({ list, get } as never);
     const app = express();
     app.get("/rules", controller.list);
@@ -68,7 +68,7 @@ describe("RuleController", () => {
   });
 
   it("updates a rule with the authenticated actor", async () => {
-    const update = jest.fn(async () => ({ id: "rule-1", name: "Regra atualizada" }));
+    const update = jest.fn(async (..._args: unknown[]) => ({ id: "rule-1", name: "Regra atualizada" }));
     const controller = new RuleController({ update } as never);
     const app = express();
     app.use(express.json(), authenticated);
@@ -81,7 +81,7 @@ describe("RuleController", () => {
   });
 
   it("preserves templates when taskTemplates is omitted from PUT", async () => {
-    const update = jest.fn(async () => ({ id: "rule-1" }));
+    const update = jest.fn(async (..._args: unknown[]) => ({ id: "rule-1" }));
     const controller = new RuleController({ update } as never);
     const app = express();
     app.use(express.json(), authenticated);
@@ -93,7 +93,7 @@ describe("RuleController", () => {
   });
 
   it("passes an empty taskTemplates list to PUT to remove all templates", async () => {
-    const update = jest.fn(async () => ({ id: "rule-1" }));
+    const update = jest.fn(async (..._args: unknown[]) => ({ id: "rule-1" }));
     const controller = new RuleController({ update } as never);
     const app = express();
     app.use(express.json(), authenticated);
@@ -105,7 +105,7 @@ describe("RuleController", () => {
   });
 
   it("does not apply Zod defaults to omitted fields on partial PUT", async () => {
-    const update = jest.fn(async () => ({ id: "rule-1" }));
+    const update = jest.fn(async (..._args: unknown[]) => ({ id: "rule-1" }));
     const controller = new RuleController({ update } as never);
     const app = express();
     app.use(express.json(), authenticated);
@@ -154,7 +154,7 @@ describe("RuleController", () => {
   });
 
   it("removes a rule with the authenticated actor", async () => {
-    const remove = jest.fn(async () => undefined);
+    const remove = jest.fn(async (..._args: unknown[]) => undefined);
     const controller = new RuleController({ remove } as never);
     const app = express();
     app.use(express.json(), authenticated);
@@ -180,7 +180,7 @@ describe("RuleController", () => {
   });
 
   it("activates and deactivates a rule with the authenticated actor", async () => {
-    const setActive = jest.fn(async (id: string, isActive: boolean) => ({ id, isActive }));
+    const setActive = jest.fn(async (id: string, isActive: boolean, _actorId: string) => ({ id, isActive }));
     const controller = new RuleController({ setActive } as never);
     const app = express();
     app.use(express.json(), authenticated);

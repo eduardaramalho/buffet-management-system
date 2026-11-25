@@ -14,7 +14,7 @@ const permissionKeys = [
   "rules:evaluate",
 ] as const;
 
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => { jest.restoreAllMocks(); });
 
 describe("rule permissions", () => {
   it.each(permissionKeys)("returns 403 without %s", async (permissionKey) => {
