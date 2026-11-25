@@ -95,6 +95,7 @@ A aplicação roda em uma VM da Azure com Docker Compose, Caddy (HTTPS automáti
 
 ```bash
 cd apps/backend  && npm run test:coverage   # unitários e integração
+cd apps/backend  && npm run typecheck       # tipos do código e dos testes (também roda no CI)
 cd apps/frontend && npm run test:coverage   # componentes e páginas
 cd apps/frontend && npm run lint            # ESLint sem erros nem avisos (também roda no CI)
 cd apps/e2e      && npm test                # jornada completa no navegador (requer MySQL)

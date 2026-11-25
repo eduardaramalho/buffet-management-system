@@ -1,7 +1,7 @@
 # ADR 0007: Política de qualidade, cobertura e Quality Gate
 
 - **Status:** Aceito
-- **Escopo:** `apps/backend/jest.config.cjs`, `apps/frontend/vitest.config.ts`, `apps/frontend/eslint.config.js`, `sonar-project.properties`, `.github/workflows/ci.yml`, `.github/scripts/coverage-summary.mjs`
+- **Escopo:** `apps/backend/jest.config.cjs`, `apps/frontend/vitest.config.ts`, `apps/frontend/eslint.config.js`, `apps/backend/package.json` (`typecheck`), `sonar-project.properties`, `.github/workflows/ci.yml`, `.github/scripts/coverage-summary.mjs`
 
 ## Contexto
 
@@ -48,6 +48,11 @@ O Quality Gate do Sonar também não consegue aplicar limites diferentes por dir
    - efeitos que dependem de permissão usam o valor derivado (por exemplo, `canListTasks`) como dependência e descartam respostas que chegam depois da limpeza do efeito.
 
    O backend não tem ESLint configurado; a análise estática dele fica a cargo do Sonar.
+
+8. **Checagem de tipos dos testes do backend no CI** (KAN-85, 24/11/2026). O job `backend` roda `npm run typecheck` (`tsc --noEmit -p tsconfig.json`) antes dos testes. O `tsconfig.build.json` exclui os `.spec.ts` e o ts-jest executa os testes sem barrar erro de tipo, então os specs acumularam 157 erros em 33 arquivos sem que o pipeline acusasse, com o build e os 729 testes passando. As correções seguem três padrões:
+   - mocks tipados pela assinatura do contrato (`jest.fn<Repositorio["metodo"]>()`) quando o objeto entra no lugar de uma interface, para que mudanças na interface (campos novos como `isProtected` e `mustChangePassword`, métodos novos como `listByEvent` e `softDelete`) quebrem o typecheck em vez de passarem despercebidas;
+   - parâmetros declarados (`async (..._args: unknown[]) =>`, `async (_args: unknown) =>`) nos mocks de controllers e de delegates do Prisma que já entram com `as never`, porque o `expect` do `@jest/globals` confere os argumentos de `toHaveBeenCalledWith` contra a assinatura do mock;
+   - `as unknown as AuditService` onde o service depende da classe concreta `AuditService`, cujo campo privado impede que um objeto literal seja compatível.
 
 ## Limitação temporária
 
