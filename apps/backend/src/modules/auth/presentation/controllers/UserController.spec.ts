@@ -2,16 +2,19 @@ import { ZodError } from 'zod';
 import { describe, expect, it, jest } from '@jest/globals';
 
 import { UserController } from './UserController.js';
+import type { UserService } from '../../application/UserService.js';
+
+const USER = { id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] };
 
 describe('UserController', () => {
   it('lists users with query filters', async () => {
     const service = {
-      list: jest.fn(async () => [{ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] }]),
-      get: jest.fn(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] })),
-      create: jest.fn(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] })),
-      update: jest.fn(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] })),
-      setActive: jest.fn(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] })),
-      remove: jest.fn(async () => undefined),
+      list: jest.fn<UserService['list']>(async () => [{ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] }]),
+      get: jest.fn<UserService['get']>(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] })),
+      create: jest.fn<UserService['create']>(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] })),
+      update: jest.fn<UserService['update']>(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] })),
+      setActive: jest.fn<UserService['setActive']>(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] })),
+      remove: jest.fn<UserService['remove']>(async () => USER),
     };
     const response: any = { json: jest.fn() };
     const controller = new UserController(service as any);
@@ -34,12 +37,12 @@ describe('UserController', () => {
 
   it('updates and toggles the active state', async () => {
     const service = {
-      list: jest.fn(async () => []),
-      get: jest.fn(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] })),
-      create: jest.fn(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] })),
-      update: jest.fn(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] })),
-      setActive: jest.fn(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: false, deletedAt: null, roles: [] })),
-      remove: jest.fn(async () => undefined),
+      list: jest.fn<UserService['list']>(async () => []),
+      get: jest.fn<UserService['get']>(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] })),
+      create: jest.fn<UserService['create']>(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] })),
+      update: jest.fn<UserService['update']>(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] })),
+      setActive: jest.fn<UserService['setActive']>(async () => ({ id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: false, deletedAt: null, roles: [] })),
+      remove: jest.fn<UserService['remove']>(async () => USER),
     };
     const json = jest.fn();
     const controller = new UserController(service as any);
@@ -52,7 +55,7 @@ describe('UserController', () => {
   });
 
   it('uses empty filters when query values are absent or invalid', async () => {
-    const service = { list: jest.fn(async () => []), get: jest.fn(), create: jest.fn(), update: jest.fn(), setActive: jest.fn(), remove: jest.fn() };
+    const service = { list: jest.fn<UserService['list']>(async () => []), get: jest.fn(), create: jest.fn(), update: jest.fn(), setActive: jest.fn(), remove: jest.fn() };
     const controller = new UserController(service as any);
 
     await controller.list({ query: { status: 'unknown', search: '', role: '' } } as any, { json: jest.fn() } as any);
@@ -63,12 +66,12 @@ describe('UserController', () => {
   it('gets, creates, deactivates, and removes an authenticated user', async () => {
     const user = { id: 'u1', name: 'Alice', email: 'alice@buffet.com', isActive: true, deletedAt: null, roles: [] };
     const service = {
-      list: jest.fn(async () => []),
-      get: jest.fn(async () => user),
-      create: jest.fn(async () => user),
-      update: jest.fn(async () => user),
-      setActive: jest.fn(async () => ({ ...user, isActive: false })),
-      remove: jest.fn(async () => undefined),
+      list: jest.fn<UserService['list']>(async () => []),
+      get: jest.fn<UserService['get']>(async () => user),
+      create: jest.fn<UserService['create']>(async () => user),
+      update: jest.fn<UserService['update']>(async () => user),
+      setActive: jest.fn<UserService['setActive']>(async () => ({ ...user, isActive: false })),
+      remove: jest.fn<UserService['remove']>(async () => USER),
     };
     const json = jest.fn();
     const status = jest.fn().mockReturnThis();
@@ -101,14 +104,14 @@ describe('UserController', () => {
   });
 
   it('updates name and email', async () => {
-    const service = { update: jest.fn(async () => ({ id: 'u1' })) };
+    const service = { update: jest.fn<UserService['update']>(async () => USER) };
     const json = jest.fn();
     const controller = new UserController(service as any);
 
     await controller.update({ user: { sub: 'actor-1' }, params: { id: 'u1' }, body: { name: 'Alice', email: 'alice@buffet.com' } } as any, { json } as any);
 
     expect(service.update).toHaveBeenCalledWith('u1', { name: 'Alice', email: 'alice@buffet.com' }, 'actor-1');
-    expect(json).toHaveBeenCalledWith({ id: 'u1' });
+    expect(json).toHaveBeenCalledWith(USER);
   });
 
   it('rejects update, activation, and removal without an authenticated actor', async () => {

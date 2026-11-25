@@ -11,7 +11,7 @@ const authenticated = (req: express.Request, _res: express.Response, next: expre
 
 describe("CollaboratorController", () => {
   it("lists collaborators using the name query", async () => {
-    const list = jest.fn(async () => []);
+    const list = jest.fn(async (..._args: unknown[]) => []);
     const controller = new CollaboratorController({ list } as never);
     const app = express();
     app.get("/collaborators", controller.list);
@@ -23,7 +23,7 @@ describe("CollaboratorController", () => {
   });
 
   it("gets a collaborator by id", async () => {
-    const get = jest.fn(async () => ({ id: "collaborator-1" }));
+    const get = jest.fn(async (..._args: unknown[]) => ({ id: "collaborator-1" }));
     const controller = new CollaboratorController({ get } as never);
     const app = express();
     app.get("/collaborators/:id", controller.get);
@@ -35,7 +35,7 @@ describe("CollaboratorController", () => {
   });
 
   it("creates a collaborator with the authenticated actor", async () => {
-    const create = jest.fn(async (input: unknown) => ({ id: "collaborator-1", ...input }));
+    const create = jest.fn(async (input: object, _actorId: string) => ({ id: "collaborator-1", ...input }));
     const controller = new CollaboratorController({ create } as never);
     const app = express();
     app.use(express.json(), authenticated);
@@ -61,7 +61,7 @@ describe("CollaboratorController", () => {
   });
 
   it("updates a collaborator with the authenticated actor", async () => {
-    const update = jest.fn(async () => ({ id: "collaborator-1", name: "Ana Souza" }));
+    const update = jest.fn(async (..._args: unknown[]) => ({ id: "collaborator-1", name: "Ana Souza" }));
     const controller = new CollaboratorController({ update } as never);
     const app = express();
     app.use(express.json(), authenticated);
@@ -87,7 +87,7 @@ describe("CollaboratorController", () => {
   });
 
   it("changes a collaborator's status with the authenticated actor", async () => {
-    const setActive = jest.fn(async () => ({ id: "collaborator-1", status: "INATIVO" }));
+    const setActive = jest.fn(async (..._args: unknown[]) => ({ id: "collaborator-1", status: "INATIVO" }));
     const controller = new CollaboratorController({ setActive } as never);
     const app = express();
     app.use(express.json(), authenticated);

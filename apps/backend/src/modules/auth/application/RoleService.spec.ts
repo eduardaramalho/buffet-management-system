@@ -1,19 +1,25 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
 import { RoleService, RoleError } from './RoleService.js';
-import type { RoleRepository } from '../domain/role-management.types.js';
+import type { AuditService } from './AuditService.js';
+import type { ManagedRole, RoleRepository } from '../domain/role-management.types.js';
 
-const role = {
+const role: ManagedRole = {
   id: 'role-1',
   name: 'Gestor',
   description: 'Gestão operacional',
+  isProtected: false,
   deletedAt: null,
   permissions: [{ id: 'permission-1', key: 'users:list', description: 'Listar usuários' }],
 };
 
+// AuditService é uma classe com campo privado: o mock tipado precisa de cast para entrar no construtor.
+const makeAudit = () => ({ record: jest.fn<AuditService['record']>(async () => undefined) });
+const asAuditService = (audit: ReturnType<typeof makeAudit>) => audit as unknown as AuditService;
+
 const repository = (): RoleRepository => ({
   list: jest.fn(async () => [role]),
-  findById: jest.fn()
+  findById: jest.fn<RoleRepository['findById']>()
     .mockResolvedValueOnce(role)
     .mockResolvedValueOnce(null),
   create: jest.fn(async () => role),
@@ -28,7 +34,7 @@ const repository = (): RoleRepository => ({
 describe('RoleService', () => {
   it('lists and gets roles', async () => {
     const roles = repository();
-    const service = new RoleService(roles, { record: jest.fn(async () => undefined) });
+    const service = new RoleService(roles, asAuditService(makeAudit()));
 
     await expect(service.list()).resolves.toEqual([role]);
     await expect(service.get('role-1')).resolves.toEqual(role);
@@ -37,8 +43,8 @@ describe('RoleService', () => {
 
   it('creates and updates a role and records audits', async () => {
     const roles = repository();
-    const audit = { record: jest.fn(async () => undefined) };
-    const service = new RoleService(roles, audit);
+    const audit = makeAudit();
+    const service = new RoleService(roles, asAuditService(audit));
 
     await service.create({ name: 'Gestor', description: 'Gestão operacional' }, 'actor-1');
     await service.update('role-1', { name: 'Gestor atualizado' }, 'actor-1');
@@ -52,7 +58,7 @@ describe('RoleService', () => {
   it('blocks deleting a role linked to active users', async () => {
     const roles = repository();
     roles.countActiveUsers = jest.fn(async () => 1);
-    const service = new RoleService(roles, { record: jest.fn(async () => undefined) });
+    const service = new RoleService(roles, asAuditService(makeAudit()));
 
     await expect(service.remove('role-1', 'actor-1')).rejects.toBeInstanceOf(RoleError);
     expect(roles.softDelete).not.toHaveBeenCalled();
@@ -60,8 +66,8 @@ describe('RoleService', () => {
 
   it('soft deletes an unused role and audits the operation', async () => {
     const roles = repository();
-    const audit = { record: jest.fn(async () => undefined) };
-    const service = new RoleService(roles, audit);
+    const audit = makeAudit();
+    const service = new RoleService(roles, asAuditService(audit));
 
     await service.remove('role-1', 'actor-1');
 
@@ -71,8 +77,8 @@ describe('RoleService', () => {
 
   it('lists, assigns, and revokes permissions with audits for changes', async () => {
     const roles = repository();
-    const audit = { record: jest.fn(async () => undefined) };
-    const service = new RoleService(roles, audit);
+    const audit = makeAudit();
+    const service = new RoleService(roles, asAuditService(audit));
 
     await expect(service.listPermissions()).resolves.toEqual(role.permissions);
     await service.assignPermission('role-1', 'permission-1', 'actor-1');

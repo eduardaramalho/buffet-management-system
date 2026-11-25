@@ -22,25 +22,25 @@ const putPartial = async (handler: express.RequestHandler, body: object) => {
 
 describe("partial PUT does not apply Zod defaults", () => {
   it("TeamController keeps observations untouched", async () => {
-    const update = jest.fn(async () => ({}));
+    const update = jest.fn(async (_id: string, _input: unknown, _actorId: string) => ({}));
     await putPartial(new TeamController({ update } as never).update, { name: "Equipe" });
     expect(update).toHaveBeenCalledWith("item-1", { name: "Equipe" }, "actor-1");
   });
 
   it("CollaboratorController keeps phone untouched", async () => {
-    const update = jest.fn(async () => ({}));
+    const update = jest.fn(async (_id: string, _input: unknown, _actorId: string) => ({}));
     await putPartial(new CollaboratorController({ update } as never).update, { name: "Ana" });
     expect(update).toHaveBeenCalledWith("item-1", { name: "Ana" }, "actor-1");
   });
 
   it("EventController keeps endDate and observations untouched", async () => {
-    const update = jest.fn(async () => ({}));
+    const update = jest.fn(async (_id: string, _input: unknown, _actorId: string) => ({}));
     await putPartial(new EventController({ update } as never).update, { name: "Casamento" });
     expect(update).toHaveBeenCalledWith("item-1", { name: "Casamento" }, "actor-1");
   });
 
   it("ServiceController keeps isCustom untouched", async () => {
-    const update = jest.fn(async () => ({}));
+    const update = jest.fn(async (_id: string, _input: unknown, _actorId: string) => ({}));
     await putPartial(new ServiceController({ update } as never).update, { name: "Bar" });
     expect(update).toHaveBeenCalledWith("item-1", { name: "Bar" }, "actor-1");
   });

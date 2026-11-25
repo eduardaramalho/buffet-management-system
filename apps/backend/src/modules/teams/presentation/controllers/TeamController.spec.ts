@@ -24,7 +24,7 @@ describe("TeamController", () => {
   });
 
   it("creates a valid team with the authenticated actor", async () => {
-    const create = jest.fn(async (input: unknown) => ({ id: "team-1", ...input }));
+    const create = jest.fn(async (input: object) => ({ id: "team-1", ...input }));
     const controller = new TeamController({ create } as never);
     const app = express();
     app.use(express.json(), authenticated);
@@ -50,8 +50,8 @@ describe("TeamController", () => {
   });
 
   it("lists and gets teams", async () => {
-    const list = jest.fn(async () => [{ id: "team-1" }]);
-    const get = jest.fn(async () => ({ id: "team-1" }));
+    const list = jest.fn(async (..._args: unknown[]) => [{ id: "team-1" }]);
+    const get = jest.fn(async (..._args: unknown[]) => ({ id: "team-1" }));
     const controller = new TeamController({ list, get } as never);
     const app = express();
     app.get("/teams", controller.list);
@@ -66,7 +66,7 @@ describe("TeamController", () => {
   });
 
   it("updates a team with the authenticated actor", async () => {
-    const update = jest.fn(async () => ({ id: "team-1", name: "Equipe Cozinha B" }));
+    const update = jest.fn(async (..._args: unknown[]) => ({ id: "team-1", name: "Equipe Cozinha B" }));
     const controller = new TeamController({ update } as never);
     const app = express();
     app.use(express.json(), authenticated);
@@ -92,7 +92,7 @@ describe("TeamController", () => {
   });
 
   it("removes a team with the authenticated actor", async () => {
-    const remove = jest.fn(async () => undefined);
+    const remove = jest.fn(async (..._args: unknown[]) => undefined);
     const controller = new TeamController({ remove } as never);
     const app = express();
     app.use(authenticated);
@@ -117,8 +117,8 @@ describe("TeamController", () => {
   });
 
   it("adds and removes a member with the authenticated actor", async () => {
-    const addMember = jest.fn(async () => ({ id: "team-1" }));
-    const removeMember = jest.fn(async () => undefined);
+    const addMember = jest.fn(async (..._args: unknown[]) => ({ id: "team-1" }));
+    const removeMember = jest.fn(async (..._args: unknown[]) => undefined);
     const controller = new TeamController({ addMember, removeMember } as never);
     const app = express();
     app.use(express.json(), authenticated);
@@ -153,7 +153,7 @@ describe("TeamController", () => {
   });
 
   it("activates and deactivates a team with the authenticated actor", async () => {
-    const setActive = jest.fn(async (_id: string, active: boolean) => ({ id: "team-1", status: active ? "ATIVA" : "INATIVA" }));
+    const setActive = jest.fn(async (_id: string, active: boolean, _actorId: string) => ({ id: "team-1", status: active ? "ATIVA" : "INATIVA" }));
     const controller = new TeamController({ setActive } as never);
     const app = express();
     app.use(authenticated);

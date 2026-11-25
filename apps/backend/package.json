@@ -3,6 +3,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "start": "node dist/server.js",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",

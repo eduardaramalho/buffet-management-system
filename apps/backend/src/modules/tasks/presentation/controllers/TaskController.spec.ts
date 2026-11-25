@@ -24,7 +24,7 @@ const makeTask = (overrides: Partial<TaskRecord> = {}): TaskRecord => ({
 
 describe("TaskController", () => {
   it("lists tasks parsing eventId and status query filters", async () => {
-    const list = jest.fn(async () => [makeTask()]);
+    const list = jest.fn(async (..._args: unknown[]) => [makeTask()]);
     const controller = new TaskController({ list } as never);
     const app = express();
     app.get("/tasks", controller.list);
@@ -37,7 +37,7 @@ describe("TaskController", () => {
   });
 
   it("lists tasks with no filters", async () => {
-    const list = jest.fn(async () => []);
+    const list = jest.fn(async (..._args: unknown[]) => []);
     const controller = new TaskController({ list } as never);
     const app = express();
     app.get("/tasks", controller.list);
@@ -50,7 +50,7 @@ describe("TaskController", () => {
 
   it("gets a task by id", async () => {
     const task = makeTask();
-    const get = jest.fn(async () => task);
+    const get = jest.fn(async (..._args: unknown[]) => task);
     const controller = new TaskController({ get } as never);
     const app = express();
     app.get("/tasks/:id", controller.get);
@@ -64,7 +64,7 @@ describe("TaskController", () => {
 
   it("updates a task's status for the authenticated actor", async () => {
     const updatedTask = makeTask({ status: "EM_ANDAMENTO" });
-    const updateStatus = jest.fn(async () => updatedTask);
+    const updateStatus = jest.fn(async (..._args: unknown[]) => updatedTask);
     const controller = new TaskController({ updateStatus } as never);
     const app = express();
     app.use(express.json());
@@ -114,7 +114,7 @@ const buildManualApp = (service: Record<string, unknown>, authenticated = true) 
 
 describe("TaskController manual tasks", () => {
   it("creates a task, trimming the title and parsing dueDate", async () => {
-    const create = jest.fn(async () => makeTask({ id: "task-9" }));
+    const create = jest.fn(async (..._args: unknown[]) => makeTask({ id: "task-9" }));
     const app = buildManualApp({ create });
 
     const response = await request(app)
@@ -142,7 +142,7 @@ describe("TaskController manual tasks", () => {
   });
 
   it("returns 400 with the business message when the service rejects", async () => {
-    const create = jest.fn(async () => {
+    const create = jest.fn(async (..._args: unknown[]) => {
       throw new TaskManagementError("Aloque a equipe ao evento antes de atribuí-la à tarefa");
     });
 
@@ -163,7 +163,7 @@ describe("TaskController manual tasks", () => {
   });
 
   it("passes only the provided fields on a partial PUT", async () => {
-    const update = jest.fn(async () => makeTask());
+    const update = jest.fn(async (..._args: unknown[]) => makeTask());
 
     const response = await request(buildManualApp({ update })).put("/tasks/task-1").send({ description: "Nova" });
 
@@ -172,7 +172,7 @@ describe("TaskController manual tasks", () => {
   });
 
   it("accepts null to unassign the team and clear the due date on PUT", async () => {
-    const update = jest.fn(async () => makeTask());
+    const update = jest.fn(async (..._args: unknown[]) => makeTask());
 
     await request(buildManualApp({ update })).put("/tasks/task-1").send({ assignedTeamId: null, dueDate: null });
 
@@ -189,7 +189,7 @@ describe("TaskController manual tasks", () => {
   });
 
   it("deletes a task and returns 204", async () => {
-    const remove = jest.fn(async () => undefined);
+    const remove = jest.fn(async (..._args: unknown[]) => undefined);
 
     const response = await request(buildManualApp({ remove })).delete("/tasks/task-1");
 

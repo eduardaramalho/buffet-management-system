@@ -2,9 +2,19 @@ import { describe, expect, it, jest } from '@jest/globals';
 
 import { UserService, UserManagementError } from './UserService.js';
 import { NotFoundError } from '../../../shared/errors/NotFoundError.js';
+import type { AuditService } from './AuditService.js';
+import type { PasswordHasher } from '../domain/auth.types.js';
 import type { UserManagementRepository } from '../domain/user-management.types.js';
 
 const OPERATOR_ROLE = { id: 'role-1', isProtected: false };
+
+// AuditService é uma classe com campo privado: o mock tipado precisa de cast para entrar no construtor.
+const makeAudit = () => ({ record: jest.fn<AuditService['record']>(async () => undefined) });
+const asAuditService = (audit: ReturnType<typeof makeAudit>) => audit as unknown as AuditService;
+const makeHasher = (hash = 'hash') => ({
+  hash: jest.fn<PasswordHasher['hash']>(async () => hash),
+  compare: jest.fn<PasswordHasher['compare']>(async () => true),
+});
 
 describe('UserService', () => {
   const makeUser = (overrides: Record<string, unknown> = {}) => ({
@@ -28,7 +38,7 @@ describe('UserService', () => {
       softDelete: jest.fn(async () => makeUser()),
     };
 
-    const service = new UserService(users, { hash: jest.fn(async () => 'hashed'), compare: jest.fn(async () => true) }, { record: jest.fn(async () => undefined) });
+    const service = new UserService(users, makeHasher('hashed'), asAuditService(makeAudit()));
 
     const result = await service.list({ search: 'alice' });
 
@@ -49,14 +59,14 @@ describe('UserService', () => {
       list: jest.fn(async () => []),
       findRoleById: jest.fn(async () => OPERATOR_ROLE),
       findManagedById: jest.fn(async () => makeUser()),
-      create: jest.fn(async (input) => makeUser({ name: input.name, email: input.email })),
+      create: jest.fn<UserManagementRepository['create']>(async (input) => makeUser({ name: input.name, email: input.email })),
       update: jest.fn(async () => makeUser()),
       setActive: jest.fn(async () => makeUser()),
       softDelete: jest.fn(async () => makeUser()),
     };
-    const audit = { record: jest.fn(async () => undefined) };
-    const hasher = { hash: jest.fn(async () => 'hashed-password'), compare: jest.fn(async () => true) };
-    const service = new UserService(repo, hasher, audit);
+    const audit = makeAudit();
+    const hasher = makeHasher('hashed-password');
+    const service = new UserService(repo, hasher, asAuditService(audit));
 
     const result = await service.create({ name: 'Alice', email: 'Alice@Buffet.com', password: 'secret123', roleId: 'role-1' }, 'actor-1');
 
@@ -77,9 +87,9 @@ describe('UserService', () => {
       setActive: jest.fn(async () => makeUser()),
       softDelete: jest.fn(async () => makeUser()),
     };
-    const audit = { record: jest.fn(async () => undefined) };
-    const hasher = { hash: jest.fn(async () => 'new-hash'), compare: jest.fn(async () => true) };
-    const service = new UserService(repo, hasher, audit);
+    const audit = makeAudit();
+    const hasher = makeHasher('new-hash');
+    const service = new UserService(repo, hasher, asAuditService(audit));
 
     await service.update('user-1', { name: 'Alicia', password: 'new-pass' } as Parameters<UserService['update']>[1], 'actor-1');
 
@@ -93,7 +103,7 @@ describe('UserService', () => {
     const users: UserManagementRepository = {
       list: jest.fn(async () => []),
       findRoleById: jest.fn(async () => OPERATOR_ROLE),
-      findManagedById: jest.fn()
+      findManagedById: jest.fn<UserManagementRepository['findManagedById']>()
         .mockResolvedValueOnce(user)
         .mockResolvedValueOnce(null),
       create: jest.fn(async () => user),
@@ -101,7 +111,7 @@ describe('UserService', () => {
       setActive: jest.fn(async () => user),
       softDelete: jest.fn(async () => user),
     };
-    const service = new UserService(users, { hash: jest.fn(async () => 'hash'), compare: jest.fn(async () => true) }, { record: jest.fn(async () => undefined) });
+    const service = new UserService(users, makeHasher('hash'), asAuditService(makeAudit()));
 
     await expect(service.get('user-1')).resolves.toEqual(user);
     await expect(service.get('missing')).rejects.toBeInstanceOf(NotFoundError);
@@ -118,8 +128,8 @@ describe('UserService', () => {
       setActive: jest.fn(async () => user),
       softDelete: jest.fn(async () => user),
     };
-    const hasher = { hash: jest.fn(async () => 'hash'), compare: jest.fn(async () => true) };
-    const service = new UserService(users, hasher, { record: jest.fn(async () => undefined) });
+    const hasher = makeHasher('hash');
+    const service = new UserService(users, hasher, asAuditService(makeAudit()));
 
     await service.update('user-1', { email: ' Alice@Buffet.com ' }, 'actor-1');
 
@@ -138,8 +148,8 @@ describe('UserService', () => {
       setActive: jest.fn(async () => user),
       softDelete: jest.fn(async () => ({ ...user, deletedAt: new Date() })),
     };
-    const audit = { record: jest.fn(async () => undefined) };
-    const service = new UserService(users, { hash: jest.fn(async () => 'hash'), compare: jest.fn(async () => true) }, audit);
+    const audit = makeAudit();
+    const service = new UserService(users, makeHasher('hash'), asAuditService(audit));
 
     await service.setActive('user-1', true, 'actor-1');
     await service.setActive('user-1', false, 'actor-1');
@@ -160,7 +170,7 @@ describe('UserService', () => {
       findRoleById: jest.fn(async () => OPERATOR_ROLE), findManagedById: jest.fn(async () => admin), create: jest.fn(async () => admin),
       update: jest.fn(async () => admin), setActive: jest.fn(async () => admin), softDelete: jest.fn(async () => admin)
     };
-    const service = new UserService(users, { hash: jest.fn(async () => 'hash'), compare: jest.fn(async () => true) }, { record: jest.fn(async () => undefined) });
+    const service = new UserService(users, makeHasher('hash'), asAuditService(makeAudit()));
 
     await expect(service.update('user-1', { name: 'Novo nome' }, 'actor-1')).rejects.toBeInstanceOf(UserManagementError);
     expect(users.update).not.toHaveBeenCalled();
@@ -173,7 +183,7 @@ describe('UserService', () => {
       findRoleById: jest.fn(async () => OPERATOR_ROLE), findManagedById: jest.fn(async () => admin), create: jest.fn(async () => admin),
       update: jest.fn(async () => admin), setActive: jest.fn(async () => admin), softDelete: jest.fn(async () => admin)
     };
-    const service = new UserService(users, { hash: jest.fn(async () => 'hash'), compare: jest.fn(async () => true) }, { record: jest.fn(async () => undefined) });
+    const service = new UserService(users, makeHasher('hash'), asAuditService(makeAudit()));
 
     await expect(service.setActive('user-1', false, 'actor-1')).rejects.toThrow('Usuários administradores não podem ser editados pela interface');
     expect(users.setActive).not.toHaveBeenCalled();
@@ -186,7 +196,7 @@ describe('UserService', () => {
       findRoleById: jest.fn(async () => OPERATOR_ROLE), findManagedById: jest.fn(async () => admin), create: jest.fn(async () => admin),
       update: jest.fn(async () => admin), setActive: jest.fn(async () => admin), softDelete: jest.fn(async () => admin)
     };
-    const service = new UserService(users, { hash: jest.fn(async () => 'hash'), compare: jest.fn(async () => true) }, { record: jest.fn(async () => undefined) });
+    const service = new UserService(users, makeHasher('hash'), asAuditService(makeAudit()));
 
     await expect(service.remove('user-1', 'actor-1')).rejects.toThrow('Usuários administradores não podem ser editados pela interface');
     expect(users.softDelete).not.toHaveBeenCalled();
@@ -199,7 +209,7 @@ describe('UserService', () => {
       findRoleById: jest.fn(async () => OPERATOR_ROLE), findManagedById: jest.fn(async () => user), create: jest.fn(async () => user),
       update: jest.fn(async () => user), setActive: jest.fn(async () => ({ ...user, isActive: false })), softDelete: jest.fn(async () => user)
     };
-    const service = new UserService(users, { hash: jest.fn(async () => 'hash'), compare: jest.fn(async () => true) }, { record: jest.fn(async () => undefined) });
+    const service = new UserService(users, makeHasher('hash'), asAuditService(makeAudit()));
 
     await expect(service.update('user-1', { name: 'Alicia' }, 'actor-1')).resolves.toBeDefined();
     await expect(service.setActive('user-1', false, 'actor-1')).resolves.toBeDefined();
@@ -219,8 +229,8 @@ describe('UserService', () => {
         setActive: jest.fn(async () => makeUser()),
         softDelete: jest.fn(async () => makeUser()),
       };
-      const audit = { record: jest.fn(async () => undefined) };
-      const service = new UserService(repo, { hash: jest.fn(async () => 'hash'), compare: jest.fn(async () => true) }, audit);
+      const audit = makeAudit();
+      const service = new UserService(repo, makeHasher('hash'), asAuditService(audit));
       return { repo, audit, service };
     };
     const input = { name: 'Bruno', email: 'bruno@buffet.com', password: 'secret123', roleId: 'role-admin' };

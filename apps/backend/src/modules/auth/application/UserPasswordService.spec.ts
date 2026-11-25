@@ -3,6 +3,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { UserPasswordConflictError, UserPasswordService } from './UserPasswordService.js';
 import { UserManagementError } from './UserService.js';
 import { NotFoundError } from '../../../shared/errors/NotFoundError.js';
+import type { AuditService } from './AuditService.js';
 import type { ManagedUser, UserPasswordRepository } from '../domain/user-management.types.js';
 import { TEMPORARY_PASSWORD_TTL_MS } from '../domain/password.policy.js';
 
@@ -26,8 +27,8 @@ const makeService = (user: ManagedUser | null = makeUser()) => {
   };
   const hasher = { hash: jest.fn(async (value: string) => `hashed:${value}`), compare: jest.fn(async () => true) };
   const generator = { generate: jest.fn(() => TEMPORARY_PASSWORD) };
-  const audit = { record: jest.fn(async () => undefined) };
-  const service = new UserPasswordService(users, hasher, generator, audit as never, () => NOW);
+  const audit = { record: jest.fn<AuditService['record']>(async () => undefined) };
+  const service = new UserPasswordService(users, hasher, generator, audit as unknown as AuditService, () => NOW);
   return { service, users, hasher, generator, audit };
 };
 

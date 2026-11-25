@@ -9,7 +9,7 @@ import { authService, tokenProvider } from "../../../auth/infrastructure/factori
 import { reportService } from "../../infrastructure/factories/report.factory.js";
 import type { ExportRequest } from "../../application/ReportService.js";
 
-const token = () => tokenProvider.createAccessToken({ sub: "actor-1", email: "admin@buffet.local" });
+const token = () => tokenProvider.createAccessToken({ sub: "actor-1", email: "admin@buffet.local", mustChangePassword: false });
 const auth = () => ({ Authorization: `Bearer ${token()}` });
 const from = "2026-10-01T03:00:00.000Z";
 const to = "2026-11-01T02:59:59.999Z";

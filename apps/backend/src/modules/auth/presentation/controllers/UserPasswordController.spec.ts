@@ -2,13 +2,14 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { ZodError } from 'zod';
 
 import { UserPasswordController } from './UserPasswordController.js';
+import type { UserPasswordService } from '../../application/UserPasswordService.js';
 
 const USER_ID = '6f1c2b7e-4d1a-4c1e-9b7a-2f3d4e5a6b7c';
 
 describe('UserPasswordController', () => {
   it('resets the password and returns the temporary password with its expiration', async () => {
     const expiresAt = new Date('2026-10-28T12:00:00.000Z');
-    const service = { resetByAdmin: jest.fn(async () => ({ temporaryPassword: 'Abcd2345efgh', expiresAt })) };
+    const service = { resetByAdmin: jest.fn<UserPasswordService['resetByAdmin']>(async () => ({ temporaryPassword: 'Abcd2345efgh', expiresAt })) };
     const response: any = { json: jest.fn() };
     const controller = new UserPasswordController(service as any);
 

@@ -1,7 +1,10 @@
 import { beforeAll, describe, expect, it, jest } from '@jest/globals';
 
-const mockVerifyAccessToken = jest.fn();
-const mockHasPermission = jest.fn();
+import type { AuthService } from '../../application/AuthService.js';
+import type { TokenProvider } from '../../domain/auth.types.js';
+
+const mockVerifyAccessToken = jest.fn<TokenProvider['verifyAccessToken']>();
+const mockHasPermission = jest.fn<AuthService['hasPermission']>();
 
 jest.unstable_mockModule('../../infrastructure/factories/auth.factory.js', () => ({
   tokenProvider: { verifyAccessToken: mockVerifyAccessToken },
@@ -33,11 +36,11 @@ describe('Auth middlewares', () => {
     const request: any = { header: jest.fn(() => 'Bearer valid-token') };
     const response: any = { status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() };
     const next = jest.fn();
-    mockVerifyAccessToken.mockReturnValue({ sub: 'user-1', email: 'alice@buffet.com' });
+    mockVerifyAccessToken.mockReturnValue({ sub: 'user-1', email: 'alice@buffet.com', mustChangePassword: false });
 
     authenticate(request, response, next);
 
-    expect(request.user).toEqual({ sub: 'user-1', email: 'alice@buffet.com' });
+    expect(request.user).toEqual({ sub: 'user-1', email: 'alice@buffet.com', mustChangePassword: false });
     expect(next).toHaveBeenCalledTimes(1);
   });
 

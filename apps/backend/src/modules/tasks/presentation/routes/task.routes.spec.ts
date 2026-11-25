@@ -23,7 +23,7 @@ const routes = [
 
 describe("manual task routes", () => {
   it.each(routes)("%s %s returns 403 without %s and never reaches the controller", async (method, path, permission) => {
-    jest.spyOn(tokenProvider, "verifyAccessToken").mockReturnValue({ sub: "actor-1", email: "a@b.c" } as never);
+    jest.spyOn(tokenProvider, "verifyAccessToken").mockReturnValue({ sub: "actor-1", email: "a@b.c", mustChangePassword: false });
     const hasPermission = jest.spyOn(authService, "hasPermission").mockResolvedValue(false);
     const create = jest.spyOn(taskController, "create");
 
@@ -34,7 +34,7 @@ describe("manual task routes", () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  it.each(routes)("%s %s returns 401 without a token", async (method, path) => {
+  it.each(routes)("%s %s returns 401 without a token", async (method, path, _permission) => {
     const response = await request(buildApp())[method](path).send({});
 
     expect(response.status).toBe(401);
@@ -46,7 +46,7 @@ describe("task comment routes", () => {
     ["get", "/tasks/task-1/comments", "tasks:read"],
     ["post", "/tasks/task-1/comments", "tasks:comment"],
   ] as const)("%s %s returns 403 without %s and never reaches the controller", async (method, path, permission) => {
-    jest.spyOn(tokenProvider, "verifyAccessToken").mockReturnValue({ sub: "actor-1", email: "a@b.c" } as never);
+    jest.spyOn(tokenProvider, "verifyAccessToken").mockReturnValue({ sub: "actor-1", email: "a@b.c", mustChangePassword: false });
     const hasPermission = jest.spyOn(authService, "hasPermission").mockResolvedValue(false);
     const list = jest.spyOn(taskCommentController, "list");
     const create = jest.spyOn(taskCommentController, "create");

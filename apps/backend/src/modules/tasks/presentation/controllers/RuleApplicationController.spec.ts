@@ -6,7 +6,7 @@ import { RuleApplicationController } from "./RuleApplicationController.js";
 
 describe("RuleApplicationController", () => {
   it("lists applications for an event", async () => {
-    const listByEvent = jest.fn(async () => [{ ruleId: "rule-1", ruleName: "Regra", appliedAt: new Date("2026-10-02") }]);
+    const listByEvent = jest.fn(async (..._args: unknown[]) => [{ ruleId: "rule-1", ruleName: "Regra", appliedAt: new Date("2026-10-02") }]);
     const controller = new RuleApplicationController({ applyRules: jest.fn() } as never, { listByEvent } as never);
     const app = express();
     app.get("/events/:eventId/rule-applications", controller.list);
@@ -18,7 +18,7 @@ describe("RuleApplicationController", () => {
   });
 
   it("applies rules for the given event using the authenticated actor", async () => {
-    const applyRules = jest.fn(async () => ({ tasksCreated: 1, teamsAutoAssigned: 1, alertsGenerated: 0 }));
+    const applyRules = jest.fn(async (..._args: unknown[]) => ({ tasksCreated: 1, teamsAutoAssigned: 1, alertsGenerated: 0 }));
     const controller = new RuleApplicationController({ applyRules } as never);
     const app = express();
     app.use(express.json());
@@ -36,7 +36,7 @@ describe("RuleApplicationController", () => {
   });
 
   it("passes forceRuleId through for forced reprocessing", async () => {
-    const applyRules = jest.fn(async () => ({ tasksCreated: 1, teamsAutoAssigned: 0, alertsGenerated: 0 }));
+    const applyRules = jest.fn(async (..._args: unknown[]) => ({ tasksCreated: 1, teamsAutoAssigned: 0, alertsGenerated: 0 }));
     const controller = new RuleApplicationController({ applyRules } as never);
     const app = express();
     app.use(express.json());

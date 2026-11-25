@@ -1,17 +1,17 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
 import { AuthController, authErrorStatus } from './AuthController.js';
-import { AuthError } from '../../application/AuthService.js';
+import { AuthError, type AuthService } from '../../application/AuthService.js';
 import { ZodError } from 'zod';
 
 describe('AuthController', () => {
   it('logs in a user and responds with access and refresh tokens', async () => {
     const response: any = { json: jest.fn() };
     const service = {
-      login: jest.fn(async () => ({ accessToken: 'token', refreshToken: 'refresh', user: { id: '1', name: 'Alice', email: 'alice@buffet.com' } })),
-      refresh: jest.fn(async () => ({ accessToken: 'token2', refreshToken: 'refresh2', user: { id: '1', name: 'Alice', email: 'alice@buffet.com' } })),
-      logout: jest.fn(async () => undefined),
-      me: jest.fn(async () => ({ id: '1', name: 'Alice', email: 'alice@buffet.com', roles: [] })),
+      login: jest.fn<AuthService['login']>(async () => ({ accessToken: 'token', refreshToken: 'refresh', user: { id: '1', name: 'Alice', email: 'alice@buffet.com', mustChangePassword: false } })),
+      refresh: jest.fn<AuthService['refresh']>(async () => ({ accessToken: 'token2', refreshToken: 'refresh2', user: { id: '1', name: 'Alice', email: 'alice@buffet.com', mustChangePassword: false } })),
+      logout: jest.fn<AuthService['logout']>(async () => undefined),
+      me: jest.fn<AuthService['me']>(async () => ({ id: '1', name: 'Alice', email: 'alice@buffet.com', mustChangePassword: false, roles: [] })),
     };
 
     const controller = new AuthController(service as any);
@@ -27,9 +27,9 @@ describe('AuthController', () => {
     const status = jest.fn().mockReturnThis();
     const service = {
       login: jest.fn(),
-      refresh: jest.fn(async () => ({ accessToken: 'token2', refreshToken: 'refresh2', user: { id: '1', name: 'Alice', email: 'alice@buffet.com' } })),
-      logout: jest.fn(async () => undefined),
-      me: jest.fn(async () => ({ id: '1', name: 'Alice', email: 'alice@buffet.com', roles: [] })),
+      refresh: jest.fn<AuthService['refresh']>(async () => ({ accessToken: 'token2', refreshToken: 'refresh2', user: { id: '1', name: 'Alice', email: 'alice@buffet.com', mustChangePassword: false } })),
+      logout: jest.fn<AuthService['logout']>(async () => undefined),
+      me: jest.fn<AuthService['me']>(async () => ({ id: '1', name: 'Alice', email: 'alice@buffet.com', mustChangePassword: false, roles: [] })),
     };
     const controller = new AuthController(service as any);
 
@@ -44,7 +44,7 @@ describe('AuthController', () => {
 
   it('returns the profile of the authenticated user', async () => {
     const json = jest.fn();
-    const service = { me: jest.fn(async () => ({ id: '1', name: 'Alice', email: 'alice@buffet.com', mustChangePassword: false, roles: [] })) };
+    const service = { me: jest.fn<AuthService['me']>(async () => ({ id: '1', name: 'Alice', email: 'alice@buffet.com', mustChangePassword: false, roles: [] })) };
     const controller = new AuthController(service as any);
 
     await controller.me({ user: { sub: '1' } } as any, { json } as any);
@@ -56,7 +56,7 @@ describe('AuthController', () => {
   it('changes the password of the authenticated user and returns the new session', async () => {
     const json = jest.fn();
     const session = { accessToken: 'a', refreshToken: 'r', user: { id: '1', name: 'Alice', email: 'alice@buffet.com', mustChangePassword: false } };
-    const service = { changePassword: jest.fn(async () => session) };
+    const service = { changePassword: jest.fn<AuthService['changePassword']>(async () => session) };
     const controller = new AuthController(service as any);
 
     await controller.changePassword(

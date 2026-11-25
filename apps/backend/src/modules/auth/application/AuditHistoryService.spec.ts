@@ -1,5 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { AuditHistoryService } from "./AuditHistoryService.js";
+import type { AuditRepository } from "../domain/user-management.types.js";
 
 describe("AuditHistoryService", () => {
   it("limits event history to 20 records, includes the actor name, and omits changes", async () => {
@@ -13,7 +14,7 @@ describe("AuditHistoryService", () => {
       createdAt: new Date(`2026-10-${String(index + 1).padStart(2, "0")}T10:00:00.000Z`),
     }));
     const findById = jest.fn(async () => ({ id: "event-1" }));
-    const listByEntity = jest.fn(async () => logs);
+    const listByEntity = jest.fn<AuditRepository["listByEntity"]>(async () => logs);
     const service = new AuditHistoryService({ findById } as never, { listByEntity } as never);
 
     const history = await service.listEventHistory("event-1");

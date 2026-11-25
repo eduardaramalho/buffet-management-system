@@ -5,8 +5,8 @@ import { PrismaEventRepository } from "./PrismaEventRepository.js";
 describe("PrismaEventRepository", () => {
   it("finds an active event and creates one with the service relation", async () => {
     const event = { id: "event-1" };
-    const findFirst = jest.fn(async () => event);
-    const create = jest.fn(async () => event);
+    const findFirst = jest.fn(async (_args: unknown) => event);
+    const create = jest.fn(async (_args: unknown) => event);
     const repository = new PrismaEventRepository({ event: { findFirst, create } } as never);
 
     await expect(repository.findById("event-1")).resolves.toEqual(event);
@@ -32,7 +32,7 @@ describe("PrismaEventRepository", () => {
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: "PLANEJAMENTO" }) }));
   });
   it("filters out soft-deleted events and applies status/date filters", async () => {
-    const findMany = jest.fn(async () => []);
+    const findMany = jest.fn(async (_args: unknown) => []);
     const prisma = { event: { findMany } };
     const repository = new PrismaEventRepository(prisma as never);
     const from = new Date("2026-10-01T00:00:00.000Z");
@@ -47,7 +47,7 @@ describe("PrismaEventRepository", () => {
   });
 
   it("soft deletes with an update and never performs physical deletion", async () => {
-    const update = jest.fn(async () => ({}));
+    const update = jest.fn(async (_args: unknown) => ({}));
     const prisma = { event: { update } };
     const repository = new PrismaEventRepository(prisma as never);
 
@@ -60,10 +60,10 @@ describe("PrismaEventRepository", () => {
   });
 
   it("updates, restores, attaches and detaches services", async () => {
-    const update = jest.fn(async () => ({ id: "event-1" }));
-    const upsert = jest.fn(async () => undefined);
-    const findFirstOrThrow = jest.fn(async () => ({ id: "event-1" }));
-    const remove = jest.fn(async () => undefined);
+    const update = jest.fn(async (_args: unknown) => ({ id: "event-1" }));
+    const upsert = jest.fn(async (_args: unknown) => undefined);
+    const findFirstOrThrow = jest.fn(async (_args: unknown) => ({ id: "event-1" }));
+    const remove = jest.fn(async (_args: unknown) => undefined);
     const repository = new PrismaEventRepository({ event: { update, findFirstOrThrow }, eventService: { upsert, delete: remove } } as never);
 
     await repository.update("event-1", { location: "Jardim" });

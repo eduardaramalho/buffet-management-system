@@ -81,6 +81,8 @@ const makeRuleApplicationFake = (): RuleApplicationRepository => {
   const key = (eventId: string, ruleId: string) => `${eventId}:${ruleId}`;
   let nextId = 1;
   return {
+    // O RuleEngineExecutionService não lê o histórico; o método existe só para cumprir o contrato.
+    listByEvent: jest.fn(async () => []),
     findByEventAndRule: jest.fn(async (eventId: string, ruleId: string) => store.get(key(eventId, ruleId)) ?? null),
     create: jest.fn(async (eventId: string, ruleId: string, tx?: unknown) => {
       const record = { id: `ra-${nextId++}`, eventId, ruleId, appliedAt: new Date() };
@@ -121,6 +123,8 @@ const makeTaskRepositoryFake = (): TaskRepository & { created: TaskRecord[] } =>
       Object.assign(task, input);
       return task;
     }),
+    // O RuleEngineExecutionService nunca remove tarefas; o método existe só para cumprir o contrato.
+    softDelete: jest.fn(async () => undefined),
   };
 };
 
@@ -417,6 +421,7 @@ describe("RuleEngineExecutionService", () => {
     // Simulates a crash right before the idempotency marker is written: team assignment and task
     // creation (the two earlier writes of this same rule application) must not survive either.
     const ruleApplications: RuleApplicationRepository = {
+      listByEvent: jest.fn(async () => []),
       findByEventAndRule: jest.fn(async () => null),
       create: jest.fn(async () => { throw new Error("falha simulada de escrita no banco"); }),
       remove: jest.fn(async () => undefined),
@@ -477,7 +482,7 @@ describe("RuleEngineExecutionService", () => {
       for (const [index, task] of (options.existingTasks ?? []).entries()) {
         tasks.created.push({ id: `old-${index}`, eventId: "event-1", title: `Antiga ${index}`, description: null, dueDate: null, status: "PENDENTE", assignedTeamId: null, sourceRuleId: null, createdAt: new Date(), updatedAt: new Date(), deletedAt: null, ...task } as TaskRecord);
       }
-      const audit = { record: jest.fn(async (_input: { action: string; entityId?: string; userId?: string; changes?: Record<string, unknown> }) => undefined) };
+      const audit = { record: jest.fn<AuditService["record"]>(async () => undefined) };
       const service = new RuleEngineExecutionService(
         ruleEngine, events, teams, eventTeamService as unknown as EventTeamService, tasks, makeRuleApplicationFake(),
         { listByRuleId: jest.fn(async () => options.templates) } as unknown as RuleTaskTemplateRepository,

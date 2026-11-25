@@ -16,7 +16,7 @@ const permissionKeys = [
   "collaborators:manage",
 ] as const;
 
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => { jest.restoreAllMocks(); });
 
 describe("team permissions", () => {
   it.each(permissionKeys)("returns 403 without %s", async (permissionKey) => {
