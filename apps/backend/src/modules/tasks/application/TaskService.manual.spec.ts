@@ -34,14 +34,14 @@ const setup = ({ task = makeTask(), eventStatus = "PLANEJAMENTO", teamStatus = "
     findById: jest.fn(async () => task),
     create: jest.fn(async (input: Record<string, unknown>) => makeTask({ ...(input as Partial<TaskRecord>), id: "task-new" })),
     update: jest.fn(async (_id: string, input: Record<string, unknown>) => ({ ...(task as TaskRecord), ...input })),
-    softDelete: jest.fn(async () => undefined),
+    softDelete: jest.fn<TaskRepository["softDelete"]>(async () => undefined),
   };
-  const audit = { record: jest.fn(async () => undefined) };
+  const audit = { record: jest.fn<AuditService["record"]>(async () => undefined) };
   const events = {
     findById: jest.fn(async () => (eventStatus === null ? null : { id: "event-1", status: eventStatus, deletedAt: null })),
   };
   const teams = { findById: jest.fn(async () => (teamStatus === null ? null : { id: "team-1", status: teamStatus })) };
-  const eventTeams = { listTeamsByEvent: jest.fn(async () => linkedTeamIds.map((teamId) => ({ teamId }))) };
+  const eventTeams = { listTeamsByEvent: jest.fn(async (_eventId: string) => linkedTeamIds.map((teamId) => ({ teamId }))) };
   const service = new TaskService(
     tasks as unknown as TaskRepository,
     audit as unknown as AuditService,

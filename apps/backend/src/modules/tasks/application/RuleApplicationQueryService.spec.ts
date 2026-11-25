@@ -3,7 +3,7 @@ import { RuleApplicationQueryService } from "./RuleApplicationQueryService.js";
 
 describe("RuleApplicationQueryService", () => {
   it("returns applications ordered by most recent and rejects missing events", async () => {
-    const findById = jest.fn(async () => ({ id: "event-1" }));
+    const findById = jest.fn(async (): Promise<{ id: string } | null> => ({ id: "event-1" }));
     const listByEvent = jest.fn(async () => [
       { ruleId: "rule-old", ruleName: "Antiga", appliedAt: new Date("2026-10-01") },
       { ruleId: "rule-new", ruleName: "Nova", appliedAt: new Date("2026-10-02") },
