@@ -37,8 +37,8 @@ const filters = { search: 'x' }
 const cases: ContractCase[] = [
   // auth
   { name: 'authApi.login', call: () => authApi.login('a@b.com', 'secret123'), verb: 'post', args: ['/api/v1/auth/login', { email: 'a@b.com', password: 'secret123' }] },
-  { name: 'authApi.refresh', call: () => authApi.refresh('rt-1'), verb: 'post', args: ['/api/v1/auth/refresh-token', { refreshToken: 'rt-1' }] },
-  { name: 'authApi.logout', call: () => authApi.logout('rt-1'), verb: 'post', args: ['/api/v1/auth/logout', { refreshToken: 'rt-1' }], returnsData: false },
+  // O refresh token vai no cookie httpOnly (ADR 0020): o logout não envia corpo. A renovação fica em httpClient.refreshSession.
+  { name: 'authApi.logout', call: () => authApi.logout(), verb: 'post', args: ['/api/v1/auth/logout'], returnsData: false },
   { name: 'authApi.changePassword', call: () => authApi.changePassword('Abcd2345efgh', 'NovaSenha123'), verb: 'post', args: ['/api/v1/auth/change-password', { currentPassword: 'Abcd2345efgh', newPassword: 'NovaSenha123' }] },
   { name: 'authApi.me', call: () => authApi.me(), verb: 'get', args: ['/api/v1/auth/me'] },
   // users
