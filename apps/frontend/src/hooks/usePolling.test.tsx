@@ -71,6 +71,17 @@ describe('usePolling', () => {
     expect(fn).toHaveBeenCalledTimes(1)
   })
 
+  it('usa a versão mais recente da função a cada rodada, sem reiniciar o timer', async () => {
+    const first = vi.fn().mockResolvedValue(undefined)
+    const second = vi.fn().mockResolvedValue(undefined)
+    const { rerender } = renderHook(({ fn }) => usePolling(fn, { intervalMs: INTERVAL }), { initialProps: { fn: first } })
+    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVAL / 2) })
+    rerender({ fn: second })
+    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVAL / 2) })
+    expect(first).not.toHaveBeenCalled()
+    expect(second).toHaveBeenCalledTimes(1)
+  })
+
   it('não executa quando desabilitado', async () => {
     const fn = vi.fn().mockResolvedValue(undefined)
     renderHook(() => usePolling(fn, { intervalMs: INTERVAL, enabled: false }))

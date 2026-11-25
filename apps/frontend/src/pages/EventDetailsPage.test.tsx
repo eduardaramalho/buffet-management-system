@@ -102,6 +102,62 @@ describe('EventDetailsPage', () => {
     await waitFor(() => expect(listEventRuleApplications).toHaveBeenCalledTimes(2))
   })
 
+  it('reinicia a Central ao navegar para outro evento, com carregamento e menus fechados', async () => {
+    const replica: Event = { ...event('PLANEJAMENTO'), id: 'replica-2', name: 'Casamento Clara' }
+    vi.mocked(getEvent).mockImplementation(async (eventId) => eventId === 'replica-2'
+      ? replica
+      : { ...event(), replicas: [{ id: 'replica-2', name: 'Casamento Clara', eventDate: '2027-02-10T18:00:00.000Z', status: 'PLANEJAMENTO' }] })
+    vi.mocked(listEventRuleApplications).mockResolvedValue([])
+    vi.mocked(getEventRuleMatches).mockResolvedValue([])
+    mockOtherBlocks()
+    renderPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: /Mais ações/ }))
+    expect(screen.getByRole('button', { name: 'Cancelar evento' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('link', { name: 'Casamento Clara' }))
+
+    expect(document.querySelector('.page-loading[aria-busy="true"]')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Casamento Ana' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Casamento Clara' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancelar evento' })).not.toBeInTheDocument()
+    expect(getEvent).toHaveBeenLastCalledWith('replica-2')
+    expect(getEventRuleMatches).toHaveBeenCalledWith('replica-2')
+    expect(listTasks).toHaveBeenLastCalledWith({ eventId: 'replica-2' })
+  })
+
+  it('atualiza todos os blocos em segundo plano sem voltar a exibir o carregamento', async () => {
+    vi.mocked(getEvent).mockResolvedValueOnce(event()).mockResolvedValue({ ...event(), name: 'Casamento Ana e Leo' })
+    vi.mocked(listEventRuleApplications).mockResolvedValue([])
+    mockOtherBlocks()
+    renderPage()
+
+    await screen.findByRole('heading', { name: 'Casamento Ana' })
+    fireEvent.click(screen.getByRole('button', { name: 'Atualizar agora' }))
+
+    expect(await screen.findByRole('heading', { name: 'Casamento Ana e Leo' })).toBeInTheDocument()
+    expect(document.querySelector('.page-loading')).not.toBeInTheDocument()
+    expect(getEvent).toHaveBeenCalledTimes(2)
+    expect(listTasks).toHaveBeenCalledTimes(2)
+    expect(listTeamsByEvent).toHaveBeenCalledTimes(2)
+    expect(listEventRuleApplications).toHaveBeenCalledTimes(2)
+    expect(getEventHistory).toHaveBeenCalledTimes(2)
+  })
+
+  it('mantém os dados na tela quando a atualização em segundo plano falha', async () => {
+    vi.mocked(getEvent).mockResolvedValueOnce(event()).mockRejectedValue(new Error('offline'))
+    vi.mocked(listEventRuleApplications).mockResolvedValue([])
+    mockOtherBlocks()
+    renderPage()
+
+    await screen.findByRole('heading', { name: 'Casamento Ana' })
+    fireEvent.click(screen.getByRole('button', { name: 'Atualizar agora' }))
+
+    await waitFor(() => expect(getEvent).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Atualizar agora' })).toBeEnabled())
+    expect(screen.getByRole('heading', { name: 'Casamento Ana' })).toBeInTheDocument()
+    expect(screen.queryByText('Não foi possível carregar o evento')).not.toBeInTheDocument()
+  })
+
   it('requires a reason when cancelling a confirmed event', async () => {
     vi.mocked(getEvent).mockResolvedValue(event())
     vi.mocked(listTasks).mockResolvedValue([])

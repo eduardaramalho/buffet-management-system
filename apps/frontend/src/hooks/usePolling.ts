@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 const DEFAULT_POLLING_INTERVAL_MS = 30_000
 const configuredInterval = Number(import.meta.env.VITE_POLLING_INTERVAL_MS)
@@ -16,7 +16,10 @@ export function usePolling(fn: () => Promise<unknown>, { intervalMs = POLLING_IN
   const fnRef = useRef(fn)
   const inFlight = useRef(false)
   const mounted = useRef(true)
-  fnRef.current = fn
+
+  // A ref é atualizada depois do commit (e não durante o render) e antes de qualquer timer ou clique
+  // poder disparar refresh, então a rodada seguinte sempre usa a versão mais recente de fn.
+  useLayoutEffect(() => { fnRef.current = fn })
 
   useEffect(() => {
     mounted.current = true

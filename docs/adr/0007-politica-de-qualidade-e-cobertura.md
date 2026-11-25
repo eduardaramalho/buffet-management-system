@@ -1,7 +1,7 @@
 # ADR 0007: Política de qualidade, cobertura e Quality Gate
 
 - **Status:** Aceito
-- **Escopo:** `apps/backend/jest.config.cjs`, `apps/frontend/vitest.config.ts`, `sonar-project.properties`, `.github/workflows/ci.yml`, `.github/scripts/coverage-summary.mjs`
+- **Escopo:** `apps/backend/jest.config.cjs`, `apps/frontend/vitest.config.ts`, `apps/frontend/eslint.config.js`, `sonar-project.properties`, `.github/workflows/ci.yml`, `.github/scripts/coverage-summary.mjs`
 
 ## Contexto
 
@@ -41,6 +41,13 @@ O Quality Gate do Sonar também não consegue aplicar limites diferentes por dir
    - **Low:** corrigir quando o custo for baixo; caso contrário, marcar como **Accepted** com comentário explicando o motivo.
    - **False positive:** somente quando a regra não se aplica tecnicamente ao trecho, com justificativa no comentário.
    - Alterações em massa sem comentário não são permitidas: cada decisão deve ser rastreável no próprio Sonar.
+
+7. **Lint do frontend obrigatório no CI** (KAN-84, 22/11/2026). O job `frontend` roda `npm run lint` antes dos testes, e o script usa `--max-warnings 0`: qualquer erro ou aviso do ESLint reprova o job. Antes disso o lint só rodava localmente e acumulou 3 erros das regras do React Compiler (`react-hooks/set-state-in-effect` e `react-hooks/refs`) e avisos de dependências de efeito sem que o pipeline acusasse. As regras não são desligadas nem silenciadas com `eslint-disable`: o código é ajustado. Os padrões adotados para atender às regras são:
+   - carga inicial de tela com `useEffectEvent`, aplicando o estado só quando a resposta chega (`.then`), e reinício da tela por `key` quando o parâmetro da rota muda;
+   - ref com o valor mais recente de uma função atualizada em efeito (`useLayoutEffect`), nunca durante o render;
+   - efeitos que dependem de permissão usam o valor derivado (por exemplo, `canListTasks`) como dependência e descartam respostas que chegam depois da limpeza do efeito.
+
+   O backend não tem ESLint configurado; a análise estática dele fica a cargo do Sonar.
 
 ## Limitação temporária
 

@@ -1,9 +1,11 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InternalLayout } from './InternalLayout'
 import { useAuth } from '../contexts/useAuth'
+import { listTasks } from '../api/tasksApi'
+import type { Task } from '../types/task'
 
 vi.mock('../contexts/useAuth', () => ({ useAuth: vi.fn() }))
 vi.mock('../api/tasksApi', () => ({ listTasks: vi.fn().mockResolvedValue([]) }))
@@ -13,6 +15,7 @@ const makeUser = (roleNames: string[]) => ({ id: 'user-1', name: 'Alice', email:
 
 beforeEach(() => {
   localStorage.clear()
+  vi.mocked(listTasks).mockReset().mockResolvedValue([])
   vi.mocked(useAuth).mockReturnValue({ user: makeUser(['Gestor']), loading: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
 })
 
@@ -62,6 +65,46 @@ describe('InternalLayout', () => {
     vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), roles: [{ name: 'Gestor', permissions: ['events:list'] }] }, loading: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
     render(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
     expect(screen.getAllByRole('link', { name: 'Relatórios' })).toHaveLength(1)
+  })
+
+  describe('badge de tarefas sem equipe', () => {
+    const task = (overrides: Partial<Task>) => ({ id: 'task', status: 'PENDENTE', assignedTeamId: null, ...overrides }) as Task
+    const renderLayout = () => render(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
+
+    it('conta só as tarefas abertas sem equipe', async () => {
+      vi.mocked(listTasks).mockResolvedValue([
+        task({ id: 't1' }),
+        task({ id: 't2', status: 'EM_ANDAMENTO' }),
+        task({ id: 't3', assignedTeamId: 'team-1' }),
+        task({ id: 't4', status: 'CONCLUIDA' }),
+        task({ id: 't5', status: 'CANCELADA' }),
+      ])
+      renderLayout()
+      expect(await within(screen.getByRole('link', { name: 'Tarefas' })).findByText('2')).toHaveClass('task-alert-badge')
+    })
+
+    it('não busca tarefas nem mostra o link sem tasks:list', () => {
+      vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), roles: [{ name: 'Gestor', permissions: ['events:list'] }] }, loading: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
+      renderLayout()
+      expect(listTasks).not.toHaveBeenCalled()
+      expect(screen.queryByRole('link', { name: 'Tarefas' })).not.toBeInTheDocument()
+    })
+
+    it('descarta a contagem de um usuário anterior que chega depois da troca de sessão', async () => {
+      let resolveFirst: (tasks: Task[]) => void = () => undefined
+      vi.mocked(listTasks)
+        .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve }))
+        .mockResolvedValueOnce([task({ id: 't1' })])
+      const { rerender } = renderLayout()
+      vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), id: 'user-2' }, loading: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
+      rerender(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
+      const tasksLink = screen.getByRole('link', { name: 'Tarefas' })
+      expect(await within(tasksLink).findByText('1')).toBeInTheDocument()
+
+      await act(async () => { resolveFirst([task({ id: 'a' }), task({ id: 'b' }), task({ id: 'c' })]) })
+      expect(within(tasksLink).getByText('1')).toBeInTheDocument()
+      expect(listTasks).toHaveBeenCalledTimes(2)
+    })
   })
 
   describe('sidebar recolhível (KAN-80)', () => {
