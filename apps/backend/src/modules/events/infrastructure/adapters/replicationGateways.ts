@@ -1,4 +1,3 @@
-import type { TransactionClient } from "../../../../shared/domain/transaction.types.js";
 import type { CreateTaskInput, TaskListFilter, TaskRecord } from "../../../tasks/domain/task.types.js";
 import type { ScheduleWindow, TeamAvailability } from "../../../teams/domain/team.types.js";
 import type { ReplicationTaskStore, ReplicationTeamGateway } from "../../domain/eventReplication.types.js";
@@ -8,7 +7,7 @@ import type { ReplicationTaskStore, ReplicationTeamGateway } from "../../domain/
 
 type TaskStoreSource = {
   list(filter: TaskListFilter): Promise<TaskRecord[]>;
-  create(input: CreateTaskInput, tx?: TransactionClient): Promise<TaskRecord>;
+  create(input: CreateTaskInput, tx?: unknown): Promise<TaskRecord>;
 };
 
 export function createReplicationTaskStore(tasks: TaskStoreSource): ReplicationTaskStore {
@@ -24,7 +23,7 @@ type TeamGatewaySources = {
     listTeamsByEvent(eventId: string): Promise<{ teamId: string }[]>;
     checkAvailability(teamId: string, schedule: ScheduleWindow): Promise<TeamAvailability>;
   };
-  assignments: { assign(eventId: string, teamId: string, assignedById: string, tx?: TransactionClient): Promise<unknown> };
+  assignments: { assign(eventId: string, teamId: string, assignedById: string, tx?: unknown): Promise<unknown> };
 };
 
 export function createReplicationTeamGateway({ teams, eventTeams, assignments }: TeamGatewaySources): ReplicationTeamGateway {

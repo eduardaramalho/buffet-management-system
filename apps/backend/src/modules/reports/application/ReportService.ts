@@ -21,7 +21,6 @@ import type {
   TaskReportRow,
   TasksReport,
   TeamPerformanceAggregate,
-  TeamPerformanceFilter,
   TeamPerformanceReport,
   TeamPerformanceRow,
 } from "../domain/report.types.js";
@@ -31,7 +30,7 @@ import { formatIsoDate } from "./reportFormat.js";
 export type ExportRequest =
   | { kind: "events"; filter: EventReportFilter }
   | { kind: "tasks"; filter: TaskReportFilter }
-  | { kind: "teams-performance"; filter: TeamPerformanceFilter };
+  | { kind: "teams-performance"; filter: ReportPeriod };
 
 const fileSlugs: Record<ReportKind, string> = {
   events: "eventos",
@@ -78,7 +77,7 @@ export class ReportService {
     };
   }
 
-  async teamPerformanceReport(filter: TeamPerformanceFilter): Promise<TeamPerformanceReport> {
+  async teamPerformanceReport(filter: ReportPeriod): Promise<TeamPerformanceReport> {
     const aggregates = await this.repository.teamPerformance(filter, this.clock());
     return { period: periodOf(filter), summary: this.teamsSummary(aggregates), items: aggregates.map(toTeamRow) };
   }

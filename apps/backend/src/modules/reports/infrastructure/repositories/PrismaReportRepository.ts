@@ -13,7 +13,6 @@ import type {
   TaskReportFilter,
   TaskReportRecord,
   TeamPerformanceAggregate,
-  TeamPerformanceFilter,
 } from "../../domain/report.types.js";
 
 const OPEN_TASK_STATUSES: TaskStatus[] = ["PENDENTE", "EM_ANDAMENTO"];
@@ -21,8 +20,8 @@ const OPEN_TASK_STATUSES: TaskStatus[] = ["PENDENTE", "EM_ANDAMENTO"];
 type TeamPerformanceSqlRow = Record<keyof TeamPerformanceAggregate, unknown>;
 
 // MySQL returns COUNT as BIGINT and SUM as DECIMAL; depending on the driver they arrive as bigint,
-// string or Decimal objects. Report numbers are small, so converting to number is safe.
-const toNumber = (value: unknown) => (value === null || value === undefined ? 0 : Number(String(value)));
+// string or Decimal objects (Decimal converts through valueOf). Report numbers are small, so converting to number is safe.
+const toNumber = (value: unknown) => (value === null || value === undefined ? 0 : Number(value));
 
 const pageArgs = (page?: PageRequest): { skip?: number; take?: number } =>
   (page ? { skip: (page.page - 1) * page.pageSize, take: page.pageSize } : {});
@@ -154,7 +153,7 @@ export class PrismaReportRepository implements ReportRepository {
     }));
   }
 
-  async teamPerformance(filter: TeamPerformanceFilter, now: Date): Promise<TeamPerformanceAggregate[]> {
+  async teamPerformance(filter: ReportPeriod, now: Date): Promise<TeamPerformanceAggregate[]> {
     // Historical report: soft-deleted or inactive teams still appear if they had tasks in the period.
     // Tasks without a team (alert-only) are not part of team performance.
     const rows = await this.prisma.$queryRaw<TeamPerformanceSqlRow[]>(Prisma.sql`

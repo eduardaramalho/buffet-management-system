@@ -4,7 +4,6 @@ import type {
   ScheduleWindow,
   TeamAvailability,
 } from "../domain/team.types.js";
-import type { TransactionClient } from "../../../shared/domain/transaction.types.js";
 
 const TERMINAL_EVENT_STATUSES = ["CONCLUIDO", "CANCELADO"] as const;
 
@@ -23,7 +22,7 @@ export class EventTeamService {
     private readonly audit: AuditService,
   ) {}
 
-  async assignTeamToEvent(eventId: string, teamId: string, actorId: string, tx?: TransactionClient) {
+  async assignTeamToEvent(eventId: string, teamId: string, actorId: string, tx?: unknown) {
     const event = await this.eventTeams.findEventById(eventId);
     if (!event || event.deletedAt) throw new EventTeamManagementError("Evento não encontrado");
     if (TERMINAL_EVENT_STATUSES.includes(event.status as (typeof TERMINAL_EVENT_STATUSES)[number])) {

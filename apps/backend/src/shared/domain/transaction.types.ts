@@ -1,10 +1,8 @@
-// Opaque transactional handle threaded through repository writes (Task, RuleApplication,
-// EventTeam assignment) so one rule application commits or rolls back atomically. Kept as
-// `unknown` here, instead of importing Prisma's TransactionClient, so domain/application code
-// in every module stays framework-agnostic; only the Prisma repository implementations know how
-// to unwrap it back into a real Prisma client.
-export type TransactionClient = unknown;
-
+// Runs one unit of work atomically (e.g. one rule application: Task, RuleApplication and EventTeam
+// writes commit or roll back together). The `tx` handed to `work` is deliberately typed as `unknown`
+// instead of Prisma's TransactionClient, so domain/application code in every module stays
+// framework-agnostic: it only threads the handle through to repository writes, and only the Prisma
+// repository implementations know how to unwrap it back into a real Prisma client.
 export interface TransactionRunner {
-  run<T>(work: (tx: TransactionClient) => Promise<T>): Promise<T>;
+  run<T>(work: (tx: unknown) => Promise<T>): Promise<T>;
 }

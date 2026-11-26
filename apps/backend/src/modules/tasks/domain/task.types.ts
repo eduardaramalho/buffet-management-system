@@ -1,4 +1,3 @@
-import type { TransactionClient } from "../../../shared/domain/transaction.types.js";
 
 export const taskStatuses = ["PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "CANCELADA"] as const;
 export type TaskStatus = (typeof taskStatuses)[number];
@@ -83,7 +82,7 @@ export type TaskReferenceReaders = {
 export interface TaskRepository {
   // tx (optional): when provided, the insert participates in the caller's Prisma transaction
   // instead of auto-committing on its own (see RuleEngineExecutionService.applyRules).
-  create(input: CreateTaskInput, tx?: TransactionClient): Promise<TaskRecord>;
+  create(input: CreateTaskInput, tx?: unknown): Promise<TaskRecord>;
   findById(id: string): Promise<TaskRecord | null>;
   list(filter: TaskListFilter): Promise<TaskRecord[]>;
   // Includes every task for the event, including cancelled, completed and soft-deleted rows.
@@ -111,7 +110,7 @@ export interface RuleApplicationRepository {
   listByEvent(eventId: string): Promise<RuleApplicationView[]>;
   findByEventAndRule(eventId: string, ruleId: string): Promise<RuleApplicationRecord | null>;
   // tx (optional): see TaskRepository.create above — keeps this write inside the same transaction.
-  create(eventId: string, ruleId: string, tx?: TransactionClient): Promise<RuleApplicationRecord>;
+  create(eventId: string, ruleId: string, tx?: unknown): Promise<RuleApplicationRecord>;
   remove(eventId: string, ruleId: string): Promise<void>;
 }
 

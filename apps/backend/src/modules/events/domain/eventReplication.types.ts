@@ -1,4 +1,4 @@
-import type { TransactionClient, TransactionRunner } from "../../../shared/domain/transaction.types.js";
+import type { TransactionRunner } from "../../../shared/domain/transaction.types.js";
 import type { CreateEventInput, EventAuditService, EventRecord, EventStatus, EventType, ServiceRecord } from "./event.types.js";
 
 // RF25 (ADR 0008): reuse an earlier event as the base for a new one. Only manual tasks and the
@@ -101,7 +101,7 @@ export type CreateReplicaInput = CreateEventInput & {
 
 export interface ReplicationEventStore {
   findById(id: string): Promise<EventRecord | null>;
-  createReplica(input: CreateReplicaInput, tx: TransactionClient): Promise<EventRecord>;
+  createReplica(input: CreateReplicaInput, tx: unknown): Promise<EventRecord>;
 }
 
 // Applies the same validations as a regular creation (RN03, future date, active client).
@@ -137,14 +137,14 @@ export type CreateReplicatedTaskInput = {
 export interface ReplicationTaskStore {
   // Non-deleted tasks of the event (the repository already filters soft-deleted rows).
   listByEvent(eventId: string): Promise<ReplicationSourceTask[]>;
-  create(input: CreateReplicatedTaskInput, tx: TransactionClient): Promise<{ id: string }>;
+  create(input: CreateReplicatedTaskInput, tx: unknown): Promise<{ id: string }>;
 }
 
 export interface ReplicationTeamGateway {
   listTeamsByEvent(eventId: string): Promise<{ teamId: string }[]>;
   findTeam(teamId: string): Promise<{ id: string; name: string; specialty: string } | null>;
   checkAvailability(teamId: string, schedule: ReplicationSchedule): Promise<TeamAvailability>;
-  assign(eventId: string, teamId: string, actorId: string, tx: TransactionClient): Promise<unknown>;
+  assign(eventId: string, teamId: string, actorId: string, tx: unknown): Promise<unknown>;
 }
 
 export type EventReplicationDependencies = {

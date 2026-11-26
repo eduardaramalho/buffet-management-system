@@ -5,9 +5,8 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { randomUUID } from "node:crypto";
 import { pinoHttp } from "pino-http";
-import { authRoutes } from "./modules/auth/presentation/routes/auth.routes.js";
+import { authRoutes, createAuthRoutes } from "./modules/auth/presentation/routes/auth.routes.js";
 import { auditRoutes } from "./modules/auth/presentation/routes/audit.routes.js";
-import { createAuthRoutes } from "./modules/auth/presentation/routes/auth.routes.js";
 import type { AuthController } from "./modules/auth/presentation/controllers/AuthController.js";
 import { userRoutes } from "./modules/auth/presentation/routes/user.routes.js";
 import { roleRoutes } from "./modules/auth/presentation/routes/role.routes.js";
@@ -34,10 +33,12 @@ const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5;
 const SENSITIVE_AUTH_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const SENSITIVE_AUTH_RATE_LIMIT_MAX_ATTEMPTS = 5;
 
-const allowedOrigins = env.corsOrigin
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const allowedOrigins = new Set(
+  env.corsOrigin
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+);
 
 const globalApiLimiter = rateLimit({
   windowMs: GLOBAL_RATE_LIMIT_WINDOW_MS,
@@ -110,7 +111,7 @@ app.use(
 app.use(
   cors({
     origin: (requestOrigin, callback) => {
-      if (!requestOrigin || allowedOrigins.includes(requestOrigin)) {
+      if (!requestOrigin || allowedOrigins.has(requestOrigin)) {
         return callback(null, true);
       }
 
@@ -129,7 +130,7 @@ app.use(
 app.use((request: Request, response: Response, next: NextFunction) => {
   const requestOrigin = request.headers.origin;
 
-  if (requestOrigin && !allowedOrigins.includes(requestOrigin)) {
+  if (requestOrigin && !allowedOrigins.has(requestOrigin)) {
     return response.status(403).json({ message: "Origin não permitida" });
   }
 

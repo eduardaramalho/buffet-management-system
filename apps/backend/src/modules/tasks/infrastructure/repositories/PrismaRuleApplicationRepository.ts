@@ -1,5 +1,4 @@
 import type { PrismaClient } from "../../../../generated/client.js";
-import type { TransactionClient } from "../../../../shared/domain/transaction.types.js";
 import type { RuleApplicationRecord, RuleApplicationRepository, RuleApplicationView } from "../../domain/task.types.js";
 
 export class PrismaRuleApplicationRepository implements RuleApplicationRepository {
@@ -20,7 +19,7 @@ export class PrismaRuleApplicationRepository implements RuleApplicationRepositor
     }) as Promise<RuleApplicationRecord | null>;
   }
 
-  create(eventId: string, ruleId: string, tx?: TransactionClient) {
+  create(eventId: string, ruleId: string, tx?: unknown) {
     const client = (tx as PrismaClient | undefined) ?? this.prisma;
     return client.ruleApplication.create({ data: { eventId, ruleId } }) as Promise<RuleApplicationRecord>;
   }

@@ -1,4 +1,3 @@
-import type { TransactionClient } from "../../../shared/domain/transaction.types.js";
 
 export const teamSpecialties = ["COZINHA", "SALAO", "BAR", "DECORACAO", "LIMPEZA", "CERIMONIAL", "OUTRO"] as const;
 export type TeamSpecialty = (typeof teamSpecialties)[number];
@@ -124,7 +123,7 @@ export interface EventTeamRepository {
   listEventsByTeam(teamId: string): Promise<EventSchedulingRecord[]>;
   // tx (optional): when provided, the insert participates in the caller's Prisma transaction
   // instead of auto-committing on its own (see RuleEngineExecutionService.applyRules).
-  assign(eventId: string, teamId: string, assignedById: string, tx?: TransactionClient): Promise<EventTeamAssignment>;
+  assign(eventId: string, teamId: string, assignedById: string, tx?: unknown): Promise<EventTeamAssignment>;
   unassign(eventId: string, teamId: string): Promise<void>;
   listTeamsByEvent(eventId: string): Promise<EventTeamAssignment[]>;
   listAssignmentsByTeam(teamId: string): Promise<EventTeamAssignment[]>;

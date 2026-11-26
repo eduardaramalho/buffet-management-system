@@ -1,5 +1,4 @@
 import type { PrismaClient } from "../../../../generated/client.js";
-import type { TransactionClient } from "../../../../shared/domain/transaction.types.js";
 import type { CreateReplicaInput, ReplicationEventStore } from "../../domain/eventReplication.types.js";
 import type {
   AttachServiceInput,
@@ -38,7 +37,7 @@ export class PrismaEventRepository implements EventRepository, ReplicationEventS
   }
 
   // Event and contracted services in a single nested insert, inside the replication transaction.
-  createReplica(input: CreateReplicaInput, tx: TransactionClient) {
+  createReplica(input: CreateReplicaInput, tx: unknown) {
     const client = tx as PrismaClient;
     const { services, ...event } = input;
     return client.event.create({
