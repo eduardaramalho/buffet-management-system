@@ -54,14 +54,12 @@ O Quality Gate do Sonar também não consegue aplicar limites diferentes por dir
    - parâmetros declarados (`async (..._args: unknown[]) =>`, `async (_args: unknown) =>`) nos mocks de controllers e de delegates do Prisma que já entram com `as never`, porque o `expect` do `@jest/globals` confere os argumentos de `toHaveBeenCalledWith` contra a assinatura do mock;
    - `as unknown as AuditService` onde o service depende da classe concreta `AuditService`, cujo campo privado impede que um objeto literal seja compatível.
 
-## Limitação temporária
+## Estado atual da publicação
 
-O repositório e o projeto do SonarCloud estão privados, e a conta não possui GitHub Pro. No plano gratuito, repositórios privados não permitem branch protection nem rulesets. Até a abertura do repositório:
+O repositório e o projeto do SonarCloud são públicos, e os badges de Quality Gate e cobertura estão no README. No plano gratuito, só repositórios públicos permitem rulesets, então o bloqueio de merge passou a ser possível:
 
-- um gate ou threshold reprovado deixa o commit com status de falha no Actions, mas não bloqueia o merge na `main`;
-- o bloqueio depende de disciplina: nada é integrado à `main` com o pipeline vermelho.
-
-**Quando o repositório ficar público:** criar um ruleset na `main` exigindo os checks `backend`, `frontend`, `e2e` e `sonar`; tornar o projeto do SonarCloud público e adicionar os badges de Quality Gate e cobertura ao README.
+- **Pendente (KAN-53):** criar o ruleset na `main` exigindo os checks `backend`, `frontend`, `e2e` e `sonar`.
+- Até o ruleset existir, um gate ou threshold reprovado deixa o commit com status de falha no Actions, mas não bloqueia o merge; nada é integrado à `main` com o pipeline vermelho.
 
 ## Prós
 
