@@ -7,7 +7,7 @@ type Toast = { id: number; message: string; tone: ToastTone }
 export const TOAST_DURATION_MS = 4000
 
 /** Avisos curtos (sucesso ou erro). Ficam numa região aria-live para serem lidos por leitores de tela. */
-export function ToastProvider({ children }: { children: ReactNode }) {
+export function ToastProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const nextId = useRef(1)
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>())

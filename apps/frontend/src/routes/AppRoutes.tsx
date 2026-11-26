@@ -1,5 +1,6 @@
 import { DashboardPage } from '../pages/DashboardPage'
 import type { ReactNode } from 'react'
+import type { AuthUser } from '../types'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth'
 import { ChangePasswordPage } from '../pages/ChangePasswordPage'
@@ -23,6 +24,12 @@ import { LoadingIndicator } from '../components/LoadBoundary'
 import { NO_ACCESS_PATH, getHomePath } from '../utils/homePath'
 import { usePageTitle } from '../hooks/usePageTitle'
 
+// Só para quem entrou com senha temporária; sem troca pendente, volta para o painel.
+function changePasswordElement(user: AuthUser | null) {
+  if (!user) return <Navigate to="/login" replace />
+  return user.mustChangePassword ? <ChangePasswordPage /> : <Navigate to="/" replace />
+}
+
 export function AppRoutes() {
 	const { user, logout, restoring } = useAuth()
 	const { pathname } = useLocation()
@@ -35,7 +42,7 @@ export function AppRoutes() {
 	return <Routes>
 		<Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
 		{/* Só para quem entrou com senha temporária; sem troca pendente, volta para o painel. */}
-		<Route path="/change-password" element={!user ? <Navigate to="/login" replace /> : user.mustChangePassword ? <ChangePasswordPage /> : <Navigate to="/" replace />} />
+		<Route path="/change-password" element={changePasswordElement(user)} />
 		<Route element={<ProtectedRoute />}>
 			<Route path="/" element={<ProtectedRoute permission="dashboard:view">{withNavigation(<DashboardPage />)}</ProtectedRoute>} />
 			<Route path="/users" element={<ProtectedRoute permission="users:list">{withNavigation(<UsersListPage />)}</ProtectedRoute>} />

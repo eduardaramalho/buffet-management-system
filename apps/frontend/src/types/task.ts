@@ -13,12 +13,13 @@ export const TASK_STATUS_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   CANCELADA: [],
 }
 
-const CLOSED_EVENT_STATUSES = ['CONCLUIDO', 'CANCELADO']
+/** Eventos encerrados: suas tarefas abertas só podem ser canceladas. */
+export const CLOSED_EVENT_STATUSES: ReadonlySet<string> = new Set(['CONCLUIDO', 'CANCELADO'])
 
 /** Next statuses offered for a task. In a closed event the open tasks can only be cancelled. */
 export function getTaskDestinations(status: TaskStatus, eventStatus?: string): TaskStatus[] {
   const destinations = TASK_STATUS_TRANSITIONS[status]
-  return eventStatus && CLOSED_EVENT_STATUSES.includes(eventStatus) ? destinations.filter((next) => next === 'CANCELADA') : destinations
+  return eventStatus && CLOSED_EVENT_STATUSES.has(eventStatus) ? destinations.filter((next) => next === 'CANCELADA') : destinations
 }
 
 export type Task = {

@@ -28,7 +28,7 @@ export class RouteErrorBoundary extends Component<Props, State> {
     if (previous.resetKey !== this.props.resetKey && this.state.failed) this.setState({ failed: false })
   }
 
-  private retry = () => this.setState((current) => ({ failed: false, attempt: current.attempt + 1 }))
+  private readonly retry = () => this.setState((current) => ({ failed: false, attempt: current.attempt + 1 }))
 
   render() {
     if (this.state.failed) {

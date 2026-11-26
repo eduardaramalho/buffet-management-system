@@ -17,6 +17,52 @@ import type { User } from '../types'
 import { usePageTitle } from '../hooks/usePageTitle'
 
 const PAGE_SIZE = 10
+const PROTECTED_ADMIN_TITLE = 'Usuários administradores não podem ser editados pela interface'
+
+function roleTone(administrator: boolean, roleName: string) {
+  if (administrator) return 'admin'
+  return roleName.toLowerCase().includes('editor') ? 'editor' : 'viewer'
+}
+
+function statusActionTitle(user: User, administrator: boolean, own: boolean) {
+  if (administrator) return PROTECTED_ADMIN_TITLE
+  if (own) return 'Você não pode desativar a própria conta'
+  return user.isActive ? 'Desativar usuário' : 'Ativar usuário'
+}
+
+function resetPasswordTitle(administrator: boolean, own: boolean) {
+  if (administrator) return 'A senha de administradores não pode ser redefinida pela interface'
+  return own ? 'Você não pode redefinir a própria senha por aqui' : 'Redefinir senha'
+}
+
+type UserRowProps = Readonly<{
+  user: User
+  administrator: boolean
+  own: boolean
+  canResetPassword: boolean
+  onView: (user: User) => void
+  onEdit: (user: User) => void
+  onToggleStatus: (user: User) => void
+  onResetPassword: (user: User) => void
+}>
+
+function UserRow({ user, administrator, own, canResetPassword, onView, onEdit, onToggleStatus, onResetPassword }: UserRowProps) {
+  const roleName = user.roles.map(({ role }) => role.name).join(', ')
+  return <tr>
+    <td><div className="user-cell"><Avatar name={user.name} /><strong>{user.name}</strong></div></td>
+    <td>{user.email}</td>
+    <td>—</td>
+    <td><Badge tone={roleTone(administrator, roleName)}>{roleName || 'Sem papel'}</Badge></td>
+    <td><Badge tone={user.isActive ? 'active' : 'inactive'}>{user.isActive ? 'Ativo' : 'Inativo'}</Badge></td>
+    <td><div className="row-actions">
+      <button title="Visualizar usuário" aria-label={`Visualizar ${user.name}`} onClick={() => onView(user)}><Icon name="eye" /></button>
+      <button title={administrator ? PROTECTED_ADMIN_TITLE : 'Editar usuário'} aria-label={`Editar ${user.name}`} disabled={administrator} onClick={() => onEdit(user)}><Icon name="pencil" /></button>
+      <button title={statusActionTitle(user, administrator, own)} aria-label={`${user.isActive ? 'Desativar' : 'Ativar'} ${user.name}`} disabled={administrator || own} onClick={() => onToggleStatus(user)}><Icon name="power" /></button>
+      {canResetPassword && <button title={resetPasswordTitle(administrator, own)} aria-label={`Redefinir senha de ${user.name}`} disabled={administrator || own} onClick={() => onResetPassword(user)}><Icon name="key" /></button>}
+    </div></td>
+  </tr>
+}
+
 export function UsersListPage() {
   usePageTitle('Usuários')
   const { user: actor } = useAuth()
@@ -58,7 +104,7 @@ export function UsersListPage() {
     <section className="content-head"><input className="search" placeholder="Buscar por nome, e-mail ou cargo..." value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); void load(event.target.value) }} /><select aria-label="Todos os perfis"><option>Todos os perfis</option></select><select aria-label="Status"><option>Status</option></select><button className="secondary">Filtros</button></section>
     {error && <Notice message={error} error />}
     <Table headers={['Usuário', 'E-mail', 'Cargo', 'Perfil', 'Status', 'Ações']}>
-      {visibleUsers.map((user) => { const administrator = isAdmin(user); const own = isOwnAccount(user); const roleName = user.roles.map(({ role }) => role.name).join(', '); const tone = administrator ? 'admin' : roleName.toLowerCase().includes('editor') ? 'editor' : 'viewer'; return <tr key={user.id}><td><div className="user-cell"><Avatar name={user.name} /><strong>{user.name}</strong></div></td><td>{user.email}</td><td>—</td><td><Badge tone={tone}>{roleName || 'Sem papel'}</Badge></td><td><Badge tone={user.isActive ? 'active' : 'inactive'}>{user.isActive ? 'Ativo' : 'Inativo'}</Badge></td><td><div className="row-actions"><button title="Visualizar usuário" aria-label={`Visualizar ${user.name}`} onClick={() => setViewingUser(user)}><Icon name="eye" /></button><button title={administrator ? 'Usuários administradores não podem ser editados pela interface' : 'Editar usuário'} aria-label={`Editar ${user.name}`} disabled={administrator} onClick={() => { setEditingUser(user); setFormOpen(true) }}><Icon name="pencil" /></button><button title={administrator ? 'Usuários administradores não podem ser editados pela interface' : own ? 'Você não pode desativar a própria conta' : user.isActive ? 'Desativar usuário' : 'Ativar usuário'} aria-label={`${user.isActive ? 'Desativar' : 'Ativar'} ${user.name}`} disabled={administrator || own} onClick={() => void changeStatus(user)}><Icon name="power" /></button>{canResetPassword && <button title={administrator ? 'A senha de administradores não pode ser redefinida pela interface' : own ? 'Você não pode redefinir a própria senha por aqui' : 'Redefinir senha'} aria-label={`Redefinir senha de ${user.name}`} disabled={administrator || own} onClick={() => setResettingUser(user)}><Icon name="key" /></button>}</div></td></tr> })}
+      {visibleUsers.map((user) => <UserRow key={user.id} user={user} administrator={isAdmin(user)} own={isOwnAccount(user)} canResetPassword={canResetPassword} onView={setViewingUser} onEdit={(target) => { setEditingUser(target); setFormOpen(true) }} onToggleStatus={(target) => void changeStatus(target)} onResetPassword={setResettingUser} />)}
     </Table>
     {users.length === 0 && <div className="empty">Nenhum usuário encontrado.</div>}
     <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} />

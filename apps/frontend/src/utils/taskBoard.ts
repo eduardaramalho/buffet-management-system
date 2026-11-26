@@ -1,9 +1,7 @@
-import { getTaskDestinations, TERMINAL_TASK_STATUSES, type TaskStatus } from '../types/task'
+import { CLOSED_EVENT_STATUSES, getTaskDestinations, TERMINAL_TASK_STATUSES, type TaskStatus } from '../types/task'
 
 /** What the board does when a card is dropped on a column (KAN-77, ADR 0017). */
 export type TaskDropDecision = { kind: 'none' } | { kind: 'move' } | { kind: 'confirm' } | { kind: 'reject'; reason: string }
-
-const CLOSED_EVENT_STATUSES = ['CONCLUIDO', 'CANCELADO']
 
 /**
  * Why a move is not allowed, in the user's words, or null when it is allowed (or is no move at all).
@@ -12,7 +10,7 @@ const CLOSED_EVENT_STATUSES = ['CONCLUIDO', 'CANCELADO']
 export function getMoveBlockReason(task: { status: TaskStatus }, target: TaskStatus, eventStatus?: string): string | null {
   if (task.status === target || getTaskDestinations(task.status, eventStatus).includes(target)) return null
   if (TERMINAL_TASK_STATUSES.includes(task.status)) return 'Tarefas concluídas ou canceladas não mudam mais de status.'
-  if (eventStatus && CLOSED_EVENT_STATUSES.includes(eventStatus)) return 'O evento já foi encerrado: as tarefas abertas só podem ser canceladas.'
+  if (eventStatus && CLOSED_EVENT_STATUSES.has(eventStatus)) return 'O evento já foi encerrado: as tarefas abertas só podem ser canceladas.'
   if (task.status === 'PENDENTE' && target === 'CONCLUIDA') return 'Inicie a tarefa antes de concluir: mova primeiro para Em andamento.'
   return 'Movimento não permitido.'
 }

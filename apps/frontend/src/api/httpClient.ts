@@ -37,7 +37,7 @@ httpClient.interceptors.request.use((config) => {
 
 httpClient.interceptors.response.use(undefined, async (error: AxiosError) => {
   const config = error.config as RetriableConfig | undefined
-  if (error.response?.status !== 401 || !config || config._retry || NO_REFRESH_URLS.has(config.url ?? '')) return Promise.reject(error)
+  if (error.response?.status !== 401 || !config || config._retry || NO_REFRESH_URLS.has(config.url ?? '')) throw error
 
   config._retry = true
   try {
@@ -45,7 +45,7 @@ httpClient.interceptors.response.use(undefined, async (error: AxiosError) => {
     return await httpClient(config)
   } catch (refreshError) {
     clearAccessToken()
-    return Promise.reject(refreshError)
+    throw refreshError
   }
 })
 

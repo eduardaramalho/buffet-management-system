@@ -1,6 +1,6 @@
 // Ícone da marca: agenda (planejamento) com um brilho dourado (o evento).
 // É o mesmo desenho de public/favicon.svg; ao alterar um, altere o outro.
-export function LogoMark({ className = 'logo-mark' }: { className?: string }) {
+export function LogoMark({ className = 'logo-mark' }: Readonly<{ className?: string }>) {
   return <svg className={className} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
     <rect width="64" height="64" rx="14" fill="#102650" />
     <rect x="13" y="17" width="38" height="35" rx="6" fill="#ffffff" />
@@ -12,6 +12,6 @@ export function LogoMark({ className = 'logo-mark' }: { className?: string }) {
   </svg>
 }
 
-export function Logo({ compact = false }: { compact?: boolean }) {
+export function Logo({ compact = false }: Readonly<{ compact?: boolean }>) {
   return <div className={`brand${compact ? ' compact' : ''}`}><LogoMark /><span><strong>Eventos<span>Pro</span></strong>{!compact && <small>Gestão de Eventos</small>}</span></div>
 }

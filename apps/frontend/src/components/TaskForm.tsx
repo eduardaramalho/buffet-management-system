@@ -23,7 +23,7 @@ type TaskFormProps = {
   onSaved: (task: Task) => void
 }
 
-const TERMINAL_EVENT_STATUSES: Event['status'][] = ['CONCLUIDO', 'CANCELADO']
+const TERMINAL_EVENT_STATUSES: ReadonlySet<Event['status']> = new Set<Event['status']>(['CONCLUIDO', 'CANCELADO'])
 
 // <input type="date"> trabalha com "yyyy-mm-dd" no fuso local; o prazo vai à API como instante ISO ao meio-dia local,
 // o que evita que o dia mude por conversão de fuso.
@@ -34,7 +34,7 @@ const toDateInput = (value?: string | null) => {
 }
 const fromDateInput = (value: string) => new Date(`${value}T12:00:00`).toISOString()
 
-export function TaskForm({ task, events, teams, defaultEventId, onClose, onSaved }: TaskFormProps) {
+export function TaskForm({ task, events, teams, defaultEventId, onClose, onSaved }: Readonly<TaskFormProps>) {
   const toast = useToast()
   const [eventId, setEventId] = useState(task?.eventId ?? defaultEventId ?? '')
   const [title, setTitle] = useState(task?.title ?? '')
@@ -48,7 +48,7 @@ export function TaskForm({ task, events, teams, defaultEventId, onClose, onSaved
 
   const isGenerated = Boolean(task?.sourceRuleId)
   const validation = useFormValidation(taskFormSchema(isGenerated), { eventId, title, description, dueDate, assignedTeamId })
-  const selectableEvents = task ? events.filter((event) => event.id === task.eventId) : events.filter((event) => !TERMINAL_EVENT_STATUSES.includes(event.status))
+  const selectableEvents = task ? events.filter((event) => event.id === task.eventId) : events.filter((event) => !TERMINAL_EVENT_STATUSES.has(event.status))
   const taskEvent = events.find((event) => event.id === task?.eventId)
   const allocatedTeamIds = allocations?.eventId === eventId ? allocations.teamIds : null
 

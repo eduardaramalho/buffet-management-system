@@ -9,7 +9,7 @@ type BarChartProps = {
 }
 
 /** Horizontal bar chart in plain HTML/CSS: no chart library, accessible as a labelled list of values. */
-export function BarChart({ title, items, max, format = String }: BarChartProps) {
+export function BarChart({ title, items, max, format = String }: Readonly<BarChartProps>) {
   const scale = max ?? Math.max(0, ...items.map((item) => item.value))
   return <figure className="bar-chart" aria-label={title}>
     <figcaption>{title}</figcaption>

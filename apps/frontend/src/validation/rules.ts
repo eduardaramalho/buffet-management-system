@@ -17,12 +17,12 @@ export const optionalText = (max: number) => z.string().trim().max(max, tooLong(
 
 export const requiredChoice = (message: string) => z.string().min(1, message)
 
-const PHONE_LENGTHS = [10, 11]
+const PHONE_LENGTHS: ReadonlySet<number> = new Set([10, 11])
 const PHONE_MAX = 30
 
 /** Opcional; quando preenchido, precisa ter DDD + número (a máscara monta o formato). */
 export const optionalPhone = z.string().max(PHONE_MAX, tooLong(PHONE_MAX))
-  .refine((value) => value === '' || PHONE_LENGTHS.includes(onlyDigits(value).length), 'Informe o telefone com DDD, por exemplo (47) 99999-0000.')
+  .refine((value) => value === '' || PHONE_LENGTHS.has(onlyDigits(value).length), 'Informe o telefone com DDD, por exemplo (47) 99999-0000.')
 
 type IntegerOptions = { required?: string; min: number; max: number; minMessage?: string; maxMessage?: string }
 

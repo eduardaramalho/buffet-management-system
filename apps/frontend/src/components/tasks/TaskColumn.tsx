@@ -15,7 +15,7 @@ type TaskColumnProps = {
   children: ReactNode
 }
 
-export function TaskColumn({ status, count, dropState, blockedReason, children }: TaskColumnProps) {
+export function TaskColumn({ status, count, dropState, blockedReason, children }: Readonly<TaskColumnProps>) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
   const label = TASK_STATUS_LABELS[status]
   const classes = ['task-column', dropState !== 'idle' && `is-${dropState}`, isOver && dropState !== 'origin' && 'is-over'].filter(Boolean).join(' ')

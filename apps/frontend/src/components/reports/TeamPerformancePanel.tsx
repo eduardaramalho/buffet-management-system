@@ -10,7 +10,7 @@ import { Table } from '../Table'
 import { ExportButtons } from './ExportButtons'
 import { ReportStatus } from './ReportStatus'
 
-export function TeamPerformancePanel({ period }: { period: ApiPeriod | null }) {
+export function TeamPerformancePanel({ period }: Readonly<{ period: ApiPeriod | null }>) {
   const { data, loading, error, reload } = useReport(() => getTeamPerformanceReport(period as ApiPeriod), period ? JSON.stringify(period) : null)
 
   return <>

@@ -42,6 +42,11 @@ const announcements: Announcements = {
 
 type PendingConfirm = { kind: 'cancel' | 'delete'; task: Task }
 
+const deleteConfirmMessage = (task: Task) => {
+  const ruleNote = task.sourceRuleId ? ' Ela foi gerada por uma regra e não será recriada.' : ''
+  return `"${task.title}" sai do quadro.${ruleNote}`
+}
+
 export function TasksBoardPage() {
   usePageTitle('Tarefas')
   const { user } = useAuth()
@@ -268,7 +273,7 @@ export function TasksBoardPage() {
     {confirm && <ConfirmDialog
       title={confirm.kind === 'delete' ? 'Excluir a tarefa?' : 'Cancelar a tarefa?'}
       message={confirm.kind === 'delete'
-        ? `"${confirm.task.title}" sai do quadro.${confirm.task.sourceRuleId ? ' Ela foi gerada por uma regra e não será recriada.' : ''}`
+        ? deleteConfirmMessage(confirm.task)
         : `"${confirm.task.title}" será cancelada. Essa ação não pode ser desfeita.`}
       confirmLabel={confirm.kind === 'delete' ? 'Excluir' : 'Cancelar tarefa'}
       onConfirm={() => void confirmAction()}

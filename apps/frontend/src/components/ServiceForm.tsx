@@ -11,7 +11,7 @@ import type { Service } from '../types/event'
 
 type ServiceFormProps = { service?: Service; onClose: () => void; onSaved: (service: Service) => void }
 
-export function ServiceForm({ service, onClose, onSaved }: ServiceFormProps) {
+export function ServiceForm({ service, onClose, onSaved }: Readonly<ServiceFormProps>) {
   const toast = useToast()
   const [name, setName] = useState(service?.name ?? '')
   const [apiError, setApiError] = useState('')

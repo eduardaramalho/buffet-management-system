@@ -20,7 +20,7 @@ import { REPORT_PAGE_SIZE } from './reportConstants'
 type Filters = { status: EventStatus | ''; serviceType: EventType | ''; clientId: string }
 const EMPTY_FILTERS: Filters = { status: '', serviceType: '', clientId: '' }
 
-export function EventsReportPanel({ period }: { period: ApiPeriod | null }) {
+export function EventsReportPanel({ period }: Readonly<{ period: ApiPeriod | null }>) {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [page, setPage] = useState(1)
   const clients = useOptions(() => listClients())
