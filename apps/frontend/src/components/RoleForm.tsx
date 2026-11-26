@@ -11,7 +11,7 @@ import type { Role } from '../types'
 
 type RoleFormProps = { role?: Role; onClose: () => void; onSaved: (role: Role) => void }
 
-export function RoleForm({ role, onClose, onSaved }: RoleFormProps) {
+export function RoleForm({ role, onClose, onSaved }: Readonly<RoleFormProps>) {
   const toast = useToast()
   const [name, setName] = useState(role?.name ?? '')
   const [description, setDescription] = useState(role?.description ?? '')

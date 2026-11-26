@@ -44,7 +44,7 @@ export function usePolling(fn: () => Promise<unknown>, { intervalMs = POLLING_IN
   useEffect(() => {
     if (!enabled) return undefined
     let timer: ReturnType<typeof setInterval> | undefined
-    const start = () => { if (timer === undefined) timer = setInterval(() => { void refresh() }, intervalMs) }
+    const start = () => { timer ??= setInterval(() => { void refresh() }, intervalMs) }
     const stop = () => { if (timer !== undefined) { clearInterval(timer); timer = undefined } }
     const onVisibility = () => {
       stop()

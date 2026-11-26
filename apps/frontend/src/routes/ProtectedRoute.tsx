@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { useAuth } from '../contexts/useAuth'
 import { getHomePath } from '../utils/homePath'
 
-export function ProtectedRoute({ permission, children }: { permission?: string; children?: ReactNode }) {
+export function ProtectedRoute({ permission, children }: Readonly<{ permission?: string; children?: ReactNode }>) {
   const { user } = useAuth()
   if (!user) return <Navigate to="/login" replace />
   // ADR 0012: com senha temporária, nenhuma página interna abre antes da troca (o backend também bloqueia).

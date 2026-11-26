@@ -18,8 +18,8 @@ export class TaskManagementError extends Error {
 }
 
 // Mirrors EventStatus's terminal-state convention: a CONCLUIDA/CANCELADA task never changes again.
-const TERMINAL_TASK_STATUSES: TaskStatus[] = ["CONCLUIDA", "CANCELADA"];
-const TERMINAL_EVENT_STATUSES = ["CONCLUIDO", "CANCELADO"];
+const TERMINAL_TASK_STATUSES: ReadonlySet<TaskStatus> = new Set<TaskStatus>(["CONCLUIDA", "CANCELADA"]);
+const TERMINAL_EVENT_STATUSES: ReadonlySet<string> = new Set(["CONCLUIDO", "CANCELADO"]);
 const ACTIVE_TEAM_STATUS = "ATIVA";
 const TEAM_NOT_ALLOCATED_MESSAGE = "Aloque a equipe ao evento antes de atribuí-la à tarefa";
 
@@ -43,7 +43,7 @@ export class TaskService {
   async create(input: CreateManualTaskInput, actorId: string) {
     const event = await this.readers.events.findById(input.eventId);
     if (!event || event.deletedAt) throw new TaskManagementError("Evento não encontrado");
-    if (TERMINAL_EVENT_STATUSES.includes(event.status)) {
+    if (TERMINAL_EVENT_STATUSES.has(event.status)) {
       throw new TaskManagementError("Não é possível criar tarefas em eventos concluídos ou cancelados");
     }
 
@@ -72,34 +72,12 @@ export class TaskService {
 
   async update(id: string, input: UpdateTaskDetailsInput, actorId: string) {
     const task = await this.get(id);
-    if (TERMINAL_TASK_STATUSES.includes(task.status)) {
-      throw new TaskManagementError("Tarefas concluídas ou canceladas não podem ser editadas");
-    }
-    if (task.sourceRuleId && input.title !== undefined && input.title !== task.title) {
-      // The title is the rule engine's idempotency key: renaming would make it regenerate the task.
-      throw new TaskManagementError("O título de uma tarefa gerada por regra não pode ser alterado");
-    }
-
-    const data: UpdateTaskInput = {};
-    const before: Record<string, unknown> = {};
-    const after: Record<string, unknown> = {};
-    const track = (field: "title" | "description" | "dueDate" | "assignedTeamId", value: string | Date | null) => {
-      Object.assign(data, { [field]: value });
-      before[field] = task[field];
-      after[field] = value;
-    };
-
-    if (input.title !== undefined && input.title !== task.title) track("title", input.title);
-    if (input.description !== undefined && input.description !== task.description) track("description", input.description);
-    if (input.dueDate !== undefined && input.dueDate?.getTime() !== task.dueDate?.getTime()) track("dueDate", input.dueDate);
+    assertTaskEditable(task, input);
 
     const teamChanged = input.assignedTeamId !== undefined && input.assignedTeamId !== task.assignedTeamId;
-    if (teamChanged) {
-      if (input.assignedTeamId) await this.assertTeamAssignable(task.eventId, input.assignedTeamId);
-      track("assignedTeamId", input.assignedTeamId ?? null);
-      data.assignedAt = input.assignedTeamId ? new Date() : null;
-    }
+    if (teamChanged && input.assignedTeamId) await this.assertTeamAssignable(task.eventId, input.assignedTeamId);
 
+    const { data, before, after } = collectTaskChanges(task, input, teamChanged);
     if (Object.keys(data).length === 0) return task;
 
     const updated = await this.tasks.update(id, data);
@@ -110,7 +88,7 @@ export class TaskService {
 
   async remove(id: string, actorId: string) {
     const task = await this.get(id);
-    if (TERMINAL_TASK_STATUSES.includes(task.status)) {
+    if (TERMINAL_TASK_STATUSES.has(task.status)) {
       throw new TaskManagementError("Tarefas concluídas ou canceladas não podem ser excluídas");
     }
     await this.tasks.softDelete(id);
@@ -125,7 +103,7 @@ export class TaskService {
 
   private async assertTeamAssignable(eventId: string, teamId: string) {
     const team = await this.readers.teams.findById(teamId);
-    if (!team || team.status !== ACTIVE_TEAM_STATUS) throw new TaskManagementError(TEAM_NOT_ALLOCATED_MESSAGE);
+    if (team?.status !== ACTIVE_TEAM_STATUS) throw new TaskManagementError(TEAM_NOT_ALLOCATED_MESSAGE);
     const allocations = await this.readers.eventTeams.listTeamsByEvent(eventId);
     if (!allocations.some((allocation) => allocation.teamId === teamId)) throw new TaskManagementError(TEAM_NOT_ALLOCATED_MESSAGE);
   }
@@ -143,7 +121,7 @@ export class TaskService {
   async updateStatus(id: string, status: TaskStatus, actorId: string) {
     const task = await this.get(id);
     // ADR 0014: the backend owns the lifecycle; the board only offers the next valid statuses.
-    if (TERMINAL_TASK_STATUSES.includes(task.status)) {
+    if (TERMINAL_TASK_STATUSES.has(task.status)) {
       throw new TaskManagementError("Tarefas concluídas ou canceladas não podem mudar de status");
     }
     if (task.status === status) throw new TaskManagementError(`A tarefa já está em ${TASK_STATUS_LABELS[status]}`);
@@ -152,7 +130,7 @@ export class TaskService {
     }
     // A closed event only lets its leftover open tasks be cancelled, so they stop counting as open.
     const event = await this.readers.events.findById(task.eventId);
-    if (event && TERMINAL_EVENT_STATUSES.includes(event.status) && status !== "CANCELADA") {
+    if (event && TERMINAL_EVENT_STATUSES.has(event.status) && status !== "CANCELADA") {
       throw new TaskManagementError("Em eventos concluídos ou cancelados, as tarefas em aberto só podem ser canceladas");
     }
 
@@ -166,4 +144,44 @@ export class TaskService {
     });
     return updated;
   }
+}
+
+type EditableTask = {
+  status: TaskStatus;
+  sourceRuleId: string | null;
+  title: string;
+  description: string | null;
+  dueDate: Date | null;
+  assignedTeamId: string | null;
+};
+
+function assertTaskEditable(task: EditableTask, input: UpdateTaskDetailsInput) {
+  if (TERMINAL_TASK_STATUSES.has(task.status)) {
+    throw new TaskManagementError("Tarefas concluídas ou canceladas não podem ser editadas");
+  }
+  if (task.sourceRuleId && input.title !== undefined && input.title !== task.title) {
+    // The title is the rule engine's idempotency key: renaming would make it regenerate the task.
+    throw new TaskManagementError("O título de uma tarefa gerada por regra não pode ser alterado");
+  }
+}
+
+// Only the fields that really change go to the repository and to the audit trail (before/after).
+function collectTaskChanges(task: EditableTask, input: UpdateTaskDetailsInput, teamChanged: boolean) {
+  const data: UpdateTaskInput = {};
+  const before: Record<string, unknown> = {};
+  const after: Record<string, unknown> = {};
+  const track = (field: "title" | "description" | "dueDate" | "assignedTeamId", value: string | Date | null) => {
+    Object.assign(data, { [field]: value });
+    before[field] = task[field];
+    after[field] = value;
+  };
+
+  if (input.title !== undefined && input.title !== task.title) track("title", input.title);
+  if (input.description !== undefined && input.description !== task.description) track("description", input.description);
+  if (input.dueDate !== undefined && input.dueDate?.getTime() !== task.dueDate?.getTime()) track("dueDate", input.dueDate);
+  if (teamChanged) {
+    track("assignedTeamId", input.assignedTeamId ?? null);
+    data.assignedAt = input.assignedTeamId ? new Date() : null;
+  }
+  return { data, before, after };
 }

@@ -28,7 +28,7 @@ export function isValidCpf(value: string): boolean {
 
 // Each character is worth its ASCII code minus 48 (digits keep their value, A = 17 ... Z = 42).
 const cnpjDigit = (chars: string, weights: number[]) =>
-  mod11Digit([...chars].reduce((sum, char, index) => sum + (char.charCodeAt(0) - ASCII_ZERO) * weights[index], 0));
+  mod11Digit([...chars].reduce((sum, char, index) => sum + ((char.codePointAt(0) ?? ASCII_ZERO) - ASCII_ZERO) * weights[index], 0));
 
 export function isValidCnpj(value: string): boolean {
   if (!CNPJ_PATTERN.test(value) || REPEATED_CHAR_PATTERN.test(value)) return false;

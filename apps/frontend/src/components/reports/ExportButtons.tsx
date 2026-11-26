@@ -6,7 +6,7 @@ import { Notice } from '../Notice'
 
 const FORMATS: Array<{ format: ExportFormat; label: string }> = [{ format: 'csv', label: 'Exportar CSV' }, { format: 'pdf', label: 'Exportar PDF' }]
 
-export function ExportButtons({ onExport, disabled }: { onExport: (format: ExportFormat) => Promise<void>; disabled: boolean }) {
+export function ExportButtons({ onExport, disabled }: Readonly<{ onExport: (format: ExportFormat) => Promise<void>; disabled: boolean }>) {
   const [busy, setBusy] = useState<ExportFormat>()
   const [error, setError] = useState('')
 

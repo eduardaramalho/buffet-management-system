@@ -18,7 +18,7 @@ import type { Role, User } from '../types'
 type UserFormProps = { user?: User; isOwnAccount?: boolean; onClose: () => void; onCreated: (user: User) => void; onUpdated: (user: User) => void }
 
 /** Cadastro e edição de usuário. Na edição não há papel nem senha (ADR 0012): a senha só muda pelo reset feito por admin ou gestor. */
-export function UserForm({ user, isOwnAccount = false, onClose, onCreated, onUpdated }: UserFormProps) {
+export function UserForm({ user, isOwnAccount = false, onClose, onCreated, onUpdated }: Readonly<UserFormProps>) {
   const toast = useToast()
   const [name, setName] = useState(user?.name ?? '')
   const [email, setEmail] = useState(user?.email ?? '')

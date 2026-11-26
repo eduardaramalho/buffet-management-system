@@ -9,7 +9,7 @@ import type { TemporaryPassword, User } from '../types'
  * ADR 0012: o administrador gera uma senha temporária e a repassa ao usuário. A senha aparece só aqui,
  * uma única vez: o backend não a guarda em texto e não há como consultá-la depois.
  */
-export function ResetPasswordDialog({ user, onClose }: { user: User; onClose: () => void }) {
+export function ResetPasswordDialog({ user, onClose }: Readonly<{ user: User; onClose: () => void }>) {
   const [result, setResult] = useState<TemporaryPassword | null>(null)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
@@ -29,7 +29,7 @@ export function ResetPasswordDialog({ user, onClose }: { user: User; onClose: ()
     catch { setError('Não foi possível copiar. Selecione a senha e copie manualmente.') }
   }
 
-  return <aside className="user-form-panel" role="dialog" aria-modal="true" aria-labelledby="reset-password-title">
+  return <dialog open className="user-form-panel" aria-modal="true" aria-labelledby="reset-password-title">
     <div className="form-wrap">
       <h2 id="reset-password-title">Redefinir senha</h2>
       {!result ? <>
@@ -52,5 +52,5 @@ export function ResetPasswordDialog({ user, onClose }: { user: User; onClose: ()
         </div>
       </>}
     </div>
-  </aside>
+  </dialog>
 }

@@ -21,14 +21,14 @@ import { REPORT_PAGE_SIZE } from './reportConstants'
 type Filters = { status: TaskStatus | ''; teamId: string; origin: TaskOrigin | '' }
 const EMPTY_FILTERS: Filters = { status: '', teamId: '', origin: '' }
 
-function Situation({ task }: { task: TaskReportRow }) {
+function Situation({ task }: Readonly<{ task: TaskReportRow }>) {
   if (task.overdue) return <Badge tone="inactive">Atrasada</Badge>
   if (task.completedLate) return <Badge tone="editor">Concluída com atraso</Badge>
   if (task.status === 'CONCLUIDA' && task.dueDate) return <Badge tone="active">No prazo</Badge>
   return <>-</>
 }
 
-export function TasksReportPanel({ period }: { period: ApiPeriod | null }) {
+export function TasksReportPanel({ period }: Readonly<{ period: ApiPeriod | null }>) {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [page, setPage] = useState(1)
   const teams = useOptions(() => listTeams())

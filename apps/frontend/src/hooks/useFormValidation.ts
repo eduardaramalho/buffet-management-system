@@ -31,7 +31,7 @@ export function useFormValidation<Schema extends z.ZodType>(schema: Schema, valu
       const target = event?.target
       if (target instanceof Element) {
         if (target.closest('[hidden]')) return
-        const dialog = target.closest('[role="dialog"]')
+        const dialog = target.closest('dialog, [role="dialog"]')
         const next = event?.relatedTarget
         if (dialog && next instanceof Node && !dialog.contains(next)) return
       }

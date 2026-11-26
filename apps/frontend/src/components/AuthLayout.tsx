@@ -13,7 +13,7 @@ type AuthLayoutProps = {
  * Layout das telas fora do sistema (login e troca obrigatória de senha).
  * O painel lateral usa o mesmo navy da sidebar interna, para que a entrada no sistema não pareça outro produto.
  */
-export function AuthLayout({ title, description, aside, children }: AuthLayoutProps) {
+export function AuthLayout({ title, description, aside, children }: Readonly<AuthLayoutProps>) {
   return <div className="auth-shell">
     <aside className="auth-aside">
       <Logo />

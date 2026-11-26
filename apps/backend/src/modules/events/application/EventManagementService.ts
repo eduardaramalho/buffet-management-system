@@ -24,6 +24,23 @@ const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
   CANCELADO: [],
 };
 
+const STATUSES_REQUIRING_CANCEL_REASON: ReadonlySet<string> = new Set(["CONFIRMADO", "EM_ANDAMENTO"]);
+
+// Status machine (VALID_STATUS_TRANSITIONS), mandatory reason for sensitive changes and guest limit (RN03).
+function assertValidUpdate(event: Pick<EventRecord, "status">, input: UpdateEventInput) {
+  if (input.status && input.status !== event.status && !VALID_STATUS_TRANSITIONS[event.status]?.includes(input.status)) {
+    throw new EventManagementError("transição de status inválida");
+  }
+  const cancelsCommittedEvent = input.status === "CANCELADO" && STATUSES_REQUIRING_CANCEL_REASON.has(event.status);
+  const reschedulesConfirmedEvent = event.status === "CONFIRMADO" && (input.eventDate !== undefined || input.location !== undefined);
+  if ((cancelsCommittedEvent || reschedulesConfirmedEvent) && !input.reason?.trim()) {
+    throw new EventManagementError("reason é obrigatório para esta alteração");
+  }
+  if (input.guestsCount !== undefined && input.guestsCount > MAX_GUESTS_COUNT) {
+    throw new EventManagementError(`O número de convidados não pode exceder ${MAX_GUESTS_COUNT}`);
+  }
+}
+
 export class EventManagementError extends Error {
   constructor(message: string) {
     super(message);
@@ -89,16 +106,7 @@ export class EventManagementService {
     const event = await this.events.findById(id);
     if (!event) throw new EventManagementError(EVENT_NOT_FOUND);
 
-    if (input.status && input.status !== event.status && !VALID_STATUS_TRANSITIONS[event.status]?.includes(input.status)) {
-      throw new EventManagementError("transição de status inválida");
-    }
-    if ((input.status === "CANCELADO" && ["CONFIRMADO", "EM_ANDAMENTO"].includes(event.status)) ||
-      (event.status === "CONFIRMADO" && (input.eventDate !== undefined || input.location !== undefined))) {
-      if (!input.reason?.trim()) throw new EventManagementError("reason é obrigatório para esta alteração");
-    }
-    if (input.guestsCount !== undefined && input.guestsCount > MAX_GUESTS_COUNT) {
-      throw new EventManagementError(`O número de convidados não pode exceder ${MAX_GUESTS_COUNT}`);
-    }
+    assertValidUpdate(event, input);
     // Partial update: an omitted clientId keeps the current client (status changes from the Event Hub send
     // only the status). When sent, it must point to an active client; the change is audited in EVENT_UPDATED.
     if (input.clientId !== undefined) await this.assertClientAvailable(input.clientId);
@@ -117,14 +125,16 @@ export class EventManagementService {
     // here would be misleading (the confirmation itself succeeded). The absence of a RuleApplication
     // row for this event is itself the signal that reprocessing is needed, via the manual
     // POST /api/v1/events/:id/apply-rules endpoint (Part 2) once someone notices and reprocesses.
-    if (input.status === "CONFIRMADO" && event.status !== "CONFIRMADO") {
-      try {
-        await this.ruleExecution?.applyRules(id, actorId);
-      } catch (error) {
-        this.logger?.error({ eventId: id, err: error }, "Falha ao executar o motor de regras automaticamente após confirmar o evento");
-      }
-    }
+    if (input.status === "CONFIRMADO" && event.status !== "CONFIRMADO") await this.triggerRuleEngine(id, actorId);
     return updated;
+  }
+
+  private async triggerRuleEngine(eventId: string, actorId: string) {
+    try {
+      await this.ruleExecution?.applyRules(eventId, actorId);
+    } catch (error) {
+      this.logger?.error({ eventId, err: error }, "Falha ao executar o motor de regras automaticamente após confirmar o evento");
+    }
   }
 
   async remove(id: string, actorId: string) {

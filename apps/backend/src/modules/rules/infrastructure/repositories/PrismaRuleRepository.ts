@@ -6,8 +6,10 @@ const ruleInclude = { resourceRequirements: true, taskTemplates: true } as const
 
 // Prisma's Json columns require the `Prisma.JsonNull` sentinel to store an actual JSON null value;
 // a plain `null` is ambiguous with "leave the column untouched" for nullable Json fields.
-const toJsonInput = (value: string[] | null | undefined) =>
-  value === undefined ? undefined : value === null ? Prisma.JsonNull : value;
+const toJsonInput = (value: string[] | null | undefined) => {
+  if (value === undefined) return undefined;
+  return value ?? Prisma.JsonNull;
+};
 
 export class PrismaRuleRepository implements RuleRepository {
   constructor(private readonly prisma: PrismaClient) {}

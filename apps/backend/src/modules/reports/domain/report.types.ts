@@ -18,7 +18,6 @@ export type ExportFormat = (typeof exportFormats)[number];
 
 export type EventReportFilter = ReportPeriod & { status?: EventStatus; serviceType?: EventType; clientId?: string };
 export type TaskReportFilter = ReportPeriod & { status?: TaskStatus; teamId?: string; origin?: TaskOrigin };
-export type TeamPerformanceFilter = ReportPeriod;
 
 // ---- Repository output (raw aggregates, no business definitions applied) ----
 
@@ -84,7 +83,7 @@ export interface ReportRepository {
   eventRows(filter: EventReportFilter, page?: PageRequest): Promise<EventReportRow[]>;
   taskAggregates(filter: TaskReportFilter, now: Date): Promise<TaskReportAggregates>;
   taskRows(filter: TaskReportFilter, page?: PageRequest): Promise<TaskReportRecord[]>;
-  teamPerformance(filter: TeamPerformanceFilter, now: Date): Promise<TeamPerformanceAggregate[]>;
+  teamPerformance(filter: ReportPeriod, now: Date): Promise<TeamPerformanceAggregate[]>;
 }
 
 // ---- Report DTOs returned by the API ----

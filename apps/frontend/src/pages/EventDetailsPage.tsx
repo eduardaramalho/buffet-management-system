@@ -18,7 +18,7 @@ import type { MatchedRule } from '../types/rule'
 import type { Task } from '../types/task'
 import { isTaskOverdue, sortTasksBySchedule } from '../utils/taskSchedule'
 import type { Team } from '../types/team'
-import { EVENT_STATUS_LABELS } from '../utils/labels'
+import { EVENT_STATUS_LABELS, TASK_STATUS_LABELS } from '../utils/labels'
 import { usePageTitle } from '../hooks/usePageTitle'
 
 const STATUS_STEPS: Array<{ status: Exclude<EventStatus, 'CANCELADO'>; label: string }> = [
@@ -42,7 +42,7 @@ const loading = <T,>(): BlockState<T> => ({ status: 'loading' })
 type RulesView = { kind: 'matches'; items: MatchedRule[] } | { kind: 'applications'; items: RuleApplication[] }
 const isForbidden = (cause: unknown) => (cause as { response?: { status?: number } })?.response?.status === 403
 
-function BlockError({ message, retry }: { message: string; retry: () => void }) {
+function BlockError({ message, retry }: Readonly<{ message: string; retry: () => void }>) {
   return <div className="block-error"><Notice message={message} error /><button type="button" className="link-button" onClick={retry}>Tentar de novo</button></div>
 }
 
@@ -54,7 +54,7 @@ export function EventDetailsPage() {
   return <EventCentral key={id} id={id} />
 }
 
-function EventCentral({ id }: { id: string }) {
+function EventCentral({ id }: Readonly<{ id: string }>) {
   const navigate = useNavigate()
   const { user } = useAuth()
   const hasPermission = (permission: string) => Boolean(user?.roles?.some((role) => role.permissions.includes(permission)))
@@ -176,7 +176,7 @@ function EventCentral({ id }: { id: string }) {
     <div className="event-details-grid">
       <div className="event-details-main">
         {teamsState.status !== 'hidden' && <section className="event-panel" id="event-teams"><div className="panel-heading"><h2>Equipes designadas</h2><Link className="panel-link" to="/teams">Alocar equipe</Link></div>{teamsState.status === 'error' && <BlockError message={teamsState.message ?? 'Não foi possível carregar equipes'} retry={() => void loadTeams()} />}{teamsState.status === 'ready' && (teamsState.data?.length ? <div className="team-list">{teamsState.data.map(({ team, assignedAt }) => <div className="team-row" key={team.id}><span className="team-avatar"><Icon name="users" /></span><div><strong>{team.name}</strong><small>{team.specialty} · atribuída em {formatShortDate(assignedAt)}</small></div><Badge tone={team.status === 'ATIVA' ? 'active' : 'inactive'}>{team.status === 'ATIVA' ? 'Ativa' : 'Inativa'}</Badge></div>)}</div> : <p className="empty-state">Nenhuma equipe designada.</p>)}</section>}
-        {tasksState.status !== 'hidden' && <section className="event-panel"><div className="panel-heading"><h2>Tarefas do evento</h2><Link className="panel-link" to="/tasks">Ver no quadro</Link></div>{tasksState.status === 'error' && <BlockError message={tasksState.message ?? 'Não foi possível carregar tarefas'} retry={() => void loadTasks()} />}{tasksState.status === 'ready' && <><div className="progress-summary"><strong>{completedTasks} de {progressTasks.length}</strong><span>tarefas concluídas</span><div className="progress-track"><span style={{ width: `${progressTasks.length ? completedTasks / progressTasks.length * 100 : 0}%` }} /></div></div><div className="task-list">{sortTasksBySchedule(tasks).map((task) => <div className="event-task-row" key={task.id}><span className={`task-status-dot ${task.status.toLowerCase()}`}><Icon name={task.status === 'CONCLUIDA' ? 'check' : 'tasks'} /></span><div><strong>{task.title}</strong><small className={isTaskOverdue(task) ? 'overdue' : undefined}>{task.dueDate ? `Prazo ${formatShortDate(task.dueDate)}${isTaskOverdue(task) ? ' • Atrasada' : ''}` : 'Sem prazo'}</small>{task.sourceTaskId && <small className="copied-task">Copiada do evento de origem</small>}</div><Badge tone={task.status === 'CONCLUIDA' ? 'active' : task.status === 'CANCELADA' ? 'inactive' : 'viewer'}>{task.status === 'CONCLUIDA' ? 'Concluída' : task.status === 'EM_ANDAMENTO' ? 'Em andamento' : task.status === 'CANCELADA' ? 'Cancelada' : 'Pendente'}</Badge></div>)}</div></>}</section>}
+        {tasksState.status !== 'hidden' && <section className="event-panel"><div className="panel-heading"><h2>Tarefas do evento</h2><Link className="panel-link" to="/tasks">Ver no quadro</Link></div>{tasksState.status === 'error' && <BlockError message={tasksState.message ?? 'Não foi possível carregar tarefas'} retry={() => void loadTasks()} />}{tasksState.status === 'ready' && <><div className="progress-summary"><strong>{completedTasks} de {progressTasks.length}</strong><span>tarefas concluídas</span><div className="progress-track"><span style={{ width: `${progressTasks.length ? completedTasks / progressTasks.length * 100 : 0}%` }} /></div></div><div className="task-list">{sortTasksBySchedule(tasks).map((task) => <EventTaskRow key={task.id} task={task} />)}</div></>}</section>}
       </div>
       <div className="event-details-side">
         <ClientPanel client={event.client} />
@@ -189,17 +189,33 @@ function EventCentral({ id }: { id: string }) {
 }
 
 // The client comes embedded in GET /events/:id, so this block needs no extra request or permission.
-function ClientPanel({ client }: { client: Event['client'] }) {
+const TASK_BADGE_TONES: Record<Task['status'], 'active' | 'inactive' | 'viewer'> = { PENDENTE: 'viewer', EM_ANDAMENTO: 'viewer', CONCLUIDA: 'active', CANCELADA: 'inactive' }
+
+function taskDeadline(task: Task) {
+  if (!task.dueDate) return 'Sem prazo'
+  const overdue = isTaskOverdue(task) ? ' • Atrasada' : ''
+  return `Prazo ${formatShortDate(task.dueDate)}${overdue}`
+}
+
+function EventTaskRow({ task }: Readonly<{ task: Task }>) {
+  return <div className="event-task-row">
+    <span className={`task-status-dot ${task.status.toLowerCase()}`}><Icon name={task.status === 'CONCLUIDA' ? 'check' : 'tasks'} /></span>
+    <div><strong>{task.title}</strong><small className={isTaskOverdue(task) ? 'overdue' : undefined}>{taskDeadline(task)}</small>{task.sourceTaskId && <small className="copied-task">Copiada do evento de origem</small>}</div>
+    <Badge tone={TASK_BADGE_TONES[task.status]}>{TASK_STATUS_LABELS[task.status]}</Badge>
+  </div>
+}
+
+function ClientPanel({ client }: Readonly<{ client: Event['client'] }>) {
   return <section className="event-panel"><div className="panel-heading"><h2>Cliente</h2></div>
     <div className="team-row"><span className="team-avatar"><Icon name="contact" /></span><div><strong>{client.name}</strong>{client.email && <small>{client.email}</small>}{client.phone && <small>{client.phone}</small>}{!client.email && !client.phone && <small>Sem contato cadastrado</small>}</div>{client.deletedAt && <Badge tone="inactive">Cliente inativo</Badge>}</div></section>
 }
 
 // RF25: events created using this one as the base (lineage kept by Event.sourceEventId).
-function ReplicasPanel({ replicas }: { replicas: NonNullable<Event['replicas']> }) {
+function ReplicasPanel({ replicas }: Readonly<{ replicas: NonNullable<Event['replicas']> }>) {
   return <section className="event-panel"><div className="panel-heading"><h2>Eventos criados a partir deste</h2></div><ul className="applied-rule-list">{replicas.map((replica) => <li key={replica.id}><Icon name="copy" /><div><Link to={`/events/${replica.id}`}>{replica.name}</Link><small>{formatShortDate(replica.eventDate)} · {EVENT_STATUS_LABELS[replica.status]}</small></div></li>)}</ul></section>
 }
 
-function RuleMatches({ data }: { data: MatchedRule[] }) {
+function RuleMatches({ data }: Readonly<{ data: MatchedRule[] }>) {
   return <><p className="muted">Consulta somente leitura das regras que combinam com este evento.</p>{data.length ? <ul className="rule-match-list">{data.map((match) => <li key={match.rule.id}><strong>{match.rule.name}</strong><span>{match.resourceRequirements.map((item) => `${item.specialty} ×${item.minQuantity}`).join(', ') || 'Sem recursos exigidos'}</span></li>)}</ul> : <p className="empty-state">Nenhuma regra corresponde ao evento.</p>}</>}
 
 function AppliedRules({ data }: { data: RuleApplication[] }) {

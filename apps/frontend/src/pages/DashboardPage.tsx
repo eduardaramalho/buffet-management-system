@@ -18,6 +18,19 @@ const statusTone: Record<EventStatus, 'admin' | 'editor' | 'viewer' | 'active' |
 const taskStatusLabels: Record<TaskStatus, string> = { PENDENTE: 'Pendente', EM_ANDAMENTO: 'Em andamento', CONCLUIDA: 'Concluída', CANCELADA: 'Cancelada' }
 const taskStatusColors: Record<TaskStatus, string> = { PENDENTE: '#e5a72d', EM_ANDAMENTO: '#0d56bd', CONCLUIDA: '#278243', CANCELADA: '#c24c43' }
 const taskStatuses: TaskStatus[] = ['PENDENTE', 'EM_ANDAMENTO', 'CONCLUIDA', 'CANCELADA']
+
+// Fundo do gráfico de rosca: uma fatia do conic-gradient por status, proporcional à quantidade de tarefas.
+function donutBackground(tasksByStatus: Partial<Record<TaskStatus, number>>, totalTasks: number) {
+  if (totalTasks === 0) return 'var(--neutral-bg)'
+  let start = 0
+  const slices = taskStatuses.map((status) => {
+    const end = start + (tasksByStatus[status] ?? 0) / totalTasks * 100
+    const slice = `${taskStatusColors[status]} ${start}% ${end}%`
+    start = end
+    return slice
+  })
+  return `conic-gradient(${slices.join(', ')})`
+}
 const formatDate = (value: string) => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
 
 export function DashboardPage() {
@@ -41,7 +54,7 @@ export function DashboardPage() {
   const refreshAll = () => { pollings.forEach((polling) => void polling.refresh()) }
 
   const totalTasks = taskStatuses.reduce((total, status) => total + (tasksByStatus[status] ?? 0), 0)
-  const donut = totalTasks === 0 ? 'var(--neutral-bg)' : `conic-gradient(${taskStatuses.map((status, index) => { const start = taskStatuses.slice(0, index).reduce((total, item) => total + (tasksByStatus[item] ?? 0), 0) / totalTasks * 100; const end = start + (tasksByStatus[status] ?? 0) / totalTasks * 100; return `${taskStatusColors[status]} ${start}% ${end}%` }).join(', ')})`
+  const donut = donutBackground(tasksByStatus, totalTasks)
 
   return <main className="app-shell dashboard-page"><header><div><span className="eyebrow">PAINEL OPERACIONAL</span><h1>Dashboard</h1></div><RefreshIndicator lastUpdatedAt={lastUpdatedAt} refreshing={refreshing} onRefresh={refreshAll} /></header>
     <LoadBoundary status={summaryLoad.status} error={summaryLoad.error} onRetry={summaryLoad.retry} label="Carregando resumo...">{summary && <section className="summary"><StatCard icon="◈" value={summary.eventsThisMonth} label="Eventos este mês" tone="blue" /><StatCard icon="☰" value={summary.pendingTasks} label="Tarefas pendentes" tone="gold" /><StatCard icon="⚠" value={summary.overdueTasks} label="Tarefas atrasadas" tone="red" /><StatCard icon="♜" value={summary.activeTeams} label="Equipes ativas" tone="green" /><StatCard icon="✓" value={summary.completedOnTimePercentage === null ? '—' : `${summary.completedOnTimePercentage.toFixed(1)}%`} label="Concluídas no prazo" tone="purple" /></section>}</LoadBoundary>

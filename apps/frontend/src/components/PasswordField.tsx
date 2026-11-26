@@ -41,6 +41,6 @@ export function PasswordField({ id, label, icon, hint, action, onKeyDown, onKeyU
       </button>
     </span>
     {hint && <small id={hintId} className="field-help">{hint}</small>}
-    {capsLock && <p id={capsLockId} className="caps-lock-warning" role="status"><Icon name="alert" />Caps Lock está ativado.</p>}
+    {capsLock && <output id={capsLockId} className="caps-lock-warning"><Icon name="alert" />Caps Lock está ativado.</output>}
   </div>
 }

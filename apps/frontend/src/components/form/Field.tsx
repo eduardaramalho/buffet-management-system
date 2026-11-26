@@ -36,7 +36,7 @@ export function Field({ label, required, optional, hint, error, aside, className
   const errorId = error ? `${controlId}-error` : undefined
   const describedBy = [errorId, hintId].filter(Boolean).join(' ') || undefined
 
-  return <div className={`fm-field${className ? ` ${className}` : ''}`}>
+  return <div className={['fm-field', className].filter(Boolean).join(' ')}>
     <div className="fm-label-row">
       <label htmlFor={controlId}>{label}</label>
       {required && <span className="fm-req" aria-hidden="true">*</span>}

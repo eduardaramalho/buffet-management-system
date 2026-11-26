@@ -24,14 +24,14 @@ const DATA_FIELDS = ['name', 'specialty', 'observations'] as const
 const memberCount = (count: number) => (count === 1 ? '1 membro' : `${count} membros`)
 
 /** Pessoa da lista: iniciais, nome e cargo (o cargo vem do cadastro do colaborador). */
-function Person({ collaborator, leader = false }: { collaborator: Collaborator; leader?: boolean }) {
+function Person({ collaborator, leader = false }: Readonly<{ collaborator: Collaborator; leader?: boolean }>) {
   return <>
     <span className={`fm-avatar${leader ? ' leader' : ''}`} aria-hidden="true">{initials(collaborator.name)}</span>
     <span className="fm-person"><strong>{collaborator.name}</strong><small>{collaborator.position}{leader ? ' · Líder da equipe' : ''}</small></span>
   </>
 }
 
-export function TeamForm({ team, onClose, onCreated, onUpdated }: TeamFormProps) {
+export function TeamForm({ team, onClose, onCreated, onUpdated }: Readonly<TeamFormProps>) {
   const toast = useToast()
   const [section, setSection] = useState<SectionId>('data')
   const [name, setName] = useState(team?.name ?? '')
@@ -93,7 +93,10 @@ export function TeamForm({ team, onClose, onCreated, onUpdated }: TeamFormProps)
   const submit = async () => {
     setApiError('')
     const data = validation.submit()
-    if (!data) { if (dataInvalid) setSection('data'); return }
+    if (!data) {
+      if (dataInvalid) setSection('data')
+      return
+    }
     setSubmitting(true)
     try {
       const input = { name: data.name, specialty: data.specialty, observations: data.observations || null }
@@ -108,7 +111,7 @@ export function TeamForm({ team, onClose, onCreated, onUpdated }: TeamFormProps)
     } catch (cause) { setApiError(getApiErrorMessage(cause, 'Não foi possível salvar a equipe')) } finally { setSubmitting(false) }
   }
 
-  const subtitle = name.trim() ? `${name.trim()}${specialty ? ` · ${TEAM_SPECIALTY_LABELS[specialty]}` : ''}` : 'Defina o grupo, os membros e quem lidera.'
+  const subtitle = name.trim() ? [name.trim(), specialty && TEAM_SPECIALTY_LABELS[specialty]].filter(Boolean).join(' · ') : 'Defina o grupo, os membros e quem lidera.'
 
   return <>
     <FormModal title={team ? 'Editar equipe' : 'Nova equipe'} subtitle={subtitle} icon={<Icon name="users" />}

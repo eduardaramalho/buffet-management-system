@@ -21,11 +21,11 @@ type SideLinkProps = { to: string; label: string; icon: IconName; active: boolea
 
 // Com a barra recolhida só o ícone fica visível: o title mostra o nome ao passar o mouse
 // e o aria-label mantém o link identificável para leitores de tela.
-function SideLink({ to, label, icon, active, collapsed, children }: SideLinkProps) {
+function SideLink({ to, label, icon, active, collapsed, children }: Readonly<SideLinkProps>) {
   return <Link aria-label={label} title={collapsed ? label : undefined} to={to} className={`side-link${active ? ' active' : ''}`}><Icon name={icon} /><span>{label}</span>{children}</Link>
 }
 
-export function InternalLayout({ children, onLogout }: { children: ReactNode; onLogout: () => Promise<void> }) {
+export function InternalLayout({ children, onLogout }: Readonly<{ children: ReactNode; onLogout: () => Promise<void> }>) {
   const { user } = useAuth()
   const location = useLocation()
   const hasPermission = (permission: string) => user?.roles?.some((role) => role.permissions.includes(permission)) ?? false

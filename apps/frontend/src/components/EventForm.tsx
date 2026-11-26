@@ -35,12 +35,18 @@ const maskGuests = maskInteger(String(GUESTS_MAX).length)
 const formatDateTime = (value: string) => new Date(value).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
 
+// Resumo da seção "Local e convidados" na navegação lateral do formulário.
+const placeSummary = (location: string, guestsCount: string) => {
+  if (!location.trim()) return 'Local e número de convidados'
+  return [location.trim(), guestsCount].filter(Boolean).join(' · ')
+}
+
 const teamSummary = (team: Team) => {
   const leader = team.members.find((member) => member.isLeader)
   return [TEAM_SPECIALTY_LABELS[team.specialty], plural(team.members.length, 'membro', 'membros'), leader ? `líder ${leader.collaborator.name}` : null].filter(Boolean).join(' · ')
 }
 
-export function EventForm({ event, onClose, onCreated, onUpdated }: EventFormProps) {
+export function EventForm({ event, onClose, onCreated, onUpdated }: Readonly<EventFormProps>) {
   const toast = useToast()
   const [section, setSection] = useState<SectionId>('client')
   const [name, setName] = useState(event?.name ?? '')
@@ -85,7 +91,7 @@ export function EventForm({ event, onClose, onCreated, onUpdated }: EventFormPro
   const sectionState = (id: Exclude<SectionId, 'teams'>) => ({ complete: !invalidIn(id), invalid: validation.submitted && invalidIn(id) })
   const sections: FormModalSection[] = [
     { id: 'client', label: 'Cliente e data', description: clientName || 'Cliente, nome e data', ...sectionState('client') },
-    { id: 'place', label: 'Local e convidados', description: location.trim() ? `${location.trim()}${guestsCount ? ` · ${guestsCount}` : ''}` : 'Local e número de convidados', ...sectionState('place') },
+    { id: 'place', label: 'Local e convidados', description: placeSummary(location, guestsCount), ...sectionState('place') },
     { id: 'services', label: 'Serviços', description: plural(selectedCount, 'selecionado', 'selecionados'), ...sectionState('services') },
     ...(event ? [{ id: 'teams', label: 'Equipes', description: plural(assignedTeams.length, 'designada', 'designadas'), complete: assignedTeams.length > 0 }] : []),
   ]
@@ -135,7 +141,8 @@ export function EventForm({ event, onClose, onCreated, onUpdated }: EventFormPro
     try {
       const input = { name: data.name, eventDate: new Date(eventDate).toISOString(), endDate: null, location: data.location, serviceType: data.serviceType, guestsCount: Number(guestsCount), observations: data.observations || null }
       // On update clientId is sent only when it changes: the API rejects inactive clients, and an old event may still point to one.
-      const saved = event ? await updateEvent(event.id, clientId === event.clientId ? input : { ...input, clientId }) : await createEvent({ ...input, clientId })
+      const updateInput = event && clientId !== event.clientId ? { ...input, clientId } : input
+      const saved = event ? await updateEvent(event.id, updateInput) : await createEvent({ ...input, clientId })
       await persistServices(saved.id)
       const result = { ...saved, services: services.filter((service) => selected[service.id] !== undefined).map((service) => ({ serviceId: service.id, customLabel: selected[service.id].trim() || null, service })) }
       toast.success(event ? 'Evento atualizado.' : 'Evento criado.')

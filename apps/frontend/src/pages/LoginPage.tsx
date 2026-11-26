@@ -49,10 +49,10 @@ export function LoginPage() {
     <form onSubmit={submit}>
       <FormField label="E-mail" type="email" icon="mail" autoComplete="username" placeholder="nome@empresa.com.br" value={email} onChange={(event) => setEmail(event.target.value)} required />
       <PasswordField id="login-password" label="Senha" icon="lock" autoComplete="current-password" placeholder="Sua senha" value={password} onChange={(event) => setPassword(event.target.value)} required action={helpToggle} />
-      {helpOpen && <div id="password-help" className="auth-help" role="region" aria-label="Como recuperar a senha">
+      {helpOpen && <section id="password-help" className="auth-help" aria-label="Como recuperar a senha">
         <span className="auth-help-icon"><Icon name="shield" /></span>
         <span><strong>Procure o administrador do sistema</strong><span>Ele gera uma senha temporária, válida por 24 horas. Ao entrar com ela, você define uma senha pessoal.</span></span>
-      </div>}
+      </section>}
       <Button className="auth-submit" disabled={loading}>{loading ? <><span className="spinner" aria-hidden="true" />Entrando...</> : 'Entrar'}</Button>
     </form>
     <p className="auth-note"><Icon name="key" />Primeiro acesso? Entre com a senha temporária fornecida pelo administrador. Você vai definir uma senha pessoal em seguida.</p>

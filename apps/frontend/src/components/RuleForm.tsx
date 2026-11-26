@@ -24,8 +24,12 @@ import type { Rule } from '../types/rule'
 
 type RuleFormProps = { rule?: Rule; onClose: () => void; onCreated: (rule: Rule) => void; onUpdated: (rule: Rule) => void }
 type SectionId = 'identification' | 'conditions' | 'resources' | 'tasks'
-type RequirementDraft = { specialty: TeamSpecialty; minQuantity: string }
-type TaskDraft = { title: string; description: string | null; daysBeforeEvent: string; specialty: TeamSpecialty | '' }
+let draftSequence = 0
+const nextDraftKey = () => `draft-${++draftSequence}`
+
+// `key` identifica a linha só na tela (chave estável do React ao remover itens do meio); não vai para a API.
+type RequirementDraft = { key: string; specialty: TeamSpecialty; minQuantity: string }
+type TaskDraft = { key: string; title: string; description: string | null; daysBeforeEvent: string; specialty: TeamSpecialty | '' }
 
 const SECTION_FIELDS: Record<SectionId, readonly string[]> = {
   identification: ['name', 'description'],
@@ -50,7 +54,7 @@ function describeConditions(types: EventType[], minGuests: string, maxGuests: st
   return parts.length ? `Vale para: ${parts.join(', ')}.` : 'Vale para qualquer evento.'
 }
 
-export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps) {
+export function RuleForm({ rule, onClose, onCreated, onUpdated }: Readonly<RuleFormProps>) {
   const toast = useToast()
   const [section, setSection] = useState<SectionId>('identification')
   const [name, setName] = useState(rule?.name ?? '')
@@ -61,10 +65,10 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
   const [requiredServiceIds, setRequiredServiceIds] = useState<string[]>(rule?.conditionRequiredServiceIds ?? [])
   const [services, setServices] = useState<Service[]>([])
   const [requirements, setRequirements] = useState<RequirementDraft[]>(
-    rule?.resourceRequirements.map((item) => ({ specialty: item.specialty, minQuantity: String(item.minQuantity) })) ?? [],
+    rule?.resourceRequirements.map((item) => ({ key: nextDraftKey(), specialty: item.specialty, minQuantity: String(item.minQuantity) })) ?? [],
   )
   const [taskTemplates, setTaskTemplates] = useState<TaskDraft[]>(
-    rule?.taskTemplates.map((template) => ({ title: template.title, description: template.description, daysBeforeEvent: template.daysBeforeEvent != null ? String(template.daysBeforeEvent) : '', specialty: template.specialty ?? '' })) ?? [],
+    rule?.taskTemplates.map((template) => ({ key: nextDraftKey(), title: template.title, description: template.description, daysBeforeEvent: template.daysBeforeEvent != null ? String(template.daysBeforeEvent) : '', specialty: template.specialty ?? '' })) ?? [],
   )
   const [apiError, setApiError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -81,11 +85,11 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
     setRequirements(next)
     setTaskTemplates((current) => current.map((template) => template.specialty && !required.has(template.specialty) ? { ...template, specialty: '' } : template))
   }
-  const addRequirement = () => changeRequirements([...requirements, { specialty: TEAM_SPECIALTIES[0], minQuantity: '1' }])
+  const addRequirement = () => changeRequirements([...requirements, { key: nextDraftKey(), specialty: TEAM_SPECIALTIES[0], minQuantity: '1' }])
   const updateRequirement = (index: number, patch: Partial<RequirementDraft>) => changeRequirements(requirements.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item))
   const removeRequirement = (index: number) => changeRequirements(requirements.filter((_, itemIndex) => itemIndex !== index))
   const requiredSpecialties = TEAM_SPECIALTIES.filter((specialty) => requirements.some((item) => item.specialty === specialty))
-  const addTaskTemplate = () => setTaskTemplates((current) => [...current, { title: '', description: null, daysBeforeEvent: '', specialty: '' }])
+  const addTaskTemplate = () => setTaskTemplates((current) => [...current, { key: nextDraftKey(), title: '', description: null, daysBeforeEvent: '', specialty: '' }])
   const updateTaskTemplate = (index: number, patch: Partial<TaskDraft>) => setTaskTemplates((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item))
   const removeTaskTemplate = (index: number) => setTaskTemplates((current) => current.filter((_, itemIndex) => itemIndex !== index))
 
@@ -165,7 +169,7 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
         <div className="fm-req-row" aria-hidden="true"><span className="fm-col-title">Especialidade</span><span className="fm-col-title">Qtd. mínima</span><span /></div>
         {requirements.map((requirement, index) => {
           const quantityError = rowError(`resourceRequirements.${index}.minQuantity`)
-          return <div key={index}>
+          return <div key={requirement.key}>
             <div className="fm-req-row">
               <select className="fm-input" aria-label={`Especialidade ${index + 1}`} value={requirement.specialty} onChange={(event) => updateRequirement(index, { specialty: event.target.value as TeamSpecialty })}>
                 {TEAM_SPECIALTIES.map((specialty) => <option key={specialty} value={specialty}>{TEAM_SPECIALTY_LABELS[specialty]}</option>)}
@@ -185,7 +189,7 @@ export function RuleForm({ rule, onClose, onCreated, onUpdated }: RuleFormProps)
 
     <FormSection title="Tarefas geradas" description="Criadas quando o evento é confirmado." active={section === 'tasks'}>
       <p className="fm-hint">{requiredSpecialties.length ? 'Cada tarefa com equipe responsável vai para a equipe da especialidade alocada ao evento que tiver menos tarefas em aberto.' : 'Adicione um recurso exigido para atribuir as tarefas automaticamente.'}</p>
-      {taskTemplates.map((template, index) => <section key={index} className="fm-card" aria-label={`Tarefa ${index + 1}`}>
+      {taskTemplates.map((template, index) => <section key={template.key} className="fm-card" aria-label={`Tarefa ${index + 1}`}>
         <div className="fm-card-head">
           <span className="fm-number" aria-hidden="true">{index + 1}</span>
           <h4>{template.title.trim() || 'Nova tarefa'}</h4>

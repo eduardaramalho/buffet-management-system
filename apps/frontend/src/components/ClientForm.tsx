@@ -16,7 +16,7 @@ type ClientFormProps = { client?: Client; onClose: () => void; onSaved: (client:
 const optional = (value: string) => value.trim() || null
 const TYPE_OPTIONS = CLIENT_TYPES.map((value) => ({ value, label: CLIENT_TYPE_LABELS[value] }))
 
-export function ClientForm({ client, onClose, onSaved }: ClientFormProps) {
+export function ClientForm({ client, onClose, onSaved }: Readonly<ClientFormProps>) {
   const toast = useToast()
   const [type, setType] = useState<ClientType>(client?.type ?? 'PF')
   const [name, setName] = useState(client?.name ?? '')
