@@ -40,6 +40,19 @@ const FIELD_SELECTOR = 'input:not([disabled]):not([type="hidden"]), select:not([
 const visibleIn = (root: HTMLElement | null, selector: string) =>
   Array.from(root?.querySelectorAll<HTMLElement>(selector) ?? []).filter((element) => !element.closest('[hidden]'))
 
+function stepState(section: FormModalSection, current: boolean) {
+  if (current) return 'current'
+  if (section.invalid) return 'invalid'
+  return section.complete ? 'done' : ''
+}
+
+// Marcador da seção na navegação lateral: "!" com erro, check quando completa, senão o número.
+function stepMarker(section: FormModalSection, current: boolean, index: number): ReactNode {
+  if (current) return index + 1
+  if (section.invalid) return '!'
+  return section.complete ? <Icon name="check" /> : index + 1
+}
+
 /**
  * Modal centralizado padrão dos formulários (Modelo B do estudo de UX).
  * - Cancelar e Salvar ficam sempre no canto direito do rodapé; a navegação entre seções fica à esquerda.
@@ -48,11 +61,11 @@ const visibleIn = (root: HTMLElement | null, selector: string) =>
  */
 export function FormModal({ title, subtitle, icon, roundIcon = false, onClose, onSubmit, submitting, submitLabel, error, sections, activeSection, onSectionChange, railFooter, invalidAttempt = 0, children }: FormModalProps) {
   const titleId = useId()
-  const dialogRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDialogElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const activeIndex = sections ? Math.max(0, sections.findIndex((section) => section.id === activeSection)) : 0
 
-  const handleKeyDown = useModalDialog(dialogRef, { onClose, locked: submitting })
+  useModalDialog(dialogRef, { onClose, locked: submitting })
 
   // Ao abrir e ao trocar de seção, o foco vai para o primeiro campo visível.
   useEffect(() => {
@@ -70,7 +83,7 @@ export function FormModal({ title, subtitle, icon, roundIcon = false, onClose, o
   const goTo = (index: number) => sections && onSectionChange?.(sections[index].id)
 
   return createPortal(<div className="fm-backdrop">
-    <div ref={dialogRef} className={`fm-dialog ${sections ? 'fm-lg' : 'fm-sm'}`} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} onKeyDown={handleKeyDown}>
+    <dialog open ref={dialogRef} className={`fm-dialog ${sections ? 'fm-lg' : 'fm-sm'}`} aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
       <form className="fm-form" noValidate onSubmit={(event) => { event.preventDefault(); void onSubmit() }}>
         <header className="fm-head">
           <span className={`fm-icon${roundIcon ? ' round' : ''}`} aria-hidden="true">{icon}</span>
@@ -82,9 +95,9 @@ export function FormModal({ title, subtitle, icon, roundIcon = false, onClose, o
             <span className="fm-rail-title">Seções</span>
             {sections.map((section, index) => {
               const current = index === activeIndex
-              const state = current ? 'current' : section.invalid ? 'invalid' : section.complete ? 'done' : ''
+              const state = stepState(section, current)
               return <button key={section.id} type="button" className={`fm-step ${state}`} aria-current={current ? 'step' : undefined} onClick={() => goTo(index)}>
-                <span className="fm-dot" aria-hidden="true">{section.invalid && !current ? '!' : section.complete && !current ? <Icon name="check" /> : index + 1}</span>
+                <span className="fm-dot" aria-hidden="true">{stepMarker(section, current, index)}</span>
                 <span className="fm-step-text"><strong>{section.label}</strong>{section.description && <small>{section.description}</small>}{section.invalid && <span className="sr-only"> (contém erros)</span>}</span>
               </button>
             })}
@@ -111,6 +124,6 @@ export function FormModal({ title, subtitle, icon, roundIcon = false, onClose, o
           </button>
         </footer>
       </form>
-    </div>
+    </dialog>
   </div>, document.body)
 }

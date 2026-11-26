@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { getApiErrorMessage } from '../../api/apiError'
 import { createTaskComment, listTaskComments, updateTask } from '../../api/tasksApi'
@@ -40,6 +40,19 @@ type TaskDetailDialogProps = {
 const fullDate = (value: string) => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(new Date(value))
 const dateTime = (value: string) => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
 
+// Clique no fundo escuro (fora do diálogo) fecha o detalhe. Listener nativo: o fundo não é um elemento interativo.
+function useBackdropClose(backdropRef: RefObject<HTMLElement | null>, onClose: () => void) {
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose })
+  useEffect(() => {
+    const backdrop = backdropRef.current
+    if (!backdrop) return
+    const handleMouseDown = (event: MouseEvent) => { if (event.target === backdrop) onCloseRef.current() }
+    backdrop.addEventListener('mousedown', handleMouseDown)
+    return () => backdrop.removeEventListener('mousedown', handleMouseDown)
+  }, [backdropRef])
+}
+
 /**
  * Detalhe da tarefa aberto ao clicar no card (KAN-77). Também é a alternativa ao arraste para quem usa
  * teclado ou leitor de tela: os botões de "Mover para" oferecem só as transições válidas (ADR 0014).
@@ -47,8 +60,10 @@ const dateTime = (value: string) => new Intl.DateTimeFormat('pt-BR', { dateStyle
 export function TaskDetailDialog({ task, event, teamName, permissions, saving, onClose, onMove, onTaskUpdated, onEdit, onDelete }: TaskDetailDialogProps) {
   const toast = useToast()
   const titleId = useId()
-  const dialogRef = useRef<HTMLDivElement>(null)
-  const handleKeyDown = useModalDialog(dialogRef, { onClose })
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const backdropRef = useRef<HTMLDivElement>(null)
+  useModalDialog(dialogRef, { onClose })
+  useBackdropClose(backdropRef, onClose)
   const terminal = TERMINAL_TASK_STATUSES.includes(task.status)
   const destinations = getTaskDestinations(task.status, event?.status)
   const canEditDetails = permissions.editDetails && !terminal
@@ -113,8 +128,8 @@ export function TaskDetailDialog({ task, event, teamName, permissions, saving, o
 
   const overdue = isTaskOverdue(task)
 
-  return createPortal(<div className="fm-backdrop" onMouseDown={(mouseEvent) => { if (mouseEvent.target === mouseEvent.currentTarget) onClose() }}>
-    <div ref={dialogRef} className="fm-dialog task-detail" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} onKeyDown={handleKeyDown}>
+  return createPortal(<div ref={backdropRef} className="fm-backdrop">
+    <dialog open ref={dialogRef} className="fm-dialog task-detail" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
       <header className="task-detail-head">
         <div className="task-detail-heading">
           <div className="task-detail-badges">
@@ -141,7 +156,7 @@ export function TaskDetailDialog({ task, event, teamName, permissions, saving, o
               : <p className="task-detail-empty">Sem descrição.</p>)}
             {editing && <form className="task-detail-form" onSubmit={(formEvent) => void saveDescription(formEvent)}>
               {descriptionError && <Notice message={descriptionError} error />}
-              <label className="task-detail-label">Descrição da tarefa
+              <label className="task-detail-label"><span>Descrição da tarefa</span>
                 <textarea value={draft} rows={5} autoFocus placeholder="Itens a conferir, contatos, observações do cliente..." onChange={(changeEvent) => setDraft(changeEvent.target.value)} />
               </label>
               <div className="task-detail-actions">
@@ -169,7 +184,7 @@ export function TaskDetailDialog({ task, event, teamName, permissions, saving, o
             </ol>}
             {permissions.comment && <form className="task-detail-form" onSubmit={(formEvent) => void postComment(formEvent)}>
               {commentError && <Notice message={commentError} error />}
-              <label className="task-detail-label">Novo comentário
+              <label className="task-detail-label"><span>Novo comentário</span>
                 <textarea value={comment} rows={2} maxLength={TASK_COMMENT_MAX_LENGTH} placeholder="Escreva um comentário para a equipe..." onChange={(changeEvent) => setComment(changeEvent.target.value)} />
               </label>
               <div className="task-detail-actions">
@@ -183,11 +198,11 @@ export function TaskDetailDialog({ task, event, teamName, permissions, saving, o
           {permissions.move && <section className="task-detail-moves">
             <h3 id={`${titleId}-moves`}>Mover para</h3>
             {destinations.length > 0
-              ? <div role="group" aria-labelledby={`${titleId}-moves`} className="task-move-list">
+              ? <fieldset aria-labelledby={`${titleId}-moves`} className="task-move-list">
                 {destinations.map((status) => <button key={status} type="button" className="task-move-button" disabled={saving} onClick={() => onMove(status)}>
                   <span className={`task-status-dot-sm status-${status.toLowerCase()}`} aria-hidden="true" />{TASK_STATUS_LABELS[status]}
                 </button>)}
-              </div>
+              </fieldset>
               : <p className="task-detail-empty">{terminal ? 'Tarefa encerrada: o status não muda mais.' : 'Sem movimentos disponíveis.'}</p>}
           </section>}
           <dl className="task-detail-meta">
@@ -200,6 +215,6 @@ export function TaskDetailDialog({ task, event, teamName, permissions, saving, o
           </div>}
         </aside>
       </div>
-    </div>
+    </dialog>
   </div>, document.body)
 }

@@ -19,7 +19,7 @@ Entre dois modelos prototipados (página dedicada e modal centralizado), a stake
 ## Decisões
 
 1. **Um componente de modal para todos os formulários** (`FormModal`):
-   - Renderizado em portal no `<body>`, com `role="dialog"`, `aria-modal` e título ligado por `aria-labelledby`.
+   - Renderizado em portal no `<body>`, como `<dialog open>` nativo (antes `div role="dialog"`, trocado no KAN-88 por recomendação do SonarCloud), com `aria-modal` e título ligado por `aria-labelledby`. O teclado (Esc e Tab preso) é tratado por listener nativo registrado pelo `useModalDialog`, não por `onKeyDown` no JSX.
    - **Cancelar e Salvar sempre no canto direito do rodapé.** Nos formulários com seções, a navegação ("Seção anterior", "Próxima seção") fica à esquerda, para não deslocar os dois botões.
    - Durante o envio, o Salvar fica desabilitado, com `aria-busy` e o texto "Salvando...". Cancelar e Esc também ficam bloqueados.
    - Teclado: Enter envia (o conteúdo é um `<form>`), Esc fecha, Tab circula só dentro do modal e o foco volta para quem abriu.

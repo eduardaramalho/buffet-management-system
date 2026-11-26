@@ -23,7 +23,7 @@ const mostUsedPositions = (collaborators: Collaborator[]) => {
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, POSITION_SUGGESTIONS).map(([position]) => position)
 }
 
-export function CollaboratorForm({ collaborator, onClose, onCreated, onUpdated }: CollaboratorFormProps) {
+export function CollaboratorForm({ collaborator, onClose, onCreated, onUpdated }: Readonly<CollaboratorFormProps>) {
   const toast = useToast()
   const [name, setName] = useState(collaborator?.name ?? '')
   const [phone, setPhone] = useState(collaborator?.phone ? maskPhone(collaborator.phone) : '')
@@ -62,9 +62,9 @@ export function CollaboratorForm({ collaborator, onClose, onCreated, onUpdated }
       <TextField label="Cargo" required value={position} maxLength={100} placeholder="Ex.: Garçom" error={validation.errorFor('position')}
         hint="Aparece ao lado do nome na montagem das equipes." onChange={(event) => setPosition(event.target.value)} onBlur={(event) => validation.touch('position', event)} />
     </div>
-    {suggestions.length > 0 && <div className="fm-chips" role="group" aria-label="Cargos já usados">
+    {suggestions.length > 0 && <fieldset className="fm-chips" aria-label="Cargos já usados">
       {suggestions.map((item) => <button key={item} type="button" className="fm-chip-btn" aria-label={`Usar o cargo ${item}`} onClick={() => setPosition(item)}>{item}</button>)}
-    </div>}
+    </fieldset>}
     <MaskedField label="Telefone" optional className="fm-half" value={phone} mask={maskPhone} placeholder="(47) 99999-9999" inputMode="tel"
       error={validation.errorFor('phone')} onValueChange={setPhone} onBlur={(event) => validation.touch('phone', event)} />
     {collaborator && <Switch label="Colaborador ativo" description="Inativos não aparecem na busca de membros." checked={active} onChange={setActive} />}

@@ -34,7 +34,7 @@ const isPast = (value: string) => Boolean(value) && new Date(value).getTime() < 
  * (name and date always typed again); 2) an attention step to review the copied manual tasks and teams.
  * Deadlines and team availability come from the API preview, so no business rule is duplicated here.
  */
-export function ReplicateEventDialog({ source, onClose, onReplicated }: ReplicateEventDialogProps) {
+export function ReplicateEventDialog({ source, onClose, onReplicated }: Readonly<ReplicateEventDialogProps>) {
   const [step, setStep] = useState<'data' | 'review'>('data')
   const [name, setName] = useState('')
   const [eventDate, setEventDate] = useState('')
@@ -144,7 +144,7 @@ export function ReplicateEventDialog({ source, onClose, onReplicated }: Replicat
     } finally { setLoading(false) }
   }
 
-  return <aside className="user-form-panel event-form-panel replicate-panel" role="dialog" aria-modal="true" aria-labelledby="replicate-event-title">
+  return <dialog open className="user-form-panel event-form-panel replicate-panel" aria-modal="true" aria-labelledby="replicate-event-title">
     <div className="form-wrap">
       <h2 id="replicate-event-title">Replicar evento</h2>
       <p className="muted">Base: {source.name} · Etapa {step === 'data' ? 1 : 2} de 2</p>
@@ -205,5 +205,5 @@ export function ReplicateEventDialog({ source, onClose, onReplicated }: Replicat
         <div className="form-actions"><Button type="button" className="ghost" onClick={() => { setError(''); setStep('data') }}>Voltar</Button><Button type="submit" className="primary" disabled={loading}>{loading ? 'Criando...' : 'Criar evento'}</Button></div>
       </form>}
     </div>
-  </aside>
+  </dialog>
 }

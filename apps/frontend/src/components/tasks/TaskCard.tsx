@@ -16,7 +16,7 @@ type TaskCardProps = {
 
 const dayMonth = (value: string) => new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(new Date(value))
 
-function CardContent({ task, eventLabel, teamName, saving = false, onOpen }: TaskCardProps) {
+function CardContent({ task, eventLabel, teamName, saving = false, onOpen }: Readonly<Omit<TaskCardProps, 'highlight'>>) {
   const overdue = isTaskOverdue(task)
   return <>
     <div className="task-card-head">
@@ -31,7 +31,7 @@ function CardContent({ task, eventLabel, teamName, saving = false, onOpen }: Tas
         ? <span className="task-chip"><Icon name="users" />{teamName ?? 'Equipe'}</span>
         : <span className="task-chip is-warning"><Icon name="alert" />Sem equipe</span>}
       {task.dueDate && <span className={`task-chip${overdue ? ' is-overdue' : ''}`}><Icon name="clock" />{overdue ? `Atrasada · ${dayMonth(task.dueDate)}` : dayMonth(task.dueDate)}</span>}
-      {saving && <span className="task-saving" role="status" aria-label="Salvando" />}
+      {saving && <output className="task-saving" aria-label="Salvando" />}
     </div>
   </>
 }
@@ -42,7 +42,7 @@ function CardContent({ task, eventLabel, teamName, saving = false, onOpen }: Tas
  * Os atributos de acessibilidade do dnd-kit não são aplicados ao <article> para não aninhar um role="button"
  * em volta do botão do título: a alternativa acessível ao arraste é o "Mover para" do detalhe.
  */
-export function DraggableTaskCard({ highlight, ...props }: TaskCardProps) {
+export function DraggableTaskCard({ highlight, ...props }: Readonly<TaskCardProps>) {
   const { setNodeRef, listeners, isDragging } = useDraggable({ id: props.task.id, data: { title: props.task.title } })
   const classes = ['task-card', isDragging && 'is-dragging', highlight === 'rejected' && 'is-rejected', highlight === 'moved' && 'is-moved'].filter(Boolean).join(' ')
   return <article ref={setNodeRef} className={classes} {...listeners}>
@@ -51,7 +51,7 @@ export function DraggableTaskCard({ highlight, ...props }: TaskCardProps) {
 }
 
 /** Cópia exibida sob o cursor durante o arraste (DragOverlay): só visual, fora da árvore de acessibilidade. */
-export function TaskCardPreview(props: Omit<TaskCardProps, 'onOpen' | 'highlight'>) {
+export function TaskCardPreview(props: Readonly<Omit<TaskCardProps, 'onOpen' | 'highlight'>>) {
   return <article className="task-card is-overlay" aria-hidden="true">
     <CardContent {...props} />
   </article>

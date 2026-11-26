@@ -8,7 +8,7 @@ interface RefreshIndicatorProps {
   onRefresh: () => void
 }
 
-export function RefreshIndicator({ lastUpdatedAt, refreshing, onRefresh }: RefreshIndicatorProps) {
+export function RefreshIndicator({ lastUpdatedAt, refreshing, onRefresh }: Readonly<RefreshIndicatorProps>) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), TICK_MS)
@@ -16,7 +16,7 @@ export function RefreshIndicator({ lastUpdatedAt, refreshing, onRefresh }: Refre
   }, [])
   const seconds = Math.max(0, Math.floor((now - lastUpdatedAt) / TICK_MS))
   return <div className="refresh-indicator">
-    <small role="status">Atualizado há {seconds} s</small>
+    <output>Atualizado há {seconds} s</output>
     <button type="button" className="link-button" disabled={refreshing} onClick={onRefresh}>Atualizar agora</button>
   </div>
 }

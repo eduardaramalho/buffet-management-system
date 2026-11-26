@@ -75,10 +75,10 @@ export function EventsListPage() {
 
   return <main className="app-shell">
     <header><div><span className="eyebrow">PAINEL OPERACIONAL</span><h1>Eventos</h1></div>{view === 'active' && canCreate && <button className="secondary" onClick={() => { setEditingEvent(undefined); setFormOpen(true) }}>Novo Evento</button>}</header>
-    {canRestore && <div className="view-toggle" role="group" aria-label="Visualização dos eventos">
+    {canRestore && <fieldset className="view-toggle" aria-label="Visualização dos eventos">
       <button type="button" aria-pressed={view === 'active'} onClick={() => changeView('active')}>Ativos</button>
       <button type="button" aria-pressed={view === 'deleted'} onClick={() => changeView('deleted')}>Excluídos</button>
-    </div>}
+    </fieldset>}
     {view === 'deleted' && <p className="muted">Eventos excluídos não aparecem nas listas, no quadro de tarefas nem nos relatórios. Restaurar devolve o evento como estava, com o mesmo status.</p>}
     <LoadBoundary status={currentLoad.status} error={currentLoad.error} onRetry={currentLoad.retry} label="Carregando eventos...">
     {view === 'active' && <>

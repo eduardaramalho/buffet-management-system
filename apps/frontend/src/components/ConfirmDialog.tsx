@@ -19,12 +19,12 @@ export function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCance
   const messageId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
-  const handleKeyDown = useModalDialog(dialogRef, { onClose: onCancel })
+  useModalDialog(dialogRef, { onClose: onCancel })
 
   useEffect(() => { cancelRef.current?.focus() }, [])
 
   return createPortal(<div className="fm-backdrop confirm-backdrop">
-    <div ref={dialogRef} className="fm-dialog confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={messageId} onKeyDown={handleKeyDown}>
+    <div ref={dialogRef} className="fm-dialog confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={messageId}>
       <h2 id={titleId}>{title}</h2>
       <p id={messageId}>{message}</p>
       <div className="confirm-actions">
