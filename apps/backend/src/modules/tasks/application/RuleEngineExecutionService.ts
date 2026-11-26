@@ -3,7 +3,7 @@ import type { EventTeamService } from "../../teams/application/EventTeamService.
 import type { TeamRepository } from "../../teams/domain/team.types.js";
 import type { EventRepository } from "../../events/domain/event.types.js";
 import type { RuleEngineService } from "../../rules/application/RuleEngineService.js";
-import type { TransactionClient, TransactionRunner } from "../../../shared/domain/transaction.types.js";
+import type { TransactionRunner } from "../../../shared/domain/transaction.types.js";
 import type {
   ApplyRulesOptions,
   AuditService,
@@ -16,6 +16,9 @@ import type {
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const shortageAlertPattern = /^Faltam \d+ equipe\(s\) de (.+) para o evento$/;
 const OPEN_TASK_STATUSES = new Set(["PENDENTE", "EM_ANDAMENTO"]);
+
+type RuleMatch = Awaited<ReturnType<RuleEngineService["evaluate"]>>[number];
+type TeamAllocation = { assignedTeamIds: Set<string>; allocationOrder: string[] };
 
 export class RuleEngineExecutionError extends Error {
   constructor(message: string) {
@@ -62,81 +65,119 @@ export class RuleEngineExecutionService {
       // the final idempotency marker) commits or rolls back together. Without this, a crash between
       // writes (e.g. after creating a Task but before the RuleApplication row) would leave the rule
       // looking "not yet applied" on the next run, duplicating tasks/assignments.
-      await this.transactions.run(async (tx) => {
-        const existingTasks = await this.tasks.listAllByEventId(eventId);
-        // Allocation order is kept (listTeamsByEvent is ordered by assignedAt) as the tie-breaker of ADR 0010.
-        const allocationOrder = (await this.eventTeamService.listTeamsByEvent(eventId)).map((assignment) => assignment.teamId);
-        const assignedTeamIds = new Set(allocationOrder);
-        const openTasksByTeam = countOpenTasksByTeam(existingTasks);
-
-        for (const requirement of match.resourceRequirements) {
-          const specialtyTeams = await this.teams.list({ specialty: requirement.specialty });
-          const alreadyAssignedCount = specialtyTeams.filter((team) => assignedTeamIds.has(team.id)).length;
-          let remaining = requirement.minQuantity - alreadyAssignedCount;
-
-          if (remaining > 0) {
-            const candidates = specialtyTeams.filter((team) => team.status === "ATIVA" && !assignedTeamIds.has(team.id));
-            for (const candidate of candidates) {
-              if (remaining <= 0) break;
-              try {
-                await this.eventTeamService.assignTeamToEvent(eventId, candidate.id, actorId, tx);
-              } catch (error) {
-                // Conflict or team became unavailable mid-loop: try the next candidate instead of failing.
-                if (error instanceof EventTeamManagementError) continue;
-                throw error;
-              }
-              assignedTeamIds.add(candidate.id);
-              allocationOrder.push(candidate.id);
-              remaining -= 1;
-              result.teamsAutoAssigned += 1;
-              await this.audit.record({
-                userId: actorId,
-                action: "TEAM_AUTO_ASSIGNED",
-                entity: "Event",
-                entityId: eventId,
-                changes: { teamId: candidate.id, ruleId: match.rule.id, specialty: requirement.specialty },
-              });
-            }
-          }
-
-          if (remaining > 0) {
-            const alertTitle = `Faltam ${remaining} equipe(s) de ${requirement.specialty} para o evento`;
-            const alertExists = existingTasks.some((task) => {
-              if (task.sourceRuleId !== match.rule.id) return false;
-              const alertMatch = task.title.match(shortageAlertPattern);
-              return alertMatch?.[1] === requirement.specialty;
-            });
-            if (alertExists) {
-              result.tasksSkipped += 1;
-            } else {
-              const alertTask = await this.tasks.create({
-                eventId,
-                title: alertTitle,
-                description: null,
-                dueDate: null,
-                assignedTeamId: null,
-                sourceRuleId: match.rule.id,
-              }, tx);
-              result.tasksCreated += 1;
-              result.alertsGenerated += 1;
-              await this.audit.record({
-                userId: actorId,
-                action: "TASK_GENERATED",
-                entity: "Task",
-                entityId: alertTask.id,
-                changes: { eventId, ruleId: match.rule.id, kind: "TEAM_SHORTAGE_ALERT", specialty: requirement.specialty },
-              });
-            }
-          }
-        }
-
-        await this.generateTemplateTasks({ event, ruleId: match.rule.id, actorId, tx, existingTasks, allocationOrder, openTasksByTeam, result });
-
-        await this.ruleApplications.create(eventId, match.rule.id, tx);
-      });
+      await this.transactions.run((tx) => this.applyMatch({ event, match, actorId, tx, result }));
     }
 
     return result;
+  }
+
+  // Every write of one rule application runs inside the transaction received here (see applyRules).
+  private async applyMatch(context: {
+    event: { id: string; eventDate: Date };
+    match: RuleMatch;
+    actorId: string;
+    tx: unknown;
+    result: ExecutionResult;
+  }) {
+    const { event, match, actorId, tx, result } = context;
+    const existingTasks = await this.tasks.listAllByEventId(event.id);
+    // Allocation order is kept (listTeamsByEvent is ordered by assignedAt) as the tie-breaker of ADR 0010.
+    const allocationOrder = (await this.eventTeamService.listTeamsByEvent(event.id)).map((assignment) => assignment.teamId);
+    const openTasksByTeam = countOpenTasksByTeam(existingTasks);
+    const allocation: TeamAllocation = { assignedTeamIds: new Set(allocationOrder), allocationOrder };
+
+    for (const requirement of match.resourceRequirements) {
+      const remaining = await this.autoAssignTeams({ eventId: event.id, ruleId: match.rule.id, requirement, actorId, tx, allocation, result });
+      if (remaining > 0) {
+        await this.ensureShortageAlert({ eventId: event.id, ruleId: match.rule.id, specialty: requirement.specialty, remaining, actorId, tx, existingTasks, result });
+      }
+    }
+
+    await this.generateTemplateTasks({ event, ruleId: match.rule.id, actorId, tx, existingTasks, allocationOrder, openTasksByTeam, result });
+
+    await this.ruleApplications.create(event.id, match.rule.id, tx);
+  }
+
+  // Assigns active teams of the specialty until the minimum quantity is met. Returns how many are still missing.
+  private async autoAssignTeams(context: {
+    eventId: string;
+    ruleId: string;
+    requirement: RuleMatch["resourceRequirements"][number];
+    actorId: string;
+    tx: unknown;
+    allocation: TeamAllocation;
+    result: ExecutionResult;
+  }) {
+    const { eventId, ruleId, requirement, actorId, tx, allocation, result } = context;
+    const specialtyTeams = await this.teams.list({ specialty: requirement.specialty });
+    const alreadyAssignedCount = specialtyTeams.filter((team) => allocation.assignedTeamIds.has(team.id)).length;
+    let remaining = requirement.minQuantity - alreadyAssignedCount;
+    if (remaining <= 0) return remaining;
+
+    const candidates = specialtyTeams.filter((team) => team.status === "ATIVA" && !allocation.assignedTeamIds.has(team.id));
+    for (const candidate of candidates) {
+      if (remaining <= 0) break;
+      if (!(await this.tryAssignTeam(eventId, candidate.id, actorId, tx))) continue;
+      allocation.assignedTeamIds.add(candidate.id);
+      allocation.allocationOrder.push(candidate.id);
+      remaining -= 1;
+      result.teamsAutoAssigned += 1;
+      await this.audit.record({
+        userId: actorId,
+        action: "TEAM_AUTO_ASSIGNED",
+        entity: "Event",
+        entityId: eventId,
+        changes: { teamId: candidate.id, ruleId, specialty: requirement.specialty },
+      });
+    }
+    return remaining;
+  }
+
+  // Conflict or team became unavailable mid-loop: returns false so the next candidate is tried instead of failing.
+  private async tryAssignTeam(eventId: string, teamId: string, actorId: string, tx: unknown) {
+    try {
+      await this.eventTeamService.assignTeamToEvent(eventId, teamId, actorId, tx);
+      return true;
+    } catch (error) {
+      if (error instanceof EventTeamManagementError) return false;
+      throw error;
+    }
+  }
+
+  // RN15: one shortage alert per rule and specialty; an existing alert is counted as skipped.
+  private async ensureShortageAlert(context: {
+    eventId: string;
+    ruleId: string;
+    specialty: string;
+    remaining: number;
+    actorId: string;
+    tx: unknown;
+    existingTasks: Array<{ sourceRuleId: string | null; title: string }>;
+    result: ExecutionResult;
+  }) {
+    const { eventId, ruleId, specialty, remaining, actorId, tx, existingTasks, result } = context;
+    const alertExists = existingTasks.some((task) => task.sourceRuleId === ruleId && shortageAlertPattern.exec(task.title)?.[1] === specialty);
+    if (alertExists) {
+      result.tasksSkipped += 1;
+      return;
+    }
+    const alertTask = await this.tasks.create({
+      eventId,
+      title: `Faltam ${remaining} equipe(s) de ${specialty} para o evento`,
+      description: null,
+      dueDate: null,
+      assignedTeamId: null,
+      sourceRuleId: ruleId,
+    }, tx);
+    result.tasksCreated += 1;
+    result.alertsGenerated += 1;
+    await this.audit.record({
+      userId: actorId,
+      action: "TASK_GENERATED",
+      entity: "Task",
+      entityId: alertTask.id,
+      changes: { eventId, ruleId, kind: "TEAM_SHORTAGE_ALERT", specialty },
+    });
   }
 
   // One task per template of the rule (skipping titles already generated: idempotency key), with the
@@ -145,7 +186,7 @@ export class RuleEngineExecutionService {
     event: { id: string; eventDate: Date };
     ruleId: string;
     actorId: string;
-    tx: TransactionClient;
+    tx: unknown;
     existingTasks: Array<{ sourceRuleId: string | null; title: string }>;
     allocationOrder: string[];
     openTasksByTeam: Map<string, number>;
