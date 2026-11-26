@@ -1,11 +1,13 @@
-import { createContext, useState, type ReactNode } from 'react'
+import { createContext, useEffect, useState, type ReactNode } from 'react'
 import * as authApi from '../api/authApi'
-import { clearTokens, getRefreshToken, setAccessToken, setRefreshToken } from '../api/httpClient'
+import { clearAccessToken, refreshSession, setAccessToken } from '../api/httpClient'
 import type { AuthUser, Session } from '../types'
 
 type AuthContextValue = {
   user: AuthUser | null
   loading: boolean
+  /** True while the page load tries to resume the session from the refresh token cookie (ADR 0020). */
+  restoring: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
@@ -15,13 +17,31 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(false)
+  const [restoring, setRestoring] = useState(true)
 
+  // O refresh token fica no cookie httpOnly gravado pelo backend; aqui só o access token, em memória.
   const startSession = async (session: Session) => {
     setAccessToken(session.accessToken)
-    // ADR futura: substituir refresh token no corpo por cookie httpOnly, alinhando o contrato com o backend.
-    setRefreshToken(session.refreshToken)
     setUser(await authApi.me())
   }
+
+  // Ao abrir ou recarregar a página, a memória está vazia: o cookie é o que permite continuar logado.
+  // Sem cookie válido o refresh falha e a pessoa segue anônima para o login.
+  useEffect(() => {
+    let active = true
+    // No StrictMode o efeito roda duas vezes; refreshSession compartilha a mesma requisição
+    // e só a execução que continua ativa inicia a sessão.
+    refreshSession()
+      .then(async (session) => {
+        if (!active) return
+        setAccessToken(session.accessToken)
+        const profile = await authApi.me()
+        if (active) setUser(profile)
+      })
+      .catch(() => { if (active) clearAccessToken() })
+      .finally(() => { if (active) setRestoring(false) })
+    return () => { active = false }
+  }, [])
 
   const login = async (email: string, password: string) => {
     setLoading(true)
@@ -34,12 +54,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try { await startSession(await authApi.changePassword(currentPassword, newPassword)) } finally { setLoading(false) }
   }
 
+  // O backend revoga o refresh token do cookie e apaga o cookie; sem isso, um F5 restauraria a sessão.
   const logout = async () => {
-    const refreshToken = getRefreshToken()
-    try { if (refreshToken) await authApi.logout(refreshToken) } finally { clearTokens(); setUser(null) }
+    try { await authApi.logout() } finally { clearAccessToken(); setUser(null) }
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout, changePassword }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, loading, restoring, login, logout, changePassword }}>{children}</AuthContext.Provider>
 }
 
 export { AuthContext }

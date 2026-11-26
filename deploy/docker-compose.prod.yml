@@ -46,6 +46,8 @@ services:
       NODE_ENV: production
       # Um proxy (Caddy) entre o cliente e a API: o rate limiter passa a usar o IP real do cliente.
       TRUST_PROXY: 1
+      # Refresh token em cookie httpOnly só trafega por HTTPS (ADR 0020).
+      COOKIE_SECURE: "true"
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?defina ADMIN_INITIAL_PASSWORD}
     depends_on:
       mysql:

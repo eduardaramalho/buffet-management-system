@@ -22,8 +22,9 @@ Jornada completa do sistema em um navegador real, contra um backend e um banco *
 18. Redefinição de senha pelo administrador: admin protegido (403) e senha anterior invalidada (ADR 0012)
 19. Troca obrigatória da senha temporária; a gestora abre no Dashboard, a primeira tela permitida (ADR 0013 e 0018)
 20. Gestor com acesso completo exceto gestão de papéis; admin protegido, conta própria travada (403) e usuário inexistente (404) (ADR 0018)
-21. Sessão: botão Sair acessível em tela baixa e no celular
-22. Colaborador: abre em Eventos, só consulta eventos e move o status das tarefas; o backend recusa o resto (ADR 0013)
+21. Sessão: recarregar a página (F5) mantém o login na mesma tela; o refresh token fica em cookie httpOnly, fora do alcance do JavaScript (ADR 0020)
+22. Sessão: botão Sair acessível em tela baixa e no celular; depois de sair, o F5 continua no login
+23. Colaborador: abre em Eventos, só consulta eventos e move o status das tarefas; o backend recusa o resto (ADR 0013)
 
 Os passos são dependentes (`test.describe.serial`). Erros de JavaScript não tratados na página
 fazem qualquer passo falhar, mesmo que a API tenha respondido corretamente.
@@ -35,8 +36,9 @@ fazem qualquer passo falhar, mesmo que a API tenha respondido corretamente.
 - Antes do backend subir, `scripts/start-backend.ts` executa `prisma migrate reset --force` e o seed
   no banco `E2E_DATABASE_URL`. **Esse banco é apagado a cada execução**; por segurança o nome
   precisa conter `e2e`.
-- O token de acesso fica em memória no frontend, então a jornada navega pelo menu e não recarrega a
-  página após o login.
+- O token de acesso fica em memória no frontend e o refresh token em cookie httpOnly (ADR 0020): um F5
+  restaura a sessão. A jornada navega pelo menu, como o usuário, e só recarrega a página nos passos de sessão.
+  O backend do E2E roda com `COOKIE_SECURE=false`, porque a suíte usa HTTP local.
 - O limite de login do backend é 5 tentativas a cada 15 min por IP, e a jornada usa as 5: administrador
   (API e tela), senha anterior recusada, gestora com a senha temporária e colaborador. A API da gestora
   reaproveita o token devolvido pela troca de senha (`ApiClient.fromToken`). Um novo login estoura o limite. Como o backend

@@ -1,5 +1,6 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { randomUUID } from "node:crypto";
@@ -65,6 +66,7 @@ const sensitiveAuthLimiter = rateLimit({
 export const createRateLimitTestApp = (controller: AuthController) => {
   const testApp = express();
   testApp.use(express.json());
+  testApp.use(cookieParser());
   testApp.use("/api/v1/auth/login", rateLimit({
     windowMs: LOGIN_RATE_LIMIT_WINDOW_MS,
     max: LOGIN_RATE_LIMIT_MAX_ATTEMPTS,
@@ -114,8 +116,9 @@ app.use(
 
       return callback(null, false);
     },
-    // Tokens are exchanged in the request body today, so browser credentials are not required for the frontend flow.
-    credentials: false,
+    // The refresh token travels in an httpOnly cookie (ADR 0020). Local docker compose serves the frontend
+    // and the API on different ports, so the browser only sends that cookie when credentials are allowed.
+    credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     // Lets the frontend read the file name of report exports (CSV/PDF) on cross-origin deployments.
@@ -149,6 +152,8 @@ app.use("/api/v1/auth/login", loginLimiter);
 // A troca de senha confere a senha atual: limitar evita força bruta com um access token roubado.
 app.use("/api/v1/auth/change-password", sensitiveAuthLimiter);
 app.use(express.json());
+// Reads the httpOnly refresh token cookie on the auth routes (ADR 0020).
+app.use(cookieParser());
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/roles", roleRoutes);

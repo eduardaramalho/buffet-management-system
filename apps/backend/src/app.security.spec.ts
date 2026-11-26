@@ -2,10 +2,12 @@ process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/buffet_test';
 process.env.JWT_ACCESS_SECRET = 'test-secret';
 process.env.CORS_ORIGIN = 'http://localhost:5173';
 
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it, jest } from '@jest/globals';
 import request from 'supertest';
 
 import { AuthController } from './modules/auth/presentation/controllers/AuthController.js';
+import { RefreshTokenCookie } from './modules/auth/presentation/refreshTokenCookie.js';
+import { authService } from './modules/auth/infrastructure/factories/auth.factory.js';
 import { createRateLimitTestApp } from './app.js';
 import app from './app.js';
 
@@ -51,6 +53,30 @@ describe('API security middleware', () => {
     expect(response.headers['access-control-expose-headers']).toBe('Content-Disposition');
   });
 
+  it('allows credentials for the allowed origin so the browser sends the refresh token cookie', async () => {
+    const response = await request(app)
+      .options('/api/v1/auth/refresh-token')
+      .set('Origin', 'http://localhost:5173')
+      .set('Access-Control-Request-Method', 'POST');
+
+    expect(response.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+    expect(response.headers['access-control-allow-credentials']).toBe('true');
+  });
+
+  it('reads the refresh token cookie on the real app and clears it on logout', async () => {
+    const logout = jest.spyOn(authService, 'logout').mockResolvedValue(undefined);
+
+    const response = await request(app)
+      .post('/api/v1/auth/logout')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', 'eventospro_rt=opaque');
+
+    expect(response.status).toBe(204);
+    expect(logout).toHaveBeenCalledWith('opaque');
+    expect(String(response.headers['set-cookie'])).toContain('eventospro_rt=;');
+    logout.mockRestore();
+  });
+
   it('blocks a disallowed CORS origin', async () => {
     const response = await request(app)
       .get('/api/v1/health')
@@ -64,7 +90,7 @@ describe('API security middleware', () => {
     const attempts = 6;
     let blocked = false;
     const fakeService = { login: async () => ({ accessToken: 'token', refreshToken: 'refresh', user: { id: 'user-1', name: 'User', email: 'user@example.com' } }) };
-    const testApp = createRateLimitTestApp(new AuthController(fakeService as any));
+    const testApp = createRateLimitTestApp(new AuthController(fakeService as any, new RefreshTokenCookie({ secure: false, maxAgeMs: 1000 })));
 
     for (let index = 0; index < attempts; index += 1) {
       const response = await request(testApp)

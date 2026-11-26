@@ -103,3 +103,18 @@ describe('AppRoutes home page by permission', () => {
     authState.user = previous
   })
 })
+
+describe('AppRoutes session restoration (ADR 0020)', () => {
+  it('waits for the session restoration instead of sending the visitor to the login', async () => {
+    const previous = authState.user
+    authState.user = null as unknown as typeof authState.user
+    Object.assign(authState, { restoring: true })
+    const { container } = render(<MemoryRouter initialEntries={['/users']}><AppRoutes /></MemoryRouter>)
+
+    expect(container.querySelector('[aria-busy="true"]')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Carregando sessão...')
+    expect(screen.queryByRole('heading', { name: 'Login' })).not.toBeInTheDocument()
+    Object.assign(authState, { restoring: false })
+    authState.user = previous
+  })
+})

@@ -19,12 +19,16 @@ import { ProtectedRoute } from './ProtectedRoute'
 import { InternalLayout } from '../components/InternalLayout'
 import { RouteErrorBoundary } from '../components/RouteErrorBoundary'
 import { Notice } from '../components/Notice'
+import { LoadingIndicator } from '../components/LoadBoundary'
 import { NO_ACCESS_PATH, getHomePath } from '../utils/homePath'
 import { usePageTitle } from '../hooks/usePageTitle'
 
 export function AppRoutes() {
-	const { user, logout } = useAuth()
+	const { user, logout, restoring } = useAuth()
 	const { pathname } = useLocation()
+	// Enquanto a sessão é restaurada pelo cookie (ADR 0020), nenhuma rota decide: sem isso, um F5 em /events
+	// mandaria a pessoa logada para o login antes da resposta do refresh.
+	if (restoring) return <LoadingIndicator label="Carregando sessão..." />
 	// O boundary fica dentro do layout: um erro numa tela preserva o menu, o botão Sair e a sessão.
 	const withNavigation = (page: ReactNode) => <InternalLayout onLogout={logout}><RouteErrorBoundary resetKey={pathname}>{page}</RouteErrorBoundary></InternalLayout>
 

@@ -16,7 +16,7 @@ const makeUser = (roleNames: string[]) => ({ id: 'user-1', name: 'Alice', email:
 beforeEach(() => {
   localStorage.clear()
   vi.mocked(listTasks).mockReset().mockResolvedValue([])
-  vi.mocked(useAuth).mockReturnValue({ user: makeUser(['Gestor']), loading: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
+  vi.mocked(useAuth).mockReturnValue({ user: makeUser(['Gestor']), loading: false, restoring: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
 })
 
 describe('InternalLayout', () => {
@@ -33,7 +33,7 @@ describe('InternalLayout', () => {
   })
 
   it.each(['Gestor', 'Administrador'])('shows the real role %s in the layout', (roleName) => {
-    vi.mocked(useAuth).mockReturnValue({ user: makeUser([roleName]), loading: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
+    vi.mocked(useAuth).mockReturnValue({ user: makeUser([roleName]), loading: false, restoring: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
     render(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
     expect(screen.getAllByText(roleName)).toHaveLength(2)
   })
@@ -42,7 +42,7 @@ describe('InternalLayout', () => {
     render(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
     expect(screen.getByRole('link', { name: 'Serviços' })).toHaveAttribute('href', '/services')
 
-    vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), roles: [{ name: 'Gestor', permissions: ['events:list'] }] }, loading: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
+    vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), roles: [{ name: 'Gestor', permissions: ['events:list'] }] }, loading: false, restoring: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
     render(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
     expect(screen.getAllByRole('link', { name: 'Serviços' })).toHaveLength(1)
   })
@@ -51,7 +51,7 @@ describe('InternalLayout', () => {
     render(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
     expect(screen.getByRole('link', { name: 'Clientes' })).toHaveAttribute('href', '/clients')
 
-    vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), roles: [{ name: 'Gestor', permissions: ['events:list'] }] }, loading: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
+    vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), roles: [{ name: 'Gestor', permissions: ['events:list'] }] }, loading: false, restoring: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
     render(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
     expect(screen.getAllByRole('link', { name: 'Clientes' })).toHaveLength(1)
   })
@@ -62,7 +62,7 @@ describe('InternalLayout', () => {
     expect(screen.getByRole('link', { name: 'Relatórios' })).toHaveClass('active')
     expect(screen.getByText('Relatórios', { selector: '.breadcrumb strong' })).toBeInTheDocument()
 
-    vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), roles: [{ name: 'Gestor', permissions: ['events:list'] }] }, loading: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
+    vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), roles: [{ name: 'Gestor', permissions: ['events:list'] }] }, loading: false, restoring: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
     render(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
     expect(screen.getAllByRole('link', { name: 'Relatórios' })).toHaveLength(1)
   })
@@ -84,7 +84,7 @@ describe('InternalLayout', () => {
     })
 
     it('não busca tarefas nem mostra o link sem tasks:list', () => {
-      vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), roles: [{ name: 'Gestor', permissions: ['events:list'] }] }, loading: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
+      vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), roles: [{ name: 'Gestor', permissions: ['events:list'] }] }, loading: false, restoring: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
       renderLayout()
       expect(listTasks).not.toHaveBeenCalled()
       expect(screen.queryByRole('link', { name: 'Tarefas' })).not.toBeInTheDocument()
@@ -96,7 +96,7 @@ describe('InternalLayout', () => {
         .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve }))
         .mockResolvedValueOnce([task({ id: 't1' })])
       const { rerender } = renderLayout()
-      vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), id: 'user-2' }, loading: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
+      vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Gestor']), id: 'user-2' }, loading: false, restoring: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
       rerender(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
       const tasksLink = screen.getByRole('link', { name: 'Tarefas' })
       expect(await within(tasksLink).findByText('1')).toBeInTheDocument()

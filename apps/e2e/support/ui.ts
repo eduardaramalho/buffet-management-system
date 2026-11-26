@@ -1,8 +1,8 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 
 /**
- * O token de acesso fica em memória (apps/frontend/src/api/tokenStore.ts): recarregar a página
- * encerra a sessão. Por isso a jornada navega pelo menu (client-side) e não usa page.goto após o login.
+ * A jornada navega pelo menu (client-side), como o usuário. Recarregar a página mantém a sessão pelo
+ * cookie httpOnly do refresh token (ADR 0020), mas cada F5 gasta uma renovação: o passo 21 cobre esse caso.
  */
 export const navigateTo = async (page: Page, menu: string, heading: string) => {
   await page.getByRole('navigation').getByRole('link', { name: menu, exact: true }).click()
