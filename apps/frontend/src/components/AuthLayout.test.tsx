@@ -16,6 +16,14 @@ describe('AuthLayout', () => {
     expect(screen.getByText(`© ${new Date().getFullYear()} EventosPro`)).toBeInTheDocument()
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
   })
+
+  it('keeps only the logo and the footer on the brand panel when there is no slogan', () => {
+    const { container } = render(<AuthLayout><h1>Acesse sua conta</h1></AuthLayout>)
+
+    expect(screen.getByText('Eventos')).toBeInTheDocument()
+    expect(screen.getByText(`© ${new Date().getFullYear()} EventosPro`)).toBeInTheDocument()
+    expect(container.querySelector('.auth-aside-body')).toBeNull()
+  })
 })
 
 describe('FormField', () => {
