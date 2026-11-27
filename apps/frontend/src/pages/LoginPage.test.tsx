@@ -36,12 +36,14 @@ describe('LoginPage', () => {
     expect(document.title).toBe('Entrar · EventosPro')
   })
 
-  it('uses the form as the page heading and keeps the slogan out of the heading outline', () => {
+  it('uses the form as the only page heading and shows no slogan or highlights on the brand panel', () => {
     renderPage()
 
     expect(screen.getByRole('heading', { level: 1, name: 'Acesse sua conta' })).toBeInTheDocument()
     expect(screen.getAllByRole('heading')).toHaveLength(1)
-    expect(screen.getByText('Organize. Planeje. Execute.')).toBeInTheDocument()
+    expect(screen.queryByText('Organize. Planeje. Execute.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Tarefas geradas por regras')).not.toBeInTheDocument()
+    expect(screen.queryByRole('list')).not.toBeInTheDocument()
   })
 
   it('lets the browser fill the saved credentials and does not validate the password length on login', () => {
