@@ -188,6 +188,11 @@ nav[aria-label="Paginação"] { display: flex; justify-content: flex-end; align-
 .auth-aside .brand strong { font-size: 22px; }
 .auth-aside .brand small { color: var(--sidebar-muted); font-size: 11px; }
 .auth-aside .logo-mark { width: 40px; height: 40px; }
+.auth-aside-center { position: relative; z-index: 1; display: flex; flex: 1 1 auto; align-items: center; justify-content: center; }
+.auth-aside-center .brand { gap: 24px; }
+.auth-aside-center .brand strong { font-size: 60px; }
+.auth-aside-center .brand small { margin-top: 10px; font-size: 18px; }
+.auth-aside-center .logo-mark { width: 104px; height: 104px; }
 .auth-aside-body { position: relative; z-index: 1; display: grid; gap: 24px; max-width: 440px; margin: auto 0; }
 .auth-aside-line { width: 56px; border-top: 2px solid var(--gold-500); }
 .auth-aside-title { margin: 0; font: 800 40px/1.12 'Manrope', sans-serif; letter-spacing: -.03em; }
@@ -243,7 +248,7 @@ form .auth-submit { display: flex; align-items: center; justify-content: center;
 .auth-footer-actions button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; }
 .auth-footer-actions svg { width: 15px; height: 15px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-@media (max-width: 900px) { .auth-aside { flex-basis: 100%; gap: 24px; padding: 36px 24px 32px; }.auth-aside-body { gap: 16px; margin: 0; }.auth-aside-title { font-size: 26px; }.auth-aside-footer { display: none; }.auth-main { flex-basis: 100%; align-items: start; padding: 32px 24px 40px; } }
+@media (max-width: 900px) { .auth-aside { flex-basis: 100%; gap: 24px; padding: 36px 24px 32px; }.auth-aside-body { gap: 16px; margin: 0; }.auth-aside-title { font-size: 26px; }.auth-aside-center .brand { gap: 16px; }.auth-aside-center .brand strong { font-size: 36px; }.auth-aside-center .brand small { font-size: 14px; }.auth-aside-center .logo-mark { width: 64px; height: 64px; }.auth-aside-footer { display: none; }.auth-main { flex-basis: 100%; align-items: start; padding: 32px 24px 40px; } }
 
 /* ===== Formulários em modal centralizado (Modelo B do estudo de UX) =====
    Classes com prefixo fm- para não colidir com as regras globais de form/label/input acima.

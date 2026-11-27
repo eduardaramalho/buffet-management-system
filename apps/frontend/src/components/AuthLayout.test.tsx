@@ -24,6 +24,19 @@ describe('AuthLayout', () => {
     expect(screen.getByText(`© ${new Date().getFullYear()} EventosPro`)).toBeInTheDocument()
     expect(container.querySelector('.auth-aside-body')).toBeNull()
   })
+
+  it('centers a larger logo on the brand panel when there is no slogan', () => {
+    const { container } = render(<AuthLayout><h1>Acesse sua conta</h1></AuthLayout>)
+
+    expect(container.querySelector('.auth-aside-center .brand')).toHaveTextContent('EventosProGestão de Eventos')
+  })
+
+  it('keeps the logo at the top when there is a slogan', () => {
+    const { container } = render(<AuthLayout title="Falta só um passo." description="Texto."><h1>Trocar senha</h1></AuthLayout>)
+
+    expect(container.querySelector('.auth-aside-center')).toBeNull()
+    expect(container.querySelector('.auth-aside > .brand')).toBeInTheDocument()
+  })
 })
 
 describe('FormField', () => {
