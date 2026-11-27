@@ -107,7 +107,7 @@ cd apps/e2e      && npm test                # jornada completa no navegador (req
 | Frontend | 362 | 95,4% | 84,6% | 86,9% | 89,4% | 25% | 80% nas quatro métricas |
 | E2E | jornada com 23 passos | não se aplica | | | | | |
 
-Medição de 02/11/2026. Cada execução do CI publica a cobertura de cada aplicação no resumo do job. As exclusões de cobertura e os thresholds seguem o [ADR 0007](docs/adr/0007-politica-de-qualidade-e-cobertura.md). Detalhes em [Qualidade e Testes](https://github.com/eduardaramalho/buffet-management-system/wiki/Qualidade-e-Testes).
+Medição de 02/11/2026. Cada execução do CI publica a cobertura de cada aplicação no resumo do job. A `main` é protegida por um ruleset ([.github/rulesets/main.json](.github/rulesets/main.json)): todo merge passa por pull request e exige os checks `backend`, `frontend`, `e2e` e `sonar` aprovados, inclusive o Quality Gate. As exclusões de cobertura e os thresholds seguem o [ADR 0007](docs/adr/0007-politica-de-qualidade-e-cobertura.md). Detalhes em [Qualidade e Testes](https://github.com/eduardaramalho/buffet-management-system/wiki/Qualidade-e-Testes).
 
 ## Estrutura do repositório
 
@@ -121,6 +121,7 @@ buffet-management-system/
 ├── docs/adr/           # Architecture Decision Records
 ├── observability/      # Prometheus e provisionamento do Grafana
 ├── .github/workflows/  # pipeline de CI/CD
+├── .github/rulesets/   # ruleset de proteção da main
 └── docker-compose.yml
 ```
 

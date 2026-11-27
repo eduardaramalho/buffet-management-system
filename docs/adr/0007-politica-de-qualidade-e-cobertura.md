@@ -1,7 +1,7 @@
 # ADR 0007: Política de qualidade, cobertura e Quality Gate
 
 - **Status:** Aceito
-- **Escopo:** `apps/backend/jest.config.cjs`, `apps/frontend/vitest.config.ts`, `apps/frontend/eslint.config.js`, `apps/backend/package.json` (`typecheck`), `sonar-project.properties`, `.github/workflows/ci.yml`, `.github/scripts/coverage-summary.mjs`
+- **Escopo:** `apps/backend/jest.config.cjs`, `apps/frontend/vitest.config.ts`, `apps/frontend/eslint.config.js`, `apps/backend/package.json` (`typecheck`), `sonar-project.properties`, `.github/workflows/ci.yml`, `.github/scripts/coverage-summary.mjs`, `.github/rulesets/main.json`
 
 ## Contexto
 
@@ -56,10 +56,17 @@ O Quality Gate do Sonar também não consegue aplicar limites diferentes por dir
 
 ## Estado atual da publicação
 
-O repositório e o projeto do SonarCloud são públicos, e os badges de Quality Gate e cobertura estão no README. No plano gratuito, só repositórios públicos permitem rulesets, então o bloqueio de merge passou a ser possível:
+O repositório e o projeto do SonarCloud são públicos, e os badges de Quality Gate e cobertura estão no README. No plano gratuito, só repositórios públicos permitem rulesets, o que tornou possível bloquear o merge.
 
-- **Pendente (KAN-53):** criar o ruleset na `main` exigindo os checks `backend`, `frontend`, `e2e` e `sonar`.
-- Até o ruleset existir, um gate ou threshold reprovado deixa o commit com status de falha no Actions, mas não bloqueia o merge; nada é integrado à `main` com o pipeline vermelho.
+**Ruleset da `main` (KAN-53, 27/11/2026).** A configuração fica versionada em [`.github/rulesets/main.json`](../../.github/rulesets/main.json) e é importada em Settings > Rules > Rulesets. Ela aplica:
+
+- **Checks obrigatórios:** `backend`, `frontend`, `e2e` e `sonar`, aceitos só quando publicados pelo GitHub Actions. Como o job `sonar` espera o Quality Gate (`sonar.qualitygate.wait`), um gate reprovado também bloqueia o merge. O `deploy` fica de fora porque só roda em push na `main`, depois do merge.
+- **Branch atualizada com a `main`:** a PR precisa conter o último commit da `main` e passar pelos checks de novo, para que duas PRs aprovadas separadamente não quebrem a `main` juntas.
+- **Merge só por pull request, com 0 aprovações:** o projeto tem uma desenvolvedora, e o GitHub não permite aprovar a própria PR. O que protege a `main` são os checks, não a revisão.
+- **Sem exclusão da `main` e sem force push:** preserva o histórico que o Sonar usa para calcular o código novo.
+- **Sem bypass, nem para o admin:** uma regra que o dono do repositório contorna não garante nada. Em uma emergência, o ruleset é desativado, a correção entra e ele é reativado, e a mudança fica registrada no histórico de regras do repositório.
+
+Alternativas descartadas: a branch protection clássica, que é a forma legada e não restringe a origem dos checks; o bypass para o admin, que deixaria a regra só no papel; e desligar a exigência de branch atualizada, que economiza execuções do CI mas permite quebrar a `main` com dois merges seguidos.
 
 ## Prós
 
