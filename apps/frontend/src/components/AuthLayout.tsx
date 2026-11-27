@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Logo } from './Logo'
 
 type AuthLayoutProps = {
-  /** Frase de destaque do painel lateral. Não é um heading: o h1 da página fica no formulário. Sem título, o painel mostra só a marca. */
+  /** Frase de destaque do painel lateral. Não é um heading: o h1 da página fica no formulário. Sem título, o painel mostra só a marca, maior e centralizada. */
   title?: string
   description?: string
   aside?: ReactNode
@@ -16,7 +16,7 @@ type AuthLayoutProps = {
 export function AuthLayout({ title, description, aside, children }: Readonly<AuthLayoutProps>) {
   return <div className="auth-shell">
     <aside className="auth-aside">
-      <Logo />
+      {title ? <Logo /> : <div className="auth-aside-center"><Logo /></div>}
       {title && <div className="auth-aside-body">
         <span className="auth-aside-line" aria-hidden="true" />
         <p className="auth-aside-title">{title}</p>
