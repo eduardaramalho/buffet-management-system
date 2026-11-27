@@ -19,10 +19,14 @@ const httpRequests = new Counter({
   registers: [metricsRegistry]
 });
 
+// Valor fixo para requisições sem rota casada (404, 401/403 de middlewares de router, 429 do
+// rate limit). Usar a URL concreta criaria uma série nova no Prometheus a cada URL varrida por bots.
+export const UNMATCHED_ROUTE_LABEL = "unmatched";
+
 const getRoute = (request: Request): string => {
   const route = request.route?.path;
   if (route) return `${request.baseUrl}${Array.isArray(route) ? route[0] : route}`;
-  return request.path;
+  return UNMATCHED_ROUTE_LABEL;
 };
 
 export const httpMetricsMiddleware = (request: Request, response: Response, next: NextFunction) => {
