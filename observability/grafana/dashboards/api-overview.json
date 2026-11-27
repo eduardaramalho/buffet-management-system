@@ -8,21 +8,21 @@
       "title": "Requests per second",
       "type": "timeseries",
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
-      "targets": [{"expr": "sum(rate(http_requests_total[1m]))", "legendFormat": "requests/s", "refId": "A"}],
+      "targets": [{"expr": "sum(rate(http_requests_total{route!=\"/api/v1/metrics\"}[1m]))", "legendFormat": "requests/s", "refId": "A"}],
       "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}
     },
     {
       "title": "5xx error rate",
       "type": "timeseries",
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
-      "targets": [{"expr": "sum(rate(http_requests_total{status_code=~\"5..\"}[1m]))", "legendFormat": "errors/s", "refId": "A"}],
+      "targets": [{"expr": "sum(rate(http_requests_total{status_code=~\"5..\",route!=\"/api/v1/metrics\"}[1m]))", "legendFormat": "errors/s", "refId": "A"}],
       "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}
     },
     {
       "title": "Request latency p95 by route",
       "type": "timeseries",
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
-      "targets": [{"expr": "histogram_quantile(0.95, sum by (le, route) (rate(http_request_duration_seconds_bucket[5m])))", "legendFormat": "{{route}}", "refId": "A"}],
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le, route) (rate(http_request_duration_seconds_bucket{route!=\"/api/v1/metrics\"}[5m])))", "legendFormat": "{{route}}", "refId": "A"}],
       "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}
     },
     {
@@ -33,11 +33,12 @@
       "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []}
     }
   ],
+  "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["buffet", "api"],
+  "tags": ["eventospro", "api"],
   "templating": {"list": []},
   "time": {"from": "now-6h", "to": "now"},
-  "title": "Buffet API Overview",
+  "title": "EventosPro API Overview",
   "uid": "buffet-api-overview",
-  "version": 1
+  "version": 2
 }
