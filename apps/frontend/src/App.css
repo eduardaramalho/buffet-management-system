@@ -192,14 +192,7 @@ nav[aria-label="Paginação"] { display: flex; justify-content: flex-end; align-
 .auth-aside-line { width: 56px; border-top: 2px solid var(--gold-500); }
 .auth-aside-title { margin: 0; font: 800 40px/1.12 'Manrope', sans-serif; letter-spacing: -.03em; }
 .auth-aside-text { margin: 0; color: var(--sidebar-text); font-size: 15px; line-height: 1.7; }
-.auth-aside-footer { position: relative; z-index: 1; color: var(--sidebar-section); font-size: 12px; }
-.auth-highlights { display: grid; gap: 18px; margin: 8px 0 0; padding: 0; list-style: none; }
-.auth-highlights li { display: flex; align-items: flex-start; gap: 14px; }
-.auth-highlights strong, .auth-highlights li > span > span { display: block; }
-.auth-highlights strong { font-size: 14px; }
-.auth-highlights li > span > span { margin-top: 3px; color: var(--sidebar-muted); font-size: 13px; line-height: 1.5; }
-.auth-highlight-icon { display: grid; place-items: center; flex: 0 0 36px; height: 36px; border-radius: 10px; color: var(--gold-500); background: var(--navy-800); }
-.auth-highlight-icon svg { width: 18px; height: 18px; }
+.auth-aside-footer { position: relative; z-index: 1; margin-top: auto; color: var(--sidebar-section); font-size: 12px; }
 .auth-account { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--sidebar-border); border-radius: 8px; }
 .auth-account strong, .auth-account small { display: block; }
 .auth-account strong { font-size: 13px; }
@@ -250,7 +243,7 @@ form .auth-submit { display: flex; align-items: center; justify-content: center;
 .auth-footer-actions button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; }
 .auth-footer-actions svg { width: 15px; height: 15px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-@media (max-width: 900px) { .auth-aside { flex-basis: 100%; gap: 24px; padding: 36px 24px 32px; }.auth-aside-body { gap: 16px; margin: 0; }.auth-aside-title { font-size: 26px; }.auth-highlights, .auth-aside-footer { display: none; }.auth-main { flex-basis: 100%; align-items: start; padding: 32px 24px 40px; } }
+@media (max-width: 900px) { .auth-aside { flex-basis: 100%; gap: 24px; padding: 36px 24px 32px; }.auth-aside-body { gap: 16px; margin: 0; }.auth-aside-title { font-size: 26px; }.auth-aside-footer { display: none; }.auth-main { flex-basis: 100%; align-items: start; padding: 32px 24px 40px; } }
 
 /* ===== Formulários em modal centralizado (Modelo B do estudo de UX) =====
    Classes com prefixo fm- para não colidir com as regras globais de form/label/input acima.
