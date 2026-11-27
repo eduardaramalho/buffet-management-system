@@ -85,45 +85,7 @@ O seed é idempotente e pode ser executado de novo a qualquer momento. A senha d
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3001 |
 
-Para parar mantendo os dados: `docker compose down`. Para apagar também os volumes: `docker compose down -v`.
-
-### Modo de desenvolvimento
-
-Backend e frontend rodam na máquina, com recarga automática; só o MySQL fica em contêiner. Pré-requisitos: Node.js 24.x e Docker (ou um MySQL 8 instalado na máquina). Os comandos funcionam no PowerShell e no Bash.
-
-1. Banco: suba só o MySQL, publicado em `127.0.0.1:3307` (a 3307 evita conflito com um MySQL local na 3306; troque com `MYSQL_DEV_PORT`). Ele usa as credenciais do `.env` da raiz, então crie esse arquivo antes:
-
-   ```bash
-   cp .env.example .env
-   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mysql
-   ```
-
-2. Backend (`apps/backend`): copie o `.env` e ajuste `DATABASE_URL` com o usuário e a senha do `.env` da raiz, por exemplo `mysql://buffet:<MYSQL_PASSWORD>@localhost:3307/buffet_management`. Troque também `JWT_ACCESS_SECRET`.
-
-   ```bash
-   cd apps/backend
-   npm ci
-   cp .env.example .env
-   npx prisma migrate deploy     # aplica as migrations
-   npm run db:seed               # permissões, papéis, serviço "Outro" e admin
-   npm run dev                   # http://localhost:3000
-   ```
-
-   Use `migrate deploy`, não `migrate dev`: o `migrate dev` cria um shadow database, e o usuário do banco (`MYSQL_USER`) não tem permissão para criar bancos (erro P3014). O client do Prisma já vem versionado em `src/generated`; rode `npx prisma generate` só depois de alterar o `schema.prisma`.
-
-   Neste modo o seed lê o `apps/backend/.env`: o admin `admin@buffet.local` recebe a senha de `ADMIN_INITIAL_PASSWORD` desse arquivo (`Admin123!` no exemplo), não a do `.env` da raiz.
-
-3. Frontend (`apps/frontend`), em outro terminal:
-
-   ```bash
-   cd apps/frontend
-   npm ci
-   npm run dev                   # http://localhost:5173
-   ```
-
-   O Vite encaminha `/api` para `http://localhost:3000`, então não é preciso configurar `VITE_API_URL`. No console do navegador, um `400` em `/api/v1/auth/refresh-token` antes do login é esperado: é a tentativa de restaurar a sessão sem cookie.
-
-Se o stack completo do Compose estiver no ar, pare-o antes (`docker compose stop`), porque ele ocupa a porta 3000. Variáveis e problemas comuns em [Como Rodar](https://github.com/eduardaramalho/buffet-management-system/wiki/Como-Rodar).
+Para rodar em modo de desenvolvimento (sem contêineres para backend e frontend), veja [Como Rodar](https://github.com/eduardaramalho/buffet-management-system/wiki/Como-Rodar).
 
 ## Produção
 
@@ -136,27 +98,16 @@ cd apps/backend  && npm run test:coverage   # unitários e integração
 cd apps/backend  && npm run typecheck       # tipos do código e dos testes (também roda no CI)
 cd apps/frontend && npm run test:coverage   # componentes e páginas
 cd apps/frontend && npm run lint            # ESLint sem erros nem avisos (também roda no CI)
-cd apps/backend  && npm run build           # compila para dist/
-cd apps/frontend && npm run build           # tsc -b e build do Vite para dist/
-```
-
-E2E (jornada completa no navegador): precisa de um MySQL com um usuário que crie e apague bancos, como o root do contêiner do modo de desenvolvimento. O banco do E2E é **apagado e recriado** a cada execução, e o nome dele precisa conter `e2e`.
-
-```bash
-cd apps/e2e
-npm ci
-cp .env.e2e.example .env.e2e    # ajuste E2E_DATABASE_URL, ex.: mysql://root:<MYSQL_ROOT_PASSWORD>@localhost:3307/buffet_management_e2e
-npm run install:browsers
-npm test
+cd apps/e2e      && npm test                # jornada completa no navegador (requer MySQL)
 ```
 
 | Suíte | Testes | Linhas | Branches | Funções | Statements | Mínimo exigido | Threshold do CI |
 |---|---|---|---|---|---|---|---|
-| Backend | 758 | 98,7% | 93,5% | 95,6% | 97,6% | 75% | 85% nas quatro métricas |
-| Frontend | 549 | 97,1% | 90,4% | 89,3% | 92,6% | 25% | 80% nas quatro métricas |
+| Backend | 665 | 98,4% | 92,5% | 95,0% | 97,2% | 75% | 85% nas quatro métricas |
+| Frontend | 362 | 95,4% | 84,6% | 86,9% | 89,4% | 25% | 80% nas quatro métricas |
 | E2E | jornada com 23 passos | não se aplica | | | | | |
 
-Medição de 27/11/2026. Cada execução do CI publica a cobertura de cada aplicação no resumo do job. A `main` é protegida por um ruleset ([.github/rulesets/main.json](.github/rulesets/main.json)): todo merge passa por pull request e exige os checks `backend`, `frontend`, `e2e` e `sonar` aprovados, inclusive o Quality Gate. As exclusões de cobertura e os thresholds seguem o [ADR 0007](docs/adr/0007-politica-de-qualidade-e-cobertura.md). Detalhes em [Qualidade e Testes](https://github.com/eduardaramalho/buffet-management-system/wiki/Qualidade-e-Testes).
+Medição de 02/11/2026. Cada execução do CI publica a cobertura de cada aplicação no resumo do job. A `main` é protegida por um ruleset ([.github/rulesets/main.json](.github/rulesets/main.json)): todo merge passa por pull request e exige os checks `backend`, `frontend`, `e2e` e `sonar` aprovados, inclusive o Quality Gate. As exclusões de cobertura e os thresholds seguem o [ADR 0007](docs/adr/0007-politica-de-qualidade-e-cobertura.md). Detalhes em [Qualidade e Testes](https://github.com/eduardaramalho/buffet-management-system/wiki/Qualidade-e-Testes).
 
 ## Estrutura do repositório
 
