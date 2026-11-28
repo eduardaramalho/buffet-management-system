@@ -22,8 +22,35 @@ type SideLinkProps = { to: string; label: string; icon: IconName; active: boolea
 // Com a barra recolhida só o ícone fica visível: o title mostra o nome ao passar o mouse
 // e o aria-label mantém o link identificável para leitores de tela.
 function SideLink({ to, label, icon, active, collapsed, children }: Readonly<SideLinkProps>) {
-  return <Link aria-label={label} title={collapsed ? label : undefined} to={to} className={`side-link${active ? ' active' : ''}`}><Icon name={icon} /><span>{label}</span>{children}</Link>
+  return <Link aria-label={label} aria-current={active ? 'page' : undefined} title={collapsed ? label : undefined} to={to} className={`side-link${active ? ' active' : ''}`}><Icon name={icon} /><span>{label}</span>{children}</Link>
 }
+
+type NavItem = { to: string; label: string; icon: IconName; permission: string }
+type NavSection = { id: string; title?: string; items: NavItem[] }
+
+// KAN-96: o menu é montado a partir desta lista; uma seção sem nenhum link permitido não aparece,
+// então um colaborador não vê títulos soltos como "Automação" e "Administração".
+const navSections: NavSection[] = [
+  { id: 'geral', items: [
+    { to: '/', label: 'Dashboard', icon: 'home', permission: 'dashboard:view' },
+    { to: '/reports', label: 'Relatórios', icon: 'chart', permission: 'reports:view' },
+  ] },
+  { id: 'operacao', title: 'Operação', items: [
+    { to: '/events', label: 'Eventos', icon: 'calendar', permission: 'events:list' },
+    { to: '/clients', label: 'Clientes', icon: 'contact', permission: 'clients:list' },
+    { to: '/services', label: 'Serviços', icon: 'tag', permission: 'services:list' },
+    { to: '/tasks', label: 'Tarefas', icon: 'tasks', permission: 'tasks:list' },
+    { to: '/teams', label: 'Equipes', icon: 'users', permission: 'teams:list' },
+    { to: '/collaborators', label: 'Colaboradores', icon: 'user', permission: 'collaborators:manage' },
+  ] },
+  { id: 'automacao', title: 'Automação', items: [
+    { to: '/rules', label: 'Regras', icon: 'bolt', permission: 'rules:list' },
+  ] },
+  { id: 'administracao', title: 'Administração', items: [
+    { to: '/users', label: 'Usuários', icon: 'key', permission: 'users:list' },
+    { to: '/roles', label: 'Papéis e permissões', icon: 'shield', permission: 'roles:list' },
+  ] },
+]
 
 export function InternalLayout({ children, onLogout }: Readonly<{ children: ReactNode; onLogout: () => Promise<void> }>) {
   const { user } = useAuth()
@@ -33,7 +60,10 @@ export function InternalLayout({ children, onLogout }: Readonly<{ children: Reac
   const breadcrumbLabel = Object.entries(breadcrumbLabels).find(([path]) => location.pathname.startsWith(path))?.[1] ?? (location.pathname === '/' ? 'Dashboard' : 'Administração')
   const [unassignedTaskCount, setUnassignedTaskCount] = useState(0)
   const { collapsed, toggle } = useSidebarCollapsed()
-  const isActive = (path: string) => location.pathname.startsWith(path)
+  const isActive = (path: string) => (path === '/' ? location.pathname === '/' : location.pathname.startsWith(path))
+  const visibleSections = navSections
+    .map((section) => ({ ...section, items: section.items.filter((item) => hasPermission(item.permission)) }))
+    .filter((section) => section.items.length > 0)
 
   const canListTasks = hasPermission('tasks:list')
   const userId = user?.id
@@ -55,23 +85,15 @@ export function InternalLayout({ children, onLogout }: Readonly<{ children: Reac
         <Logo compact />
         <button type="button" className="sidebar-toggle" onClick={toggle} aria-expanded={!collapsed} aria-controls="app-sidebar" aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'} title={collapsed ? 'Expandir menu' : 'Recolher menu'}><Icon name="chevron-left" /></button>
       </div>
-      <nav className="side-nav">
-        {hasPermission('dashboard:view') && <SideLink to="/" label="Dashboard" icon="home" active={location.pathname === '/'} collapsed={collapsed} />}
-        {hasPermission('reports:view') && <SideLink to="/reports" label="Relatórios" icon="chart" active={isActive('/reports')} collapsed={collapsed} />}
-        <span className="side-section">OPERAÇÃO</span>
-        {hasPermission('events:list') && <SideLink to="/events" label="Eventos" icon="calendar" active={isActive('/events')} collapsed={collapsed} />}
-        {hasPermission('clients:list') && <SideLink to="/clients" label="Clientes" icon="contact" active={isActive('/clients')} collapsed={collapsed} />}
-        {hasPermission('services:list') && <SideLink to="/services" label="Serviços" icon="tag" active={isActive('/services')} collapsed={collapsed} />}
-        {canListTasks && <SideLink to="/tasks" label="Tarefas" icon="tasks" active={isActive('/tasks')} collapsed={collapsed}>{unassignedTaskCount > 0 && <i className="task-alert-badge">{unassignedTaskCount}</i>}</SideLink>}
-        {hasPermission('teams:list') && <SideLink to="/teams" label="Equipes" icon="users" active={isActive('/teams')} collapsed={collapsed} />}
-        {hasPermission('collaborators:manage') && <SideLink to="/collaborators" label="Colaboradores" icon="user" active={isActive('/collaborators')} collapsed={collapsed} />}
-        <span className="side-section">AUTOMAÇÃO</span>
-        {hasPermission('rules:list') && <SideLink to="/rules" label="Regras" icon="bolt" active={isActive('/rules')} collapsed={collapsed} />}
-        <span className="side-section">ADMINISTRAÇÃO</span>
-        {hasPermission('users:list') && <SideLink to="/users" label="Usuários" icon="users" active={isActive('/users')} collapsed={collapsed} />}
-        {hasPermission('roles:list') && <SideLink to="/roles" label="Papéis e permissões" icon="shield" active={isActive('/roles')} collapsed={collapsed} />}
+      <nav className="side-nav" aria-label="Menu principal">
+        {visibleSections.map((section) => <div key={section.id} className="side-group" role="group" aria-labelledby={section.title ? `side-section-${section.id}` : undefined} aria-label={section.title ? undefined : 'Visão geral'}>
+          {section.title && <span id={`side-section-${section.id}`} className="side-section">{section.title}</span>}
+          {section.items.map((item) => <SideLink key={item.to} to={item.to} label={item.label} icon={item.icon} active={isActive(item.to)} collapsed={collapsed}>
+            {item.to === '/tasks' && unassignedTaskCount > 0 && <i className="task-alert-badge">{unassignedTaskCount}</i>}
+          </SideLink>)}
+        </div>)}
       </nav>
-      <div className="sidebar-footer"><Avatar name={user?.name ?? 'Usuário'} small /><div><strong>{user?.name ?? 'Usuário'}</strong><small>{roleLabel}</small></div><button type="button" onClick={() => void onLogout()} aria-label="Sair" title="Sair"><Icon name="logout" /></button></div>
+      <div className="sidebar-footer"><button type="button" className="side-logout" onClick={() => void onLogout()} aria-label="Sair" title={collapsed ? 'Sair' : undefined}><Icon name="logout" /><span>Sair</span></button></div>
     </aside>
     <div className="internal-content">
       <header className="topbar"><div className="breadcrumb"><Link to="/">Início</Link><span>/</span><strong>{breadcrumbLabel}</strong></div><div className="topbar-user"><Avatar name={user?.name ?? 'Usuário'} /><div><strong>{user?.name ?? 'Usuário'}</strong><small>{roleLabel}</small></div></div></header>
