@@ -28,7 +28,10 @@ export function TaskColumn({ status, count, dropState, blockedReason, children }
     </h2>
     {dropState === 'allowed' && <p className="task-column-hint is-allowed">Solte aqui para mover</p>}
     {dropState === 'blocked' && blockedReason && <p className="task-column-hint is-blocked">{blockedReason}</p>}
-    {children}
-    {count === 0 && dropState === 'idle' && <p className="task-column-empty">Nenhuma tarefa.</p>}
+    {/* KAN-95: só os cards rolam; título, contador e dica de destino ficam fixos no topo da coluna. */}
+    <div className="task-column-body">
+      {children}
+      {count === 0 && dropState === 'idle' && <p className="task-column-empty">Nenhuma tarefa.</p>}
+    </div>
   </section>
 }

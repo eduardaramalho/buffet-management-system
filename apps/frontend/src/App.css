@@ -46,7 +46,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .sidebar-footer small { margin-top: 3px; color: var(--sidebar-subtle); font-size: 10px; }
 .sidebar-footer button { margin-left: auto; color: var(--sidebar-button); background: transparent; font-size: 24px; }
 .internal-layout.sidebar-collapsed { --sidebar-width: 68px; }
-.internal-content { width: calc(100% - var(--sidebar-width)); margin-left: var(--sidebar-width); transition: width .2s ease, margin-left .2s ease; }
+/* KAN-95/97: a área interna tem a altura da tela; a topbar fica fixa e só o conteúdo da página rola. */
+.internal-content { display: flex; flex-direction: column; width: calc(100% - var(--sidebar-width)); height: 100vh; height: 100dvh; margin-left: var(--sidebar-width); transition: width .2s ease, margin-left .2s ease; }
 /* Barra recolhida: vira um trilho só com ícones; os links continuam navegáveis (title + aria-label). */
 .sidebar-collapsed .sidebar { padding: 24px 9px 18px; }
 .sidebar-collapsed .sidebar-header { flex-direction: column; gap: 14px; padding: 0 0 22px; }
@@ -57,7 +58,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .sidebar-collapsed .sidebar-footer { flex-direction: column; padding: 14px 0 0; }
 .sidebar-collapsed .sidebar-footer button { margin-left: 0; }
 @media (prefers-reduced-motion: reduce) { .sidebar, .internal-content, .sidebar-toggle, .sidebar-toggle svg { transition: none; } }
-.topbar { height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 0 42px; border-bottom: 1px solid var(--line-200); background: var(--white); }
+.topbar { flex-shrink: 0; height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 0 42px; border-bottom: 1px solid var(--line-200); background: var(--white); }
 .breadcrumb { display: flex; align-items: center; gap: 12px; color: var(--slate-600); font-size: 13px; }
 .breadcrumb strong { color: var(--ink-900); }
 .topbar-user { display: flex; align-items: center; gap: 10px; }
@@ -68,7 +69,10 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .notification i { position: absolute; top: -5px; right: -6px; display: grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; color: var(--white); background: var(--notification); font-size: 9px; font-style: normal; }
 .avatar { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--white); background: var(--blue-600); font-size: 11px; font-weight: 700; }
 .avatar.small { width: 30px; height: 30px; }
-.app-shell { max-width: none; min-height: calc(100vh - 76px); margin: 0; padding: 32px 42px; }
+.app-shell { flex: 1 1 auto; min-height: 0; max-width: none; margin: 0; padding: 32px 42px; overflow-y: auto; }
+/* Telas de quadro e listagem (page-fill): cabeçalho, resumo, busca e paginação ficam fixos; só o card principal rola. */
+.app-shell.page-fill { display: flex; flex-direction: column; }
+.app-shell.page-fill > * { flex-shrink: 0; }
 .app-shell header { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .app-shell header h1 { margin: 7px 0 0; font: 800 28px 'Manrope', sans-serif; }
 .secondary { padding: 11px 17px; border-radius: 7px; color: var(--white); background: var(--blue-600); font-size: 12px; font-weight: 700; }
@@ -425,6 +429,11 @@ form .auth-submit { display: flex; align-items: center; justify-content: center;
 .task-board-search input { flex: 1; min-width: 0; padding: 11px 0; border: 0; outline: 0; background: transparent; }
 .task-board-search:focus-within { border-color: var(--blue-600); box-shadow: 0 0 0 3px var(--blue-100); }
 .task-board { display: grid; grid-template-columns: repeat(4, minmax(250px, 1fr)); gap: 14px; align-items: start; overflow-x: auto; padding-bottom: 6px; }
+/* KAN-95: igual ao Jira, o quadro ocupa a altura que sobra e cada coluna rola os próprios cards. */
+.app-shell.page-fill > .task-board { flex: 1 1 auto; min-height: 320px; grid-template-rows: minmax(0, 1fr); align-items: stretch; }
+.page-fill .task-column { min-height: 0; }
+.task-column-body { display: flex; flex-direction: column; gap: 10px; }
+.page-fill .task-column-body { flex: 1 1 auto; min-height: 0; margin: 0 -8px; padding: 2px 8px 4px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #c3cddb transparent; }
 .task-column { display: flex; flex-direction: column; gap: 10px; min-height: 420px; padding: 12px; border: 1px solid var(--line-200); border-radius: 10px; background: #eef2f7; transition: background-color .16s ease, border-color .16s ease, opacity .16s ease, box-shadow .16s ease; }
 .task-column-title { display: flex; align-items: center; gap: 8px; margin: 2px 4px; color: var(--navy-900); font: 800 13px 'Manrope', sans-serif; }
 .task-column-count { margin-left: auto; padding: 2px 8px; border-radius: 10px; color: var(--slate-600); background: var(--white); font-size: 11px; font-weight: 700; }
@@ -533,3 +542,13 @@ form .auth-submit { display: flex; align-items: center; justify-content: center;
 
 .toast.toast-error { border-color: #f0c9c4; }
 .toast.toast-error > svg { padding: 0; color: var(--danger-700); background: transparent; }
+
+/* KAN-95/97: em celular ou em telas muito baixas a rolagem interna ficaria apertada demais; volta a rolar a página. */
+@media (max-width: 700px), (max-height: 620px) {
+  .internal-content { display: block; height: auto; }
+  .app-shell { min-height: calc(100vh - 76px); overflow-y: visible; }
+  .app-shell.page-fill { display: block; }
+  .app-shell.page-fill > .task-board { min-height: 0; grid-template-rows: none; align-items: start; }
+  .page-fill .task-column { min-height: 420px; }
+  .page-fill .task-column-body { overflow-y: visible; }
+}
