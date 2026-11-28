@@ -32,10 +32,11 @@ describe('InternalLayout', () => {
     expect(within(document.querySelector('.breadcrumb') as HTMLElement).getByRole('strong')).toHaveTextContent(label)
   })
 
-  it.each(['Gestor', 'Administrador'])('shows the real role %s in the layout', (roleName) => {
+  it.each(['Gestor', 'Administrador'])('shows the real role %s once, in the topbar', (roleName) => {
     vi.mocked(useAuth).mockReturnValue({ user: makeUser([roleName]), loading: false, restoring: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
     render(<MemoryRouter><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
-    expect(screen.getAllByText(roleName)).toHaveLength(2)
+    expect(screen.getAllByText(roleName)).toHaveLength(1)
+    expect(document.querySelector('.topbar-user')).toHaveTextContent(roleName)
   })
 
   it('shows the services catalog entry only with services:list (RF06)', () => {
@@ -153,6 +154,56 @@ describe('InternalLayout', () => {
       renderLayout()
       expect(layout()).toHaveClass('sidebar-collapsed')
       expect(screen.getByRole('button', { name: 'Expandir menu' })).toBeInTheDocument()
+    })
+  })
+
+  describe('navegação da barra lateral (KAN-96)', () => {
+    const renderAt = (path = '/') => render(<MemoryRouter initialEntries={[path]}><InternalLayout onLogout={vi.fn()}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
+    const asUserWith = (granted: string[]) => vi.mocked(useAuth).mockReturnValue({ user: { ...makeUser(['Colaborador']), roles: [{ name: 'Colaborador', permissions: granted }] }, loading: false, restoring: false, login: vi.fn(), logout: vi.fn(), changePassword: vi.fn() })
+
+    it('agrupa os links por seção, cada grupo identificado pelo título', () => {
+      renderAt()
+      expect(within(screen.getByRole('group', { name: 'Operação' })).getByRole('link', { name: 'Eventos' })).toBeInTheDocument()
+      expect(within(screen.getByRole('group', { name: 'Automação' })).getByRole('link', { name: 'Regras' })).toBeInTheDocument()
+      expect(within(screen.getByRole('group', { name: 'Administração' })).getByRole('link', { name: 'Usuários' })).toBeInTheDocument()
+    })
+
+    it('não mostra o título de uma seção sem nenhum link permitido', () => {
+      asUserWith(['events:list', 'tasks:list'])
+      renderAt()
+      expect(screen.getByRole('group', { name: 'Operação' })).toBeInTheDocument()
+      expect(screen.queryByRole('group', { name: 'Automação' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('group', { name: 'Administração' })).not.toBeInTheDocument()
+      expect(screen.queryByText('AUTOMAÇÃO')).not.toBeInTheDocument()
+      expect(screen.queryByText('ADMINISTRAÇÃO')).not.toBeInTheDocument()
+    })
+
+    it('marca só a página atual com aria-current', () => {
+      renderAt('/teams')
+      expect(screen.getByRole('link', { name: 'Equipes' })).toHaveAttribute('aria-current', 'page')
+      expect(screen.getByRole('link', { name: 'Equipes' })).toHaveClass('active')
+      expect(screen.getByRole('link', { name: 'Eventos' })).not.toHaveAttribute('aria-current')
+      expect(screen.getByRole('link', { name: 'Dashboard' })).not.toHaveAttribute('aria-current')
+    })
+
+    it('marca o Dashboard só na raiz', () => {
+      renderAt('/')
+      expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
+    })
+
+    it('mantém o botão Sair no rodapé sem repetir os dados do usuário da topbar', () => {
+      renderAt()
+      const footer = document.querySelector('.sidebar-footer') as HTMLElement
+      expect(within(footer).getByRole('button', { name: 'Sair' })).toBeInTheDocument()
+      expect(footer).not.toHaveTextContent('Alice')
+    })
+
+    it('chama o logout pelo botão Sair', async () => {
+      const onLogout = vi.fn().mockResolvedValue(undefined)
+      const user = userEvent.setup()
+      render(<MemoryRouter><InternalLayout onLogout={onLogout}><div>Conteúdo</div></InternalLayout></MemoryRouter>)
+      await user.click(screen.getByRole('button', { name: 'Sair' }))
+      expect(onLogout).toHaveBeenCalledTimes(1)
     })
   })
 })
