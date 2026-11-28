@@ -73,7 +73,7 @@ export function EventsListPage() {
     } catch (cause) { setError(getApiErrorMessage(cause, 'Não foi possível restaurar o evento')) }
   }
 
-  return <main className="app-shell">
+  return <main className="app-shell page-fill">
     <header><div><span className="eyebrow">PAINEL OPERACIONAL</span><h1>Eventos</h1></div>{view === 'active' && canCreate && <button className="secondary" onClick={() => { setEditingEvent(undefined); setFormOpen(true) }}>Novo Evento</button>}</header>
     {canRestore && <fieldset className="view-toggle" aria-label="Visualização dos eventos">
       <button type="button" aria-pressed={view === 'active'} onClick={() => changeView('active')}>Ativos</button>

@@ -25,6 +25,8 @@ describe('ClientsListPage', () => {
     render(<ClientsListPage />)
 
     expect(await screen.findByText('Ana Souza')).toBeInTheDocument()
+    // KAN-97: a lista rola dentro do card; cabeçalho, busca e paginação não saem da tela.
+    expect(screen.getByRole('main')).toHaveClass('app-shell', 'page-fill')
     expect(screen.getByText('529.982.247-25')).toBeInTheDocument()
     expect(screen.getByText('11.222.333/0001-81')).toBeInTheDocument()
     expect(screen.getByText('Pessoa jurídica')).toBeInTheDocument()

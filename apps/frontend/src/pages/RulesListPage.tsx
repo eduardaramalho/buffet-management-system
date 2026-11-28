@@ -60,7 +60,7 @@ export function RulesListPage() {
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Falha ao excluir regra') }
   }
 
-  return <main className="app-shell">
+  return <main className="app-shell page-fill">
     <header><div><span className="eyebrow">MOTOR DE REGRAS</span><h1>Regras</h1></div><button className="secondary" onClick={() => openForm()}>Nova regra</button></header>
     <LoadBoundary status={initialLoad.status} error={initialLoad.error} onRetry={initialLoad.retry} label="Carregando regras..."><section className="summary">
       <StatCard icon="⚙" value={rules.length} label="Total de regras" tone="blue" />
