@@ -1,0 +1,7 @@
+# Publica o MySQL do Compose no host para o modo de desenvolvimento (backend e frontend fora de contêineres).
+# Uso: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mysql
+# A porta padrão é 3307 para não colidir com um MySQL instalado na máquina (que costuma ocupar a 3306).
+services:
+  mysql:
+    ports:
+      - "127.0.0.1:${MYSQL_DEV_PORT:-3307}:3306"

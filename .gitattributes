@@ -2,3 +2,7 @@
 # mesmo quando o repositório é clonado no Windows.
 *.sh text eol=lf
 deploy/** text eol=lf
+
+# Client do Prisma gerado e versionado: o prisma generate sempre escreve LF, então
+# fixamos LF para o generate no Windows não deixar a árvore "modificada".
+apps/backend/src/generated/** text eol=lf
