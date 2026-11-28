@@ -153,7 +153,7 @@ npm test
 | Suíte | Testes | Linhas | Branches | Funções | Statements | Mínimo exigido | Threshold do CI |
 |---|---|---|---|---|---|---|---|
 | Backend | 758 | 98,7% | 93,5% | 95,6% | 97,6% | 75% | 85% nas quatro métricas |
-| Frontend | 549 | 97,1% | 90,4% | 89,3% | 92,6% | 25% | 80% nas quatro métricas |
+| Frontend | 564 | 97,1% | 90,4% | 89,4% | 92,6% | 25% | 80% nas quatro métricas |
 | E2E | jornada com 23 passos | não se aplica | | | | | |
 
 Medição de 27/11/2026. Cada execução do CI publica a cobertura de cada aplicação no resumo do job. A `main` é protegida por um ruleset ([.github/rulesets/main.json](.github/rulesets/main.json)): todo merge passa por pull request e exige os checks `backend`, `frontend`, `e2e` e `sonar` aprovados, inclusive o Quality Gate. As exclusões de cobertura e os thresholds seguem o [ADR 0007](docs/adr/0007-politica-de-qualidade-e-cobertura.md). Detalhes em [Qualidade e Testes](https://github.com/eduardaramalho/buffet-management-system/wiki/Qualidade-e-Testes).
