@@ -50,7 +50,7 @@ export function ClientsListPage() {
     catch (cause) { setError(getApiErrorMessage(cause, 'Não foi possível excluir o cliente')) }
   }
 
-  return <main className="app-shell">
+  return <main className="app-shell page-fill">
     <header><div><span className="eyebrow">OPERAÇÃO DE BUFFET</span><h1>Clientes</h1></div>{hasPermission('clients:create') && <button className="secondary" onClick={() => openForm()}>Novo cliente</button>}</header>
     <LoadBoundary status={initialLoad.status} error={initialLoad.error} onRetry={initialLoad.retry} label="Carregando clientes...">
     <section className="summary"><StatCard icon="♜" value={clients.length} label="Total de clientes" tone="blue" /><StatCard icon="☺" value={clients.filter((client) => client.type === 'PF').length} label="Pessoas físicas" tone="green" /><StatCard icon="◈" value={clients.filter((client) => client.type === 'PJ').length} label="Pessoas jurídicas" tone="gold" /></section>

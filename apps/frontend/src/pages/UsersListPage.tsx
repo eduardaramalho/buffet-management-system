@@ -97,7 +97,7 @@ export function UsersListPage() {
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Falha ao alterar status') }
   }
 
-  return <main className="app-shell">
+  return <main className="app-shell page-fill">
     <header><div><span className="eyebrow">PAINEL OPERACIONAL</span><h1>Usuários</h1></div>{canCreate && <button className="secondary" onClick={() => { setEditingUser(undefined); setFormOpen(true) }}>Novo usuário</button>}</header>
     <LoadBoundary status={initialLoad.status} error={initialLoad.error} onRetry={initialLoad.retry} label="Carregando usuários...">
     <section className="summary"><StatCard icon={<Icon name="users" />} value={users.length} label="Total de usuários" tone="blue" /><StatCard icon={<Icon name="check" />} value={activeUsers} label="Usuários ativos" tone="green" /><StatCard icon={<Icon name="x" />} value={users.length - activeUsers} label="Inativos" tone="gold" /><StatCard icon={<Icon name="shield" />} value={users.filter(isAdmin).length} label="Administradores" tone="purple" /></section>

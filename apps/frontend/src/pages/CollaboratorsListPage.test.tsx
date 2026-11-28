@@ -22,6 +22,8 @@ describe('CollaboratorsListPage', () => {
     render(<CollaboratorsListPage />)
 
     expect(await screen.findByText('Ana Silva')).toBeInTheDocument()
+    // KAN-97: a lista rola dentro do card; cabeçalho, busca e paginação não saem da tela.
+    expect(screen.getByRole('main')).toHaveClass('app-shell', 'page-fill')
     expect(screen.getByText('Total de colaboradores')).toBeInTheDocument()
     expect(screen.getByText('Ativos')).toBeInTheDocument()
     expect(screen.getByText('Inativos')).toBeInTheDocument()

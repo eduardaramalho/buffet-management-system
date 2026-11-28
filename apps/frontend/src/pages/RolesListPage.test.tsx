@@ -22,6 +22,8 @@ describe('RolesListPage', () => {
     render(<RolesListPage />)
 
     expect(await screen.findByText('Gestor')).toBeInTheDocument()
+    // KAN-97: a lista rola dentro do card; cabeçalho, busca e paginação não saem da tela.
+    expect(screen.getByRole('main')).toHaveClass('app-shell', 'page-fill')
     expect(screen.getByText('Gerencia eventos')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Editar Operador' })).toBeInTheDocument()
   })

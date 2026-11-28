@@ -27,6 +27,8 @@ describe('TeamsListPage', () => {
     render(<TeamsListPage />)
 
     expect(await screen.findByText('Equipe Cozinha A')).toBeInTheDocument()
+    // KAN-97: a lista rola dentro do card; cabeçalho, busca e paginação não saem da tela.
+    expect(screen.getByRole('main')).toHaveClass('app-shell', 'page-fill')
     expect(screen.getByText('Total de equipes')).toBeInTheDocument()
     expect(screen.getByText('Equipes ativas')).toBeInTheDocument()
     expect(screen.getByText('Inativas')).toBeInTheDocument()

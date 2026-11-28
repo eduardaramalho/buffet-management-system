@@ -23,6 +23,8 @@ describe('ServicesListPage (RF06)', () => {
     render(<ServicesListPage />)
 
     expect(await screen.findByText('Bar')).toBeInTheDocument()
+    // KAN-97: a lista rola dentro do card; cabeçalho, busca e paginação não saem da tela.
+    expect(screen.getByRole('main')).toHaveClass('app-shell', 'page-fill')
     expect(screen.getByRole('heading', { level: 1, name: 'Serviços' })).toBeInTheDocument()
     expect(screen.getByText('Rótulo livre')).toBeInTheDocument()
     expect(screen.getByText('Total de serviços').previousSibling).toHaveTextContent('3')
