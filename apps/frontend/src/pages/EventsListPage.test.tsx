@@ -23,6 +23,8 @@ describe('EventsListPage', () => {
     vi.mocked(listServices).mockResolvedValue([])
     render(<MemoryRouter><EventsListPage /></MemoryRouter>)
     await screen.findByText('Evento confirmado')
+    // KAN-97: a lista rola dentro do card; cabeçalho, busca e paginação não saem da tela.
+    expect(screen.getByRole('main')).toHaveClass('app-shell', 'page-fill')
 
     fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'CONFIRMADO' } })
 

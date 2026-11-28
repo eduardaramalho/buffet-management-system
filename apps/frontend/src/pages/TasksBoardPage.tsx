@@ -211,7 +211,7 @@ export function TasksBoardPage() {
     }
   }
 
-  return <main className="app-shell">
+  return <main className="app-shell page-fill">
     <header>
       <div><span className="eyebrow">MOTOR DE REGRAS</span><h1>Tarefas</h1></div>
       <div className="header-actions">

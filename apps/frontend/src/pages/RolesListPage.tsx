@@ -26,7 +26,7 @@ export function RolesListPage() {
     : [...current, saved])
 
   return (
-    <main className="app-shell">
+    <main className="app-shell page-fill">
       <header>
         <div>
           <span className="eyebrow">CONTROLE DE ACESSO</span>

@@ -31,6 +31,11 @@ describe('UsersListPage creation flow', () => {
     getUser.mockResolvedValue(undefined)
   })
 
+  it('rola a lista dentro do card, mantendo cabeçalho, busca e paginação na tela (KAN-97)', async () => {
+    renderPage()
+    expect(await screen.findByRole('main')).toHaveClass('app-shell', 'page-fill')
+  })
+
   it('opens the user form when clicking New user', async () => {
     renderPage()
 

@@ -49,7 +49,7 @@ export function ServicesListPage() {
     } catch (cause) { setError(getApiErrorMessage(cause, 'Não foi possível excluir o serviço')) }
   }
 
-  return <main className="app-shell">
+  return <main className="app-shell page-fill">
     <header><div><span className="eyebrow">OPERAÇÃO DE BUFFET</span><h1>Serviços</h1></div>{hasPermission('services:create') && <button className="secondary" onClick={() => openForm()}>Novo serviço</button>}</header>
     <LoadBoundary status={initialLoad.status} error={initialLoad.error} onRetry={initialLoad.retry} label="Carregando serviços...">
     <section className="summary"><StatCard icon={<Icon name="tag" />} value={services.length} label="Total de serviços" tone="blue" /></section>

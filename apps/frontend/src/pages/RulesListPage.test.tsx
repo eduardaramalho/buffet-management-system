@@ -60,6 +60,8 @@ describe('RulesListPage', () => {
     render(<RulesListPage />)
 
     expect(await screen.findByText('Casamento grande precisa de bar')).toBeInTheDocument()
+    // KAN-97: a lista rola dentro do card; cabeçalho, busca e paginação não saem da tela.
+    expect(screen.getByRole('main')).toHaveClass('app-shell', 'page-fill')
     expect(screen.getByText('Regra inativa de limpeza')).toBeInTheDocument()
     expect(screen.getByText('Total de regras')).toBeInTheDocument()
     expect(screen.getByText('Regras ativas')).toBeInTheDocument()
