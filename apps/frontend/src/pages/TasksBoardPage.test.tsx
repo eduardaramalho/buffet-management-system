@@ -101,6 +101,15 @@ describe('TasksBoardPage', () => {
     expect(within(column('Concluída')).getByText('Nenhuma tarefa.')).toBeInTheDocument()
   })
 
+  it('ocupa a altura da tela para rolar dentro das colunas, sem rolar a página (KAN-95)', async () => {
+    arrange([task({ id: 'task-1', title: 'Confirmar decoração', status: 'PENDENTE' })])
+    renderBoard()
+
+    const pendingColumn = await screen.findByRole('region', { name: 'Pendente' })
+    expect(screen.getByRole('main')).toHaveClass('app-shell', 'page-fill')
+    expect(pendingColumn.querySelector('.task-column-body')).toContainElement(within(pendingColumn).getByText('Confirmar decoração'))
+  })
+
   it('no longer has a "Mover" control on the card', async () => {
     arrange([task()])
     renderBoard()
